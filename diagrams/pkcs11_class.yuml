@@ -1,0 +1,27 @@
+// {type:class}
+// {direction:topDown}
+[note: A - Abstract;* - multiply]
+[Collection|Count();Add();Remove();Clear()]
+
+[Object|CLASS|GetAttributeValue();SetAttributeValue()]
+[Object]^[Mechanism|TYPE;flags;minKeySize;maxKeySize;]
+[Object]^[HardwareFeature|TYPE]
+[Object]^[Storage|TOKEN;PRIVATE;LABEL;MODIFIABLE]
+[Storage]^[Data|APPLICATION;OBJECT_IDENTIFIER|VALUE]
+[Storage]^[Certificate]
+[Certificate]^[X509Certificate]
+[Certificate]^[WTLSCertificate]
+[Certificate]^[AttributeCertificate]
+[Storage]^[Key]
+[Key]^[PublicKey]
+[Key]^[PrivateKey]
+[Key]^[SecretKey]
+[Storage]^[DomainParameters]
+
+[Session|handle;slotId;|A GetObject();OpenSession();CloseSession();]
+[Session]1-*[Object]
+[Slot|id;sessions:Session*;mechanisms:Mechanism*|GetSession();HasSession();A CreateSession();]
+[Slot]1-*[Session]
+[Slot]1-*[Mechanism]
+[Pkcs11|slots:Slot*|GetSlot();GetSession();]
+[Pkcs11]1-*[Slot]
