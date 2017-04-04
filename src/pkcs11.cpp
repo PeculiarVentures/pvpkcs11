@@ -82,9 +82,9 @@ Module pkcs11 = Module();
 class App {
 public:
 	App() {
-		Scoped<Slot> MscapiSession(new MscapiSession());
-		pkcs11.slots.add(MscapiSession);
-		MscapiSession->slotID = pkcs11.slots.count() - 1;
+		Scoped<Slot> mscapiSlot(new MscapiSlot());
+		pkcs11.slots.add(mscapiSlot);
+		mscapiSlot->slotID = pkcs11.slots.count() - 1;
 	}
 };
 

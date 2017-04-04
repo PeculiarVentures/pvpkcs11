@@ -2,9 +2,9 @@
 
 #include "../core/slot.h";
 
-class MscapiSession : public Slot {
+class MscapiSlot : public Slot {
 public:
-	MscapiSession();
+	MscapiSlot();
 
 protected:
 	Scoped<Session> CreateSession();
