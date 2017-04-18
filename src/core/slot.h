@@ -25,6 +25,11 @@ public:
 		CK_SLOT_INFO_PTR pInfo    /* receives the slot information */
 	);
 
+	CK_RV GetTokenInfo
+	(
+		CK_TOKEN_INFO_PTR pInfo    /* receives the token information */
+	);
+
 	CK_RV GetMechanismList
 	(
 		CK_MECHANISM_TYPE_PTR pMechanismList,  /* gets mech. array */
@@ -68,6 +73,7 @@ public:
 
 	bool hasSession(CK_SESSION_HANDLE hSession);
 	Scoped<Session> getSession(CK_SESSION_HANDLE hSession);
+	CK_TOKEN_INFO tokenInfo;
 
 protected:
 	virtual Scoped<Session> CreateSession() = 0;

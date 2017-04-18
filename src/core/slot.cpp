@@ -9,6 +9,7 @@
 
 Slot::Slot()
 {
+	this->tokenInfo = CK_TOKEN_INFO();
 }
 
 Slot::~Slot()
@@ -25,8 +26,21 @@ CK_RV Slot::GetSlotInfo(
 	SET_STRING(pInfo->manufacturerID, (char*)(this->manufacturerID), 32);
 	pInfo->flags = this->flags;
 	pInfo->hardwareVersion = this->hardwareVersion;
-	pInfo->hardwareVersion = this->firmwareVersion;
+	pInfo->firmwareVersion = this->firmwareVersion;
 
+	return CKR_OK;
+}
+
+CK_RV Slot::GetTokenInfo
+(
+	CK_TOKEN_INFO_PTR pInfo    /* receives the token information */
+)
+{
+	CHECK_ARGUMENT_NULL(pInfo);
+
+	// Copy data
+	memcpy(pInfo, &this->tokenInfo, sizeof(CK_TOKEN_INFO));
+	
 	return CKR_OK;
 }
 

@@ -1,20 +1,19 @@
 #include "certificate.h"
-#include "cert_store.h"
 
 static CK_RV CryptCreateHashSha1(CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_PTR pDigest, CK_ULONG ulDigestLen)
 {
 	CHECK_ARGUMENT_NULL(pData);
 	CHECK_ARGUMENT_NULL(pDigest);
 
-	HCRYPTPROV hCryptProv;
+	HCRYPTPROV hRsaAesProv;
 	HCRYPTHASH hHash;
 
-	if (!CryptAcquireContext(&hCryptProv, NULL, NULL, PROV_RSA_AES, 0)) {
+	if (!CryptAcquireContext(&hRsaAesProv, NULL, NULL, PROV_RSA_AES, 0)) {
 		printf("Error during CryptAcquireContext\n");
 		goto err;
 	}
 
-	if (!CryptCreateHash(hCryptProv, CALG_SHA1, 0, 0, &hHash)) {
+	if (!CryptCreateHash(hRsaAesProv, CALG_SHA1, 0, 0, &hHash)) {
 		printf("Error during CryptCreateHash\n");
 		goto err;
 	}
@@ -34,14 +33,14 @@ static CK_RV CryptCreateHashSha1(CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_
 
 	if (hHash)
 		CryptDestroyHash(hHash);
-	if (hCryptProv)
-		CryptReleaseContext(hCryptProv, 0);
+	if (hRsaAesProv)
+		CryptReleaseContext(hRsaAesProv, 0);
 
 err:
 	if (hHash)
 		CryptDestroyHash(hHash);
-	if (hCryptProv)
-		CryptReleaseContext(hCryptProv, 0);
+	if (hRsaAesProv)
+		CryptReleaseContext(hRsaAesProv, 0);
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -67,25 +66,16 @@ MscapiCertificate::~MscapiCertificate()
 
 DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetLabel)
 {
-	WCHAR pszNameString[128];
-	if (CertGetNameString(this->cert, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, (LPSTR)pszNameString, 128)) {
+	WCHAR pszNameString[126];
+	if (CertGetNameString(this->cert, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, (LPWSTR)pszNameString, 128)) {
 		char buf[256];
 		WideCharToMultiByte(CP_UTF8, 0, pszNameString, -1, buf, 256, NULL, NULL);
-		size_t convertedLen = strlen(buf);
-		if (pValue) {
-			if (*pulValueLen < convertedLen) {
-				return CKR_BUFFER_TOO_SMALL;
-			}
-			memcpy(pValue, buf, convertedLen);
-		}
-		*pulValueLen = convertedLen;
+		return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)buf, strlen(buf));
 	}
 	else {
 		printf("Error on CertGetNameString\n");
 		return CKR_FUNCTION_FAILED;
 	}
-
-	return CKR_OK;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetSerialNumber)
@@ -121,6 +111,12 @@ DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetModifiable)
 DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetTrusted)
 {
 	return this->GetBool(pValue, pulValueLen, this->trusted);
+}
+
+DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetCertificateCategory)
+{
+	// Categorization of the certificate : 0 = unspecified(default value), 1 = token user, 2 = authority, 3 = other entity.
+	return this->GetNumber(pValue, pulValueLen, 0);
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetCheckValue)
@@ -161,7 +157,7 @@ DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetHashOfSubjectPublicKey)
 
 DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetHashOfIssuerPublicKey)
 {	
-	HCERTSTORE hStore = CertOpenSystemStore(NULL, "root");
+	HCERTSTORE hStore = CertOpenSystemStore(NULL, L"root");
 	if (!hStore) {
 		puts("Error: CertOpenSystemStore");
 	}
@@ -181,7 +177,6 @@ DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetHashOfIssuerPublicKey)
 				certIssuer->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData,
 				pValue, *pulValueLen);
 		}
-
 		*pulValueLen = 20;
 	}
 	else {

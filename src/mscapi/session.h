@@ -2,6 +2,8 @@
 
 #include "../core/session.h"
 #include "cert_store.h"
+#include "crypto_verify.h"
+#include "crypto_sign.h"
 
 class MscapiSession : public Session
 {
@@ -58,14 +60,52 @@ public:
 		CK_ULONG_PTR      pulDigestLen  /* gets byte count of digest */
 	);
 
+	// Message verification
+
+	CK_RV VerifyInit(
+		CK_MECHANISM_PTR  pMechanism,  /* the verification mechanism */
+		CK_OBJECT_HANDLE  hKey         /* verification key */
+	);
+
+	CK_RV VerifyUpdate(
+		CK_BYTE_PTR       pPart,     /* signed data */
+		CK_ULONG          ulPartLen  /* length of signed data */
+	);
+
+	CK_RV VerifyFinal(
+		CK_BYTE_PTR       pSignature,     /* signature to verify */
+		CK_ULONG          ulSignatureLen  /* signature length */
+	);
+
+	// Message signing
+
+	CK_RV SignInit(
+		CK_MECHANISM_PTR  pMechanism,  /* the signature mechanism */
+		CK_OBJECT_HANDLE  hKey         /* handle of signature key */
+	);
+
+	CK_RV SignUpdate(
+		CK_BYTE_PTR       pPart,     /* the data to sign */
+		CK_ULONG          ulPartLen  /* count of bytes to sign */
+	);
+
+	CK_RV SignFinal(
+		CK_BYTE_PTR       pSignature,      /* gets the signature */
+		CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
+	);
+
 protected:
-	HCRYPTPROV hCryptProv;
+	HCRYPTPROV hRsaAesProv;
 	HCRYPTHASH hHash;
 	DWORD dwHashLength;
+	CryptoVerify verify;
+	CryptoSign sign;
 	Collection<Scoped<MscapiCertStore>> certStores;
 	Collection<Scoped<Object>> objects;
 	virtual Scoped<Object> GetObject(CK_OBJECT_HANDLE hObject);
-	void LoadStore(LPSTR storeName);
+	void LoadStore(LPWSTR storeName);
+	Scoped<Object> MscapiSession::GetPublicKey(MscapiCertificate* cert);
+	Scoped<Object> MscapiSession::GetPrivateKey(MscapiCertificate* cert) throw(CK_RV);
 
 	CK_BBOOL TEMPLATES_EQUALS(CK_ATTRIBUTE_PTR pTemplate1, CK_ULONG ulTemplate1Size, CK_ATTRIBUTE_PTR pTemplate2, CK_ULONG ulTemplate2Size);
 };

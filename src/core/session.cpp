@@ -1,17 +1,55 @@
 #include "../stdafx.h"
 #include "session.h"
+#include "objects/key.h"
+#include "objects/public_key.h"
+#include "object.h"
+
+static CK_ATTRIBUTE_PTR ATTRIBUTE_new()
+{
+	CK_ATTRIBUTE_PTR attr = (CK_ATTRIBUTE*)malloc(sizeof(CK_ATTRIBUTE));
+	attr->type = 0;
+	attr->pValue = NULL_PTR;
+	attr->ulValueLen = 0;
+}
+
+static void ATTRIBUTE_free(CK_ATTRIBUTE_PTR attr)
+{
+	if (attr) {
+		if (attr->pValue) {
+			free(attr->pValue);
+			attr->pValue = NULL;
+		}
+		free(attr);
+		attr = NULL;
+	}
+}
+
+static void ATTRIBUTE_set_value(CK_ATTRIBUTE* attr, CK_VOID_PTR pbValue, CK_ULONG ulValueLen)
+{
+	if (pbValue && ulValueLen) {
+		attr->pValue = (CK_VOID_PTR)malloc(ulValueLen);
+		memcpy(attr->pValue, pbValue, ulValueLen);
+	}
+}
+
+static void ATTRIBUTE_copy(CK_ATTRIBUTE* attrDst, CK_ATTRIBUTE* attrSrc)
+{
+	attrDst->type = attrSrc->type;
+	attrDst->ulValueLen = attrSrc->ulValueLen;
+	ATTRIBUTE_set_value(attrDst, attrSrc->pValue, attrSrc->ulValueLen);
+}
 
 #define CHECK_DIGEST_OPERATION()							\
 	if (!this->digestInitialized) {							\
 		return CKR_OPERATION_NOT_INITIALIZED;				\
 	}
 
-#define CHECK_MECHANISM_TYPE(mechanismType)							\
-{																	\
-	CK_RV __res = this->CheckMechanismType(mechanismType);			\
-	if (__res != CKR_OK) {											\
-		return __res;												\
-	}																\
+#define CHECK_MECHANISM_TYPE(mechanismType, usage)                          \
+{                                                                           \
+	CK_RV __res = this->CheckMechanismType(mechanismType, usage);           \
+	if (__res != CKR_OK) {                                                  \
+		return __res;                                                       \
+	}                                                                       \
 }
 
 Session::Session()
@@ -24,6 +62,9 @@ Session::Session()
 	this->find = {
 		false, NULL_PTR, 0, 0
 	};
+	this->signInitialized = false;
+	this->verifyInitialized = false;
+	this->digestInitialized = false;
 }
 
 Session::~Session()
@@ -152,7 +193,12 @@ CK_RV Session::FindObjectsInit
 		return CKR_OPERATION_ACTIVE;
 	}
 	this->find.active = true;
-	this->find.pTemplate = pTemplate;
+	// copy template
+	this->find.pTemplate = (CK_ATTRIBUTE_PTR)malloc(sizeof(CK_ATTRIBUTE) * ulCount);
+	for (int i = 0; i < ulCount; i++) {
+		this->find.pTemplate[i];
+		ATTRIBUTE_copy(&this->find.pTemplate[i], &pTemplate[i]);
+	}
 	this->find.ulTemplateSize = ulCount;
 	this->find.index = 0;
 
@@ -186,7 +232,19 @@ CK_RV Session::FindObjectsFinal()
 		return CKR_OPERATION_NOT_INITIALIZED;
 	}
 
+	// destroy Template
+	if (this->find.pTemplate) {
+		for (int i = 0; i < this->find.ulTemplateSize; i++) {
+			if (this->find.pTemplate[i].pValue) {
+				free(this->find.pTemplate[i].pValue);
+			}
+		}
+		free(this->find.pTemplate);
+	}
+	this->find.pTemplate = NULL;
+	this->find.ulTemplateSize = 0;
 	this->find.active = false;
+	this->find.index = 0;
 
 	return CKR_OK;
 }
@@ -197,7 +255,7 @@ CK_RV Session::DigestInit
 )
 {
 	CHECK_ARGUMENT_NULL(pMechanism);
-	CHECK_MECHANISM_TYPE(pMechanism->mechanism);
+	CHECK_MECHANISM_TYPE(pMechanism->mechanism, CKF_DIGEST);
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -250,7 +308,7 @@ CK_RV Session::DigestFinal
 	return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV Session::CheckMechanismType(CK_MECHANISM_TYPE mechanism)
+CK_RV Session::CheckMechanismType(CK_MECHANISM_TYPE mechanism, CK_ULONG usage)
 {
 	CK_ULONG ulMechanismCount;
 	CK_RV res = C_GetMechanismList(this->SlotID, NULL_PTR, &ulMechanismCount);
@@ -266,11 +324,175 @@ CK_RV Session::CheckMechanismType(CK_MECHANISM_TYPE mechanism)
 	}
 	for (size_t i = 0; i < ulMechanismCount; i++) {
 		if (mechanisms[i] == mechanism) {
-			found = true;
-			break;
+			CK_MECHANISM_INFO info;
+			// check mechanism usage
+			res = C_GetMechanismInfo(this->SlotID, mechanism, &info);
+			if (res != CKR_OK) {
+				return res;
+			}
+			else {
+				if (info.flags & usage) {
+					found = true;
+				}
+				break;
+			}
 		}
 	}
 	free(mechanisms);
 
 	return found ? CKR_OK : CKR_MECHANISM_INVALID;
+}
+
+CK_RV Session::VerifyInit(
+	CK_MECHANISM_PTR  pMechanism,  /* the verification mechanism */
+	CK_OBJECT_HANDLE  hKey         /* verification key */
+)
+{
+	CK_RV res;
+	if (this->verifyInitialized) {
+		return CKR_OPERATION_ACTIVE;
+	}
+	CHECK_ARGUMENT_NULL(pMechanism);
+	CHECK_MECHANISM_TYPE(pMechanism->mechanism, CKF_VERIFY);
+	CHECK_ARGUMENT_NULL(hKey);
+	Scoped<Object> object = this->GetObject(hKey);
+
+	if (!object) {
+		return CKR_OBJECT_HANDLE_INVALID;
+	}
+	Key* key;
+	if (key = dynamic_cast<Key*>(object.get())) {
+		// Check type of Key
+		CK_ULONG ulKeyType;
+		CK_ULONG ulKeyTypeLen = sizeof(CK_ULONG);
+		res = key->GetClass((CK_BYTE_PTR)&ulKeyType, &ulKeyTypeLen);
+		if (res != CKR_OK) {
+			return CKR_FUNCTION_FAILED;
+		}
+		if (!(ulKeyType == CKO_PUBLIC_KEY || ulKeyType == CKO_SECRET_KEY)) {
+			return CKR_KEY_TYPE_INCONSISTENT;
+		}
+	}
+	else {
+		return CKR_KEY_HANDLE_INVALID;
+	}
+
+	return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV Session::Verify(
+	CK_BYTE_PTR       pData,          /* signed data */
+	CK_ULONG          ulDataLen,      /* length of signed data */
+	CK_BYTE_PTR       pSignature,     /* signature */
+	CK_ULONG          ulSignatureLen  /* signature length*/
+)
+{
+	CK_RV res = VerifyUpdate(pData, ulDataLen);
+	if (res != CKR_OK) {
+		return res;
+	}
+	res = VerifyFinal(pSignature, ulSignatureLen);
+
+	return res;
+}
+
+CK_RV Session::VerifyUpdate(
+	CK_BYTE_PTR       pPart,     /* signed data */
+	CK_ULONG          ulPartLen  /* length of signed data */
+)
+{
+	if (!this->verifyInitialized) {
+		return CKR_OPERATION_NOT_INITIALIZED;
+	}
+
+	return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV Session::VerifyFinal(
+	CK_BYTE_PTR       pSignature,     /* signature to verify */
+	CK_ULONG          ulSignatureLen  /* signature length */
+)
+{
+	if (!this->verifyInitialized) {
+		return CKR_OPERATION_NOT_INITIALIZED;
+	}
+
+	return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV Session::SignInit(
+	CK_MECHANISM_PTR  pMechanism,  /* the signature mechanism */
+	CK_OBJECT_HANDLE  hKey         /* handle of signature key */
+)
+{
+	CK_RV res;
+	if (this->signInitialized) {
+		return CKR_OPERATION_ACTIVE;
+	}
+	CHECK_ARGUMENT_NULL(pMechanism);
+	CHECK_MECHANISM_TYPE(pMechanism->mechanism, CKF_SIGN);
+	CHECK_ARGUMENT_NULL(hKey);
+	Scoped<Object> object = this->GetObject(hKey);
+
+	if (!object) {
+		return CKR_OBJECT_HANDLE_INVALID;
+	}
+	Key* key;
+	if (key = dynamic_cast<Key*>(object.get())) {
+		// Check type of Key
+		CK_ULONG ulKeyType;
+		CK_ULONG ulKeyTypeLen = sizeof(CK_ULONG);
+		res = key->GetClass((CK_BYTE_PTR)&ulKeyType, &ulKeyTypeLen);
+		if (res != CKR_OK) {
+			return CKR_FUNCTION_FAILED;
+		}
+		if (!(ulKeyType == CKO_PRIVATE_KEY || ulKeyType == CKO_SECRET_KEY)) {
+			return CKR_KEY_TYPE_INCONSISTENT;
+		}
+	}
+	else {
+		return CKR_KEY_HANDLE_INVALID;
+	}
+
+	return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV Session::Sign(
+	CK_BYTE_PTR       pData,           /* the data to sign */
+	CK_ULONG          ulDataLen,       /* count of bytes to sign */
+	CK_BYTE_PTR       pSignature,      /* gets the signature */
+	CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
+)
+{
+	CK_RV res = SignUpdate(pData, ulDataLen);
+	if (res != CKR_OK) {
+		return res;
+	}
+	res = SignFinal(pSignature, pulSignatureLen);
+
+	return res;
+}
+
+CK_RV Session::SignUpdate(
+	CK_BYTE_PTR       pPart,     /* the data to sign */
+	CK_ULONG          ulPartLen  /* count of bytes to sign */
+)
+{
+	if (!this->signInitialized) {
+		return CKR_OPERATION_NOT_INITIALIZED;
+	}
+
+	return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV Session::SignFinal(
+	CK_BYTE_PTR       pSignature,      /* gets the signature */
+	CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
+)
+{
+	if (!this->signInitialized) {
+		return CKR_OPERATION_NOT_INITIALIZED;
+	}
+
+	return CKR_FUNCTION_NOT_SUPPORTED;
 }

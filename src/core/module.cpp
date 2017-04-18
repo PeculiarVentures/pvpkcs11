@@ -11,10 +11,10 @@
 		return CKR_SLOT_ID_INVALID;								\
 	}
 
-#define GET_SESSION(hSession)											\
-	Scoped<Session> session = this->getSession(hSession);		\
-	if (!session) {											\
-		return CKR_SESSION_HANDLE_INVALID;								\
+#define GET_SESSION(hSession)                                           \
+	Scoped<Session> session = this->getSession(hSession);               \
+	if (!session) {                                                     \
+		return CKR_SESSION_HANDLE_INVALID;                              \
 	}
 
 Module::Module() {
@@ -90,7 +90,7 @@ CK_RV Module::GetTokenInfo
 	CHECK_SLOD_ID(slotID);
 	Scoped<Slot> slot = this->slots.items(slotID);
 
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	return slot->GetTokenInfo(pInfo);
 }
 
 CK_RV Module::GetMechanismList
@@ -365,4 +365,110 @@ CK_RV Module::DigestFinal
 	GET_SESSION(hSession);
 
 	return session->DigestFinal(pDigest, pulDigestLen);
+}
+
+/* Signing and MACing */
+
+CK_RV Module::SignInit(
+	CK_SESSION_HANDLE hSession,    /* the session's handle */
+	CK_MECHANISM_PTR  pMechanism,  /* the signature mechanism */
+	CK_OBJECT_HANDLE  hKey         /* handle of signature key */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->SignInit(pMechanism, hKey);
+}
+
+CK_RV Module::Sign(
+	CK_SESSION_HANDLE hSession,        /* the session's handle */
+	CK_BYTE_PTR       pData,           /* the data to sign */
+	CK_ULONG          ulDataLen,       /* count of bytes to sign */
+	CK_BYTE_PTR       pSignature,      /* gets the signature */
+	CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->Sign(pData, ulDataLen, pSignature, pulSignatureLen);
+}
+
+CK_RV Module::SignUpdate(
+	CK_SESSION_HANDLE hSession,  /* the session's handle */
+	CK_BYTE_PTR       pPart,     /* the data to sign */
+	CK_ULONG          ulPartLen  /* count of bytes to sign */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->SignUpdate(pPart, ulPartLen);
+}
+
+CK_RV Module::SignFinal(
+	CK_SESSION_HANDLE hSession,        /* the session's handle */
+	CK_BYTE_PTR       pSignature,      /* gets the signature */
+	CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->SignFinal(pSignature, pulSignatureLen);
+}
+
+CK_RV Module::VerifyInit
+(
+	CK_SESSION_HANDLE hSession,    /* the session's handle */
+	CK_MECHANISM_PTR  pMechanism,  /* the verification mechanism */
+	CK_OBJECT_HANDLE  hKey         /* verification key */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->VerifyInit(pMechanism, hKey);
+}
+
+CK_RV Module::Verify
+(
+	CK_SESSION_HANDLE hSession,       /* the session's handle */
+	CK_BYTE_PTR       pData,          /* signed data */
+	CK_ULONG          ulDataLen,      /* length of signed data */
+	CK_BYTE_PTR       pSignature,     /* signature */
+	CK_ULONG          ulSignatureLen  /* signature length*/
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->Verify(pData, ulDataLen, pSignature, ulSignatureLen);
+}
+
+CK_RV Module::VerifyUpdate
+(
+	CK_SESSION_HANDLE hSession,  /* the session's handle */
+	CK_BYTE_PTR       pPart,     /* signed data */
+	CK_ULONG          ulPartLen  /* length of signed data */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->VerifyUpdate(pPart, ulPartLen);
+}
+
+CK_RV Module::VerifyFinal
+(
+	CK_SESSION_HANDLE hSession,       /* the session's handle */
+	CK_BYTE_PTR       pSignature,     /* signature to verify */
+	CK_ULONG          ulSignatureLen  /* signature length */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->VerifyFinal(pSignature, ulSignatureLen);
 }

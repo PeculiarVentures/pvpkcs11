@@ -2,6 +2,10 @@
 #include "../pkcs11.h"
 #include "object.h";
 
+#ifdef GetObject
+#undef GetObject
+#endif
+
 struct OBJECT_FIND
 {
 	bool active;
@@ -29,6 +33,8 @@ public:
 	OBJECT_FIND           find;
 
 	bool digestInitialized;
+	bool verifyInitialized;
+	bool signInitialized;
 	
 	Session();
 	~Session();
@@ -124,8 +130,56 @@ public:
 		CK_ULONG_PTR      pulDigestLen  /* gets byte count of digest */
 	);
 
+	// Message verification
+
+	virtual CK_RV VerifyInit(
+		CK_MECHANISM_PTR  pMechanism,  /* the verification mechanism */
+		CK_OBJECT_HANDLE  hKey         /* verification key */
+	);
+
+	virtual CK_RV Verify(
+		CK_BYTE_PTR       pData,          /* signed data */
+		CK_ULONG          ulDataLen,      /* length of signed data */
+		CK_BYTE_PTR       pSignature,     /* signature */
+		CK_ULONG          ulSignatureLen  /* signature length*/
+	);
+
+	virtual CK_RV VerifyUpdate(
+		CK_BYTE_PTR       pPart,     /* signed data */
+		CK_ULONG          ulPartLen  /* length of signed data */
+	);
+
+	virtual CK_RV VerifyFinal(
+		CK_BYTE_PTR       pSignature,     /* signature to verify */
+		CK_ULONG          ulSignatureLen  /* signature length */
+	);
+
+	// Message signing
+
+	virtual CK_RV SignInit(
+		CK_MECHANISM_PTR  pMechanism,  /* the signature mechanism */
+		CK_OBJECT_HANDLE  hKey         /* handle of signature key */
+	);
+
+	CK_RV Sign(
+		CK_BYTE_PTR       pData,           /* the data to sign */
+		CK_ULONG          ulDataLen,       /* count of bytes to sign */
+		CK_BYTE_PTR       pSignature,      /* gets the signature */
+		CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
+	);
+
+	virtual CK_RV SignUpdate(
+		CK_BYTE_PTR       pPart,     /* the data to sign */
+		CK_ULONG          ulPartLen  /* count of bytes to sign */
+	);
+
+	virtual CK_RV SignFinal(
+		CK_BYTE_PTR       pSignature,      /* gets the signature */
+		CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
+	);
+
 protected:
-	CK_RV CheckMechanismType(CK_MECHANISM_TYPE mechanism);
+	CK_RV CheckMechanismType(CK_MECHANISM_TYPE mechanism, CK_ULONG usage);
 	virtual Scoped<Object> GetObject(CK_OBJECT_HANDLE hObject) = 0;
 
 };

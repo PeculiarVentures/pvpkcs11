@@ -4,10 +4,10 @@
 #include "../core/collection.h"
 #include "certificate.h"
 
-#define STORE_MY "My"
-#define STORE_ADDRESS "Address"
-#define STORE_CA "CA"
-#define STORE_ROOT "Root"
+#define STORE_MY L"My"
+#define STORE_ADDRESS L"Address"
+#define STORE_CA L"CA"
+#define STORE_ROOT L"Root"
 
 class MscapiCertStore
 {
@@ -19,12 +19,12 @@ public:
 
 	Scoped<Collection<Scoped<Object>>> GetCertificates();
 
-	CK_RV Open(LPSTR storeName);
+	CK_RV Open(LPWSTR storeName);
 	CK_RV Close();
 protected:
 	bool opened;
 	HCERTSTORE hStore;
-	LPSTR name;
+	LPWSTR name;
 };
 
 

@@ -2,6 +2,15 @@
 #include "core/module.h"
 #include "mscapi/slot.h"
 
+#define CATCH(functionName)                                     \
+	catch (const std::exception &e) {                           \
+		sprintf("Error: %s\n", functionName);                   \
+		sprintf("    %s\n", e.what());                          \
+	}                                                           \
+	catch (...) {                                               \
+		sprintf("Error: %s\n", functionName);                   \
+	}
+
 static CK_FUNCTION_LIST functionList =
 {
 	// Version information
@@ -528,8 +537,13 @@ CK_DEFINE_FUNCTION(CK_RV, C_FindObjects)
 	try {
 		return pkcs11.FindObjects(hSession, phObject, ulMaxObjectCount, pulObjectCount);
 	}
+	// CATCH("C_FindObjects")
+	/*catch (const std::exception &e) {
+		sprintf("Error: %s\n", "C_FindObject");
+		sprintf("    %s\n", e.what());
+	}*/
 	catch (...) {
-		puts("Error: C_FindObjects");
+		sprintf("Error: %s\n", "C_FindObject");
 	}
 
 	return CKR_FUNCTION_FAILED;
@@ -776,7 +790,13 @@ CK_DEFINE_FUNCTION(CK_RV, C_SignInit)
 	CK_OBJECT_HANDLE  hKey         /* handle of signature key */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.SignInit(hSession, pMechanism, hKey);
+	}
+	catch (...) {
+	}
+
+	return CKR_FUNCTION_FAILED;
 }
 
 
@@ -792,7 +812,13 @@ CK_DEFINE_FUNCTION(CK_RV, C_Sign)
 	CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.Sign(hSession, pData, ulDataLen, pSignature, pulSignatureLen);
+	}
+	catch (...) {
+	}
+
+	return CKR_FUNCTION_FAILED;
 }
 
 
@@ -806,7 +832,13 @@ CK_DEFINE_FUNCTION(CK_RV, C_SignUpdate)
 	CK_ULONG          ulPartLen  /* count of bytes to sign */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.SignUpdate(hSession, pPart, ulPartLen);
+	}
+	catch (...) {
+	}
+
+	return CKR_FUNCTION_FAILED;
 }
 
 
@@ -819,7 +851,13 @@ CK_DEFINE_FUNCTION(CK_RV, C_SignFinal)
 	CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.SignFinal(hSession, pSignature, pulSignatureLen);
+	}
+	catch (...) {
+	}
+
+	return CKR_FUNCTION_FAILED;
 }
 
 
@@ -864,7 +902,13 @@ CK_DEFINE_FUNCTION(CK_RV, C_VerifyInit)
 	CK_OBJECT_HANDLE  hKey         /* verification key */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.VerifyInit(hSession, pMechanism, hKey);
+	}
+	catch (...) {
+	}
+
+	return CKR_FUNCTION_FAILED;
 }
 
 
@@ -880,7 +924,13 @@ CK_DEFINE_FUNCTION(CK_RV, C_Verify)
 	CK_ULONG          ulSignatureLen  /* signature length*/
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.Verify(hSession, pData, ulDataLen, pSignature, ulSignatureLen);
+	}
+	catch (...) {
+	}
+
+	return CKR_FUNCTION_FAILED;
 }
 
 
@@ -894,7 +944,13 @@ CK_DEFINE_FUNCTION(CK_RV, C_VerifyUpdate)
 	CK_ULONG          ulPartLen  /* length of signed data */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.VerifyUpdate(hSession, pPart, ulPartLen);
+	}
+	catch (...) {
+	}
+
+	return CKR_FUNCTION_FAILED;
 }
 
 
@@ -907,7 +963,13 @@ CK_DEFINE_FUNCTION(CK_RV, C_VerifyFinal)
 	CK_ULONG          ulSignatureLen  /* signature length */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.VerifyFinal(hSession, pSignature, ulSignatureLen);
+	}
+	catch (...) {
+	}
+
+	return CKR_FUNCTION_FAILED;
 }
 
 

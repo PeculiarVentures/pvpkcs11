@@ -8,6 +8,7 @@ class MscapiCertificate : public X509Certificate
 public:
 
 	CK_BBOOL trusted;
+	PCCERT_CONTEXT cert;
 
 	MscapiCertificate(PCCERT_CONTEXT cert);
 	MscapiCertificate(PCCERT_CONTEXT cert, CK_BBOOL trusted);
@@ -21,6 +22,7 @@ public:
 	// DECLARE_GET_ATTRIBUTE(GetCopyable);
 	// cert
 	DECLARE_GET_ATTRIBUTE(GetTrusted);
+	DECLARE_GET_ATTRIBUTE(GetCertificateCategory);
 	DECLARE_GET_ATTRIBUTE(GetCheckValue);
 	// DECLARE_GET_ATTRIBUTE(GetStartDate);
 	// DECLARE_GET_ATTRIBUTE(GetEndDate);
@@ -36,7 +38,5 @@ public:
 	// DECLARE_GET_ATTRIBUTE(GetJavaMidpSecurityDomain);
 	// DECLARE_GET_ATTRIBUTE(GetNameHashAlgorithm);
 
-protected:
-	PCCERT_CONTEXT cert;
 };
 

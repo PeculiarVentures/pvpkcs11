@@ -1,18 +1,16 @@
 #include "cert_store.h"
-#include "certificate.h"
 
 MscapiCertStore::MscapiCertStore()
 {
 	this->hStore = NULL;
 }
 
-
 MscapiCertStore::~MscapiCertStore()
 {
 	this->Close();
 }
 
-CK_RV MscapiCertStore::Open(LPSTR storeName)
+CK_RV MscapiCertStore::Open(LPWSTR storeName)
 {
 	this->hStore = CertOpenSystemStore((HCRYPTPROV)NULL, storeName);
 	if (this->hStore == NULL_PTR) {

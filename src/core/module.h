@@ -167,6 +167,63 @@ public:
 		CK_ULONG_PTR      pulDigestLen  /* gets byte count of digest */
 	);
 
+	/* Signing and MACing */
+
+	CK_RV SignInit(
+		CK_SESSION_HANDLE hSession,    /* the session's handle */
+		CK_MECHANISM_PTR  pMechanism,  /* the signature mechanism */
+		CK_OBJECT_HANDLE  hKey         /* handle of signature key */
+	);
+
+	CK_RV Sign(
+		CK_SESSION_HANDLE hSession,        /* the session's handle */
+		CK_BYTE_PTR       pData,           /* the data to sign */
+		CK_ULONG          ulDataLen,       /* count of bytes to sign */
+		CK_BYTE_PTR       pSignature,      /* gets the signature */
+		CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
+	);
+
+	CK_RV SignUpdate(
+		CK_SESSION_HANDLE hSession,  /* the session's handle */
+		CK_BYTE_PTR       pPart,     /* the data to sign */
+		CK_ULONG          ulPartLen  /* count of bytes to sign */
+	);
+
+	CK_RV SignFinal(
+		CK_SESSION_HANDLE hSession,        /* the session's handle */
+		CK_BYTE_PTR       pSignature,      /* gets the signature */
+		CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
+	);
+
+	CK_RV VerifyInit
+	(
+		CK_SESSION_HANDLE hSession,    /* the session's handle */
+		CK_MECHANISM_PTR  pMechanism,  /* the verification mechanism */
+		CK_OBJECT_HANDLE  hKey         /* verification key */
+	);
+
+	CK_RV Verify
+	(
+		CK_SESSION_HANDLE hSession,       /* the session's handle */
+		CK_BYTE_PTR       pData,          /* signed data */
+		CK_ULONG          ulDataLen,      /* length of signed data */
+		CK_BYTE_PTR       pSignature,     /* signature */
+		CK_ULONG          ulSignatureLen  /* signature length*/
+	);
+
+	CK_RV VerifyUpdate
+	(
+		CK_SESSION_HANDLE hSession,  /* the session's handle */
+		CK_BYTE_PTR       pPart,     /* signed data */
+		CK_ULONG          ulPartLen  /* length of signed data */
+	);
+
+	CK_RV VerifyFinal
+	(
+		CK_SESSION_HANDLE hSession,       /* the session's handle */
+		CK_BYTE_PTR       pSignature,     /* signature to verify */
+		CK_ULONG          ulSignatureLen  /* signature length */
+	);
 protected:
 	Scoped<Slot> getSlotBySession(CK_SESSION_HANDLE hSession);
 	Scoped<Session> getSession(CK_SESSION_HANDLE hSession);

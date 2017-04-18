@@ -8,7 +8,7 @@
 #include <windows.h>
 #include <wincrypt.h>
 
-#endif
+#endif // _WIN32
 
 #pragma pack(push, cryptoki, 1)
 #include "./pkcs11.h"
