@@ -12,3 +12,9 @@ To make the development of these platform and user agent specific PKCS#11 implem
 At this time we have only one PKCS#11 implementation, `mscapi`, but in the future we will have others as well.
 
 ![image](http://yuml.me/b60167b1)
+
+
+## Related
+- [webcrypto-local](https://github.com/PeculiarVentures/webcrypto-local)
+- [node-webcrypto-p11](https://github.com/PeculiarVentures/node-webcrypto-p11)
+- [Attacking and Fixing PKCS#11 Security Tokens](http://www.lsv.ens-cachan.fr/Publis/PAPERS/PDF/BCFS-ccs10.pdf)
