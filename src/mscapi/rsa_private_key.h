@@ -2,15 +2,16 @@
 
 #include "../stdafx.h"
 #include "../core/objects/rsa_private_key.h"
+#include "crypt/crypt.h"
 
 class MscapiRsaPrivateKey : public RsaPrivateKey {
 
 public:
-	HCRYPTPROV     hProv;
-	HCRYPTKEY      hKey;
+	Scoped<crypt::Key> value;
+
 	std::string    id;
 
-	MscapiRsaPrivateKey(HCRYPTPROV hProv, HCRYPTKEY hKey);
+	MscapiRsaPrivateKey(Scoped<crypt::Key> key, CK_BBOOL token);
 	~MscapiRsaPrivateKey();
 
 	// Storage

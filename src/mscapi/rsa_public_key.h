@@ -1,22 +1,14 @@
 #pragma once
 
 #include "../core/objects/rsa_public_key.h"
-#include "key.h";
+#include "crypt/crypt.h"
 
 class MscapiRsaPublicKey : public RsaPublicKey {
 
 public:
-
-	CK_BBOOL token;
 	
+	MscapiRsaPublicKey(Scoped<crypt::Key> key, CK_BBOOL token);
 	~MscapiRsaPublicKey();
-
-	// Storage
-	DECLARE_GET_ATTRIBUTE(GetToken);
-	DECLARE_GET_ATTRIBUTE(GetPrivate);
-	DECLARE_GET_ATTRIBUTE(GetModifiable);
-	DECLARE_GET_ATTRIBUTE(GetLabel);
-	DECLARE_GET_ATTRIBUTE(GetCopyable);
 
 	// Key
 	DECLARE_GET_ATTRIBUTE(GetID);
@@ -41,6 +33,6 @@ public:
 	DECLARE_GET_ATTRIBUTE(GetModulusBits);
 	DECLARE_GET_ATTRIBUTE(GetPublicExponent);
 
-	Scoped<MscapiKey> key;
+	Scoped<crypt::Key> value;
 	std::string id;
 };

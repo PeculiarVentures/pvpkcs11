@@ -2,22 +2,21 @@
 
 #include "../stdafx.h"
 #include "../core/objects/x509_certificate.h"
+#include "crypt/crypt.h"
 
 class MscapiCertificate : public X509Certificate
 {
 public:
 
 	CK_BBOOL trusted;
-	PCCERT_CONTEXT cert;
 
-	MscapiCertificate(PCCERT_CONTEXT cert);
-	MscapiCertificate(PCCERT_CONTEXT cert, CK_BBOOL trusted);
+	Scoped<crypt::X509Certificate> value;
+
+	MscapiCertificate(Scoped<crypt::X509Certificate> value, CK_BBOOL token);
 	~MscapiCertificate();
 
 	// storage
-	DECLARE_GET_ATTRIBUTE(GetToken);
 	// DECLARE_GET_ATTRIBUTE(GetPrivate);
-	DECLARE_GET_ATTRIBUTE(GetModifiable);
 	DECLARE_GET_ATTRIBUTE(GetLabel);
 	// DECLARE_GET_ATTRIBUTE(GetCopyable);
 	// cert

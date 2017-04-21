@@ -1,9 +1,7 @@
 #pragma once
 
 #include "../core/session.h"
-#include "cert_store.h"
-#include "crypto_verify.h"
-#include "crypto_sign.h"
+#include "crypt/crypt.h"
 
 class MscapiSession : public Session
 {
@@ -96,16 +94,13 @@ public:
 
 protected:
 	HCRYPTPROV hRsaAesProv;
-	HCRYPTHASH hHash;
-	DWORD dwHashLength;
-	CryptoVerify verify;
-	CryptoSign sign;
-	Collection<Scoped<MscapiCertStore>> certStores;
+	Scoped<crypt::Hash> hash;
+	Scoped<crypt::Verify> verify;
+	Scoped<crypt::Sign> sign;
+	Collection<Scoped<crypt::CertStore>> certStores;
 	Collection<Scoped<Object>> objects;
 	virtual Scoped<Object> GetObject(CK_OBJECT_HANDLE hObject);
-	void LoadStore(LPWSTR storeName);
-	Scoped<Object> MscapiSession::GetPublicKey(MscapiCertificate* cert);
-	Scoped<Object> MscapiSession::GetPrivateKey(MscapiCertificate* cert) throw(CK_RV);
+	void LoadMyStore();
 
 	CK_BBOOL TEMPLATES_EQUALS(CK_ATTRIBUTE_PTR pTemplate1, CK_ULONG ulTemplate1Size, CK_ATTRIBUTE_PTR pTemplate2, CK_ULONG ulTemplate2Size);
 };

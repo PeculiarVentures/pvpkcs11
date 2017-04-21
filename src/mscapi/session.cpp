@@ -1,9 +1,10 @@
 #include "../stdafx.h"
 #include "helper.h"
 #include "session.h"
-#include "key.h"
+#include "certificate.h"
 #include "rsa_public_key.h"
 #include "rsa_private_key.h"
+#include "helper.h"
 
 MscapiSession::MscapiSession() : Session()
 {
@@ -17,35 +18,51 @@ MscapiSession::~MscapiSession()
 		CryptReleaseContext(hRsaAesProv, 0);
 		hRsaAesProv = NULL;
 	}
-	if (this->hHash) {
-		CryptDestroyHash(this->hHash);
-		this->hHash = NULL;
-	}
 }
 
-void MscapiSession::LoadStore(LPWSTR storeName)
+void MscapiSession::LoadMyStore()
 {
-	Scoped<MscapiCertStore> store(new MscapiCertStore());
+	Scoped<crypt::CertStore> store(new crypt::CertStore());
 	this->certStores.add(store);
-	store->Open(storeName);
-	Scoped<Collection<Scoped<Object>>> certs = store->GetCertificates();
-
+	store->Open("My");
+	Scoped<Collection<Scoped<crypt::X509Certificate>>> certs = store->GetCertificates();
 	for (size_t i = 0; i < certs->count(); i++) {
-		Scoped<Object> item = certs->items(i);
-		if (MscapiCertificate* cert = dynamic_cast<MscapiCertificate*>(item.get())) {
-			Scoped<Object>publicKey = this->GetPublicKey(cert);
-			if (publicKey.get()) {
-				try {
-					Scoped<Object> privateKey = GetPrivateKey(cert);
-					this->objects.add(privateKey);
-				}
-				catch (...) {
+		Scoped<crypt::X509Certificate> x509 = certs->items(i);
+		Scoped<MscapiCertificate> x509Object(new MscapiCertificate(x509, true));
 
-				}
-				this->objects.add(publicKey);
-				this->objects.add(item);
+		// Get public key for Certificate. Application supports RSA and EC algorithms
+		// In other case application throws error
+		Scoped<Object> publicKeyObject;
+		try {
+			Scoped<crypt::Key> publicKey = x509->GetPublicKey();
+			fprintf(stdout, "Certificate '%s' has public key\n", x509->GetLabel()->c_str());
+			Scoped<MscapiRsaPublicKey> key(new MscapiRsaPublicKey(publicKey, true));
+			key->id = *x509->GetHashPublicKey().get();
+			publicKeyObject = key;
+		}
+		catch (const crypt::Exception &e) {
+			continue;
+		}
+
+		// Get private key for Certificate
+		Scoped<Object> privateKeyObject;
+		if (x509->HasPrivateKey()) {
+			fprintf(stdout, "Certificate '%s' has private key\n", x509->GetLabel()->c_str());
+			try {
+				Scoped<crypt::Key> privateKey = x509->GetPrivateKey();
+				Scoped<MscapiRsaPrivateKey> key(new MscapiRsaPrivateKey(privateKey, true));
+				key->id = *x509->GetHashPublicKey().get();
+				privateKeyObject = key;
+			}
+			catch (crypt::Exception &e) {
+				// If we cannot get private key for certificate, we don't have to show this certificate in list
+				continue;
 			}
 		}
+
+		this->objects.add(x509Object);
+		this->objects.add(publicKeyObject);
+		this->objects.add(privateKeyObject);
 	}
 }
 
@@ -57,6 +74,13 @@ CK_RV MscapiSession::OpenSession
 	CK_SESSION_HANDLE_PTR phSession      /* gets session handle */
 )
 {
+	Scoped<crypt::Provider> prov = crypt::Provider::Create(NULL, NULL, PROV_RSA_AES, 0);
+	auto containers = prov->GetContainers();
+	for (int i = 0; i < containers->count(); i++) {
+		puts(containers->items(i)->c_str());
+	}
+
+
 	CK_RV res = Session::OpenSession(flags, pApplication, Notify, phSession);
 
 	if (!CryptAcquireContext(&hRsaAesProv, NULL, NULL, PROV_RSA_AES, CRYPT_VERIFYCONTEXT | CRYPT_SILENT)) {
@@ -65,10 +89,7 @@ CK_RV MscapiSession::OpenSession
 	}
 
 	if (res == CKR_OK) {
-		LoadStore(STORE_MY);
-		// LoadStore(STORE_ADDRESS);
-		// LoadStore(STORE_CA);
-		// LoadStore(STORE_ROOT);
+		LoadMyStore();
 	}
 	return res;
 }
@@ -181,28 +202,22 @@ CK_RV MscapiSession::DigestInit
 	switch (pMechanism->mechanism) {
 	case CKM_SHA_1:
 		algID = CALG_SHA1;
-		dwHashLength = 20;
 		break;
 	case CKM_SHA256:
 		algID = CALG_SHA_256;
-		dwHashLength = 32;
 		break;
 	case CKM_SHA384:
 		algID = CALG_SHA_384;
-		dwHashLength = 48;
 		break;
 	case CKM_SHA512:
 		algID = CALG_SHA_512;
-		dwHashLength = 64;
 		break;
 	default:
 		return CKR_MECHANISM_INVALID;
 	}
 
-	if (!CryptCreateHash(hRsaAesProv, algID, 0, 0, &hHash)) {
-		printf("Error during CryptBeginHash!\n");
-		return CKR_FUNCTION_FAILED;
-	}
+	Scoped<crypt::Provider> prov = crypt::Provider::Create(NULL, NULL, PROV_RSA_AES, 0);
+	hash = crypt::Hash::Create(prov, algID, NULL, 0);
 
 	this->digestInitialized = true;
 
@@ -220,10 +235,7 @@ CK_RV MscapiSession::DigestUpdate
 		return res;
 	}
 
-	if (!CryptHashData(hHash, (BYTE*)pPart, (DWORD)ulPartLen, 0)) {
-		printf("Error during CryptHashData.\n");
-		return CKR_FUNCTION_FAILED;
-	}
+	hash->Update(pPart, ulPartLen);
 
 	return CKR_OK;
 }
@@ -246,26 +258,19 @@ CK_RV MscapiSession::DigestFinal
 	if (res != CKR_FUNCTION_NOT_SUPPORTED) {
 		return res;
 	}
-	res = CKR_OK;
 
 	// compare incoming data size with output data size
-	if (res == CKR_OK && *pulDigestLen < dwHashLength) {
-		res = CKR_BUFFER_TOO_SMALL;
+	if (*pulDigestLen < hash->GetSize()) {
+		return CKR_BUFFER_TOO_SMALL;
 	}
 
 	// digest
-	if (res == CKR_OK && !CryptGetHashParam(hHash, HP_HASHVAL, pDigest, pulDigestLen, 0)) {
-		puts("Cannot get hash");
-		res = CKR_FUNCTION_FAILED;
-	}
-
-	// close handles
-	if (hHash)
-		CryptDestroyHash(hHash);
-
+	Scoped<std::string> digest = hash->GetValue();
+	memcpy(pDigest, digest->c_str(), digest->length());
+	*pulDigestLen = digest->length();
 	this->digestInitialized = false;
 
-	return res;
+	return CKR_OK;
 }
 
 CK_RV MscapiSession::VerifyInit(
@@ -281,12 +286,10 @@ CK_RV MscapiSession::VerifyInit(
 
 	// get key
 	Scoped<Object> object = this->GetObject(hKey);
-	HCRYPTKEY hVerifyKey;
 	DWORD dwProvType;
 	ALG_ID algID;
 	MscapiRsaPublicKey* rsaKey;
 	if (rsaKey = dynamic_cast<MscapiRsaPublicKey*>(object.get())) {
-		hVerifyKey = rsaKey->key->handle;
 		dwProvType = PROV_RSA_AES;
 		switch (pMechanism->mechanism) {
 		case CKM_SHA1_RSA_PKCS:
@@ -310,13 +313,10 @@ CK_RV MscapiSession::VerifyInit(
 		return CKR_KEY_TYPE_INCONSISTENT;
 	}
 
-	this->verify = CryptoVerify();
-	res = this->verify.Init(this->hRsaAesProv, algID, hVerifyKey);
-	if (res == CKR_OK) {
-		this->verifyInitialized = true;
-	}
+	this->verify = crypt::Verify::Create(algID, rsaKey->value);
+	this->verifyInitialized = true;
 
-	return res;
+	return CKR_OK;
 }
 
 CK_RV MscapiSession::VerifyUpdate(
@@ -331,7 +331,7 @@ CK_RV MscapiSession::VerifyUpdate(
 	res = CKR_OK;
 
 	// Update
-	res = this->verify.Update(pPart, ulPartLen);
+	verify->Update(pPart, ulPartLen);
 
 	return res;
 }
@@ -348,7 +348,9 @@ CK_RV MscapiSession::VerifyFinal(
 	res = CKR_OK;
 
 	// Update
-	res = this->verify.Final(pSignature, ulSignatureLen);
+	if (!verify->Final(pSignature, ulSignatureLen)) {
+		return CKR_SIGNATURE_INVALID;
+	}
 
 	return res;
 }
@@ -371,7 +373,7 @@ CK_RV MscapiSession::SignInit(
 	ALG_ID algID;
 	MscapiRsaPrivateKey* rsaKey;
 	if (rsaKey = dynamic_cast<MscapiRsaPrivateKey*>(object.get())) {
-		hSignKey = rsaKey->hKey;
+		hSignKey = rsaKey->value->Get();
 		dwProvType = PROV_RSA_AES;
 		switch (pMechanism->mechanism) {
 		case CKM_SHA1_RSA_PKCS:
@@ -395,13 +397,10 @@ CK_RV MscapiSession::SignInit(
 		return CKR_KEY_TYPE_INCONSISTENT;
 	}
 
-	this->sign = CryptoSign();
-	res = this->sign.Init(rsaKey->hProv, algID, rsaKey->hKey);
-	if (res == CKR_OK) {
-		this->signInitialized = true;
-	}
+	this->sign = crypt::Sign::Create(algID, rsaKey->value);
+	this->signInitialized = true;
 
-	return res;
+	return CKR_OK;
 }
 
 CK_RV MscapiSession::SignUpdate(
@@ -416,7 +415,7 @@ CK_RV MscapiSession::SignUpdate(
 	res = CKR_OK;
 
 	// Update
-	res = this->sign.Update(pPart, ulPartLen);
+	this->sign->Update(pPart, ulPartLen);
 
 	return res;
 }
@@ -433,8 +432,12 @@ CK_RV MscapiSession::SignFinal(
 	res = CKR_OK;
 
 	// Update
-	res = this->sign.Final(pSignature, pulSignatureLen);
+	Scoped<std::string> signature = this->sign->Final();
 	this->signInitialized = false;
+
+	memcpy(pSignature, signature->c_str(), signature->length());
+	*pulSignatureLen = signature->length();
+
 	return res;
 }
 
@@ -463,80 +466,4 @@ CK_BBOOL MscapiSession::TEMPLATES_EQUALS(CK_ATTRIBUTE_PTR pTemplate1, CK_ULONG u
 	}
 
 	return true;
-}
-
-Scoped<Object> MscapiSession::GetPublicKey(MscapiCertificate* cert)
-{
-	// TODO: Get dwKeySpec from Certificate's KeyUsages
-	HCRYPTKEY hPublicKey;
-	if (CryptImportPublicKeyInfo(
-		hRsaAesProv,
-		X509_ASN_ENCODING,
-		&cert->cert->pCertInfo->SubjectPublicKeyInfo,
-		&hPublicKey
-	))
-	{
-		// check key algorithm
-		DWORD dwDataLen;
-		ALG_ID algId;
-		// puts("CryptGetKeyParam");
-		if (CryptGetKeyParam(hPublicKey, KP_ALGID, (BYTE*)&algId, &dwDataLen, 0)) {
-			if (GET_ALG_TYPE(algId) == ALG_TYPE_RSA) {
-				Scoped<MscapiKey> key(new MscapiKey());
-				key->handle = hPublicKey;
-				Scoped<MscapiRsaPublicKey> object(new MscapiRsaPublicKey());
-				object->key = key;
-				object->token = CK_TRUE;
-				CK_BYTE_PTR bId = NULL;
-				CK_ULONG ulId = 0;
-				if (CKR_OK != cert->GetID(bId, &ulId)) {
-					return NULL;
-				}
-				bId = (CK_BYTE_PTR)malloc(ulId);
-				if (CKR_OK != cert->GetID(bId, &ulId)) {
-					free(bId);
-					return NULL;
-				}
-				object->id.append((char*)bId, ulId);
-				free(bId);
-
-				return object;
-			}
-		}
-		return NULL;
-	}
-
-	return NULL;
-}
-
-Scoped<Object> MscapiSession::GetPrivateKey(MscapiCertificate* cert)
-{
-	// TODO: Get dwKeySpec from Certificate's KeyUsages
-	HCRYPTKEY hPrivateKey;
-	HCRYPTPROV hPrivateKeyProv;
-	DWORD dwKeySpec;
-	if (!CryptAcquireCertificatePrivateKey(cert->cert, CRYPT_ACQUIRE_SILENT_FLAG, NULL, &hPrivateKeyProv, &dwKeySpec, NULL)) {
-		puts("MscapiSession::GetPrivateKey:CryptAcquireCertificatePrivateKey: Cannot acquire provider for certificate");
-		PRINT_WIN_ERROR();
-		throw CKR_FUNCTION_FAILED;
-	}
-
-	if (!CryptGetUserKey(hPrivateKeyProv, dwKeySpec, &hPrivateKey)) {
-		puts("MscapiSession::GetPrivateKey:CryptGetUserKey: Cannot get private key for certificate");
-		PRINT_WIN_ERROR();
-		throw CKR_FUNCTION_FAILED;
-	}
-	Scoped<MscapiRsaPrivateKey> mscapiKey(new MscapiRsaPrivateKey(hPrivateKeyProv, hPrivateKey));
-	CK_ULONG ulId = 0;
-	if (CKR_OK != cert->GetID(NULL, &ulId)) {
-		puts("MscapiSession::GetPrivateKey: Cannot get ID from Certificate");
-		throw CKR_FUNCTION_FAILED;
-	}
-	mscapiKey->id.resize(ulId);
-	if (CKR_OK != cert->GetID((CK_BYTE_PTR)mscapiKey->id.c_str(), &ulId)) {
-		puts("MscapiSession::GetPrivateKey: Cannot get ID from Certificate");
-		return NULL;
-	}
-
-	return mscapiKey;
 }

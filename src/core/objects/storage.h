@@ -24,5 +24,12 @@ public:
 	virtual DECLARE_GET_ATTRIBUTE(GetModifiable);
 	virtual DECLARE_GET_ATTRIBUTE(GetLabel);
 	virtual DECLARE_GET_ATTRIBUTE(GetCopyable);
+
+protected:
+	CK_BBOOL            token;
+	CK_BBOOL            _private;
+	CK_BBOOL            modifiable;
+	Scoped<std::string> label;
+	CK_BBOOL            copyable;
 };
 

@@ -1,34 +1,15 @@
 #include "rsa_public_key.h"
 #include "helper.h"
 
+MscapiRsaPublicKey::MscapiRsaPublicKey(Scoped<crypt::Key> key, CK_BBOOL token) :
+	value(key)
+{
+	this->token = token;
+	*this->label = "RSA public key";
+}
+
 MscapiRsaPublicKey::~MscapiRsaPublicKey()
 {
-}
-
-DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetToken)
-{
-	return this->GetBool(pValue, pulValueLen, this->token);
-}
-
-DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetPrivate)
-{
-	return this->GetBool(pValue, pulValueLen, CK_FALSE);
-}
-
-DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetModifiable)
-{
-	return this->GetBool(pValue, pulValueLen, CK_FALSE);
-}
-
-DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetLabel)
-{
-	char *label = "RSA public key";
-	return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)label, strlen(label));
-}
-
-DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetCopyable)
-{
-	return this->GetBool(pValue, pulValueLen, CK_TRUE);
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetID)
@@ -73,12 +54,13 @@ DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetSubject)
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetEncrypt)
 {
-	return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	return this->GetBool(pValue, pulValueLen, this->value->getProvider()->GetKeySpec() & AT_KEYEXCHANGE == AT_KEYEXCHANGE);
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetVerify)
 {
-	return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	fprintf(stdout, "KeySpec: %d\n", this->value->getProvider()->GetKeySpec());
+	return this->GetBool(pValue, pulValueLen, this->value->getProvider()->GetKeySpec() & AT_SIGNATURE == AT_SIGNATURE);
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetVerifyRecover)
@@ -88,7 +70,7 @@ DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetVerifyRecover)
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetWrap)
 {
-	return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	return this->GetBool(pValue, pulValueLen, this->value->getProvider()->GetKeySpec() & AT_KEYEXCHANGE == AT_KEYEXCHANGE);
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetTrusted)
@@ -106,16 +88,12 @@ DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetModulus)
 	DWORD dwPublicKeyLen = 0;
 	BYTE* pbPublicKey = NULL;
 
-	if (!CryptExportKey(this->key->handle, NULL, PUBLICKEYBLOB, 0, NULL, &dwPublicKeyLen)) {
-		puts("MscapiRsaPublicKey::GetModulus:CryptExportKey");
-		PRINT_WIN_ERROR();
-		return CKR_FUNCTION_FAILED;
+	if (!CryptExportKey(this->value->Get(), NULL, PUBLICKEYBLOB, 0, NULL, &dwPublicKeyLen)) {
+		THROW_MS_ERROR();
 	}
 	pbPublicKey = (BYTE*)malloc(dwPublicKeyLen);
-	if (!CryptExportKey(this->key->handle, NULL, PUBLICKEYBLOB, 0, pbPublicKey, &dwPublicKeyLen)) {
-		puts("MscapiRsaPublicKey::GetModulus:CryptExportKey");
-		PRINT_WIN_ERROR();
-		return CKR_FUNCTION_FAILED;
+	if (!CryptExportKey(this->value->Get(), NULL, PUBLICKEYBLOB, 0, pbPublicKey, &dwPublicKeyLen)) {
+		THROW_MS_ERROR();
 	}
 
 	PUBLICKEYSTRUC* header = (PUBLICKEYSTRUC*)pbPublicKey;
@@ -137,16 +115,13 @@ DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetModulusBits)
 	DWORD dwPublicKeyLen = 0;
 	BYTE* pbPublicKey = NULL;
 
-	if (!CryptExportKey(this->key->handle, NULL, PUBLICKEYBLOB, 0, NULL, &dwPublicKeyLen)) {
-		puts("MscapiRsaPublicKey::GetModulus:CryptExportKey");
-		PRINT_WIN_ERROR();
-		return CKR_FUNCTION_FAILED;
+	if (!CryptExportKey(this->value->Get(), NULL, PUBLICKEYBLOB, 0, NULL, &dwPublicKeyLen)) {
+		THROW_MS_ERROR();
 	}
 	pbPublicKey = (BYTE*)malloc(dwPublicKeyLen);
-	if (!CryptExportKey(this->key->handle, NULL, PUBLICKEYBLOB, 0, pbPublicKey, &dwPublicKeyLen)) {
-		puts("MscapiRsaPublicKey::GetModulus:CryptExportKey");
-		PRINT_WIN_ERROR();
-		return CKR_FUNCTION_FAILED;
+	if (!CryptExportKey(this->value->Get(), NULL, PUBLICKEYBLOB, 0, pbPublicKey, &dwPublicKeyLen)) {
+		free(pbPublicKey);
+		THROW_MS_ERROR();
 	}
 
 	PUBLICKEYSTRUC* header = (PUBLICKEYSTRUC*)pbPublicKey;
@@ -164,16 +139,13 @@ DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetPublicExponent)
 	DWORD dwPublicKeyLen = 0;
 	BYTE* pbPublicKey = NULL;
 
-	if (!CryptExportKey(this->key->handle, NULL, PUBLICKEYBLOB, 0, NULL, &dwPublicKeyLen)) {
-		puts("MscapiRsaPublicKey::GetModulus:CryptExportKey");
-		PRINT_WIN_ERROR();
-		return CKR_FUNCTION_FAILED;
+	if (!CryptExportKey(this->value->Get(), NULL, PUBLICKEYBLOB, 0, NULL, &dwPublicKeyLen)) {
+		THROW_MS_ERROR();
 	}
 	pbPublicKey = (BYTE*)malloc(dwPublicKeyLen);
-	if (!CryptExportKey(this->key->handle, NULL, PUBLICKEYBLOB, 0, pbPublicKey, &dwPublicKeyLen)) {
-		puts("MscapiRsaPublicKey::GetModulus:CryptExportKey");
-		PRINT_WIN_ERROR();
-		return CKR_FUNCTION_FAILED;
+	if (!CryptExportKey(this->value->Get(), NULL, PUBLICKEYBLOB, 0, pbPublicKey, &dwPublicKeyLen)) {
+		free(pbPublicKey);
+		THROW_MS_ERROR();
 	}
 
 	PUBLICKEYSTRUC* header = (PUBLICKEYSTRUC*)pbPublicKey;

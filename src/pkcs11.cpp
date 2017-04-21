@@ -4,11 +4,11 @@
 
 #define CATCH(functionName)                                     \
 	catch (const std::exception &e) {                           \
-		sprintf("Error: %s\n", functionName);                   \
-		sprintf("    %s\n", e.what());                          \
+		fprintf(stdout, "Error: %s\n", functionName);           \
+		fprintf(stdout, "%s\n", e.what());               \
 	}                                                           \
 	catch (...) {                                               \
-		sprintf("Error: %s\n", functionName);                   \
+		fprintf(stdout, "Error: %s\n", functionName);           \
 	}
 
 static CK_FUNCTION_LIST functionList =
@@ -106,13 +106,9 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetFunctionList)(CK_FUNCTION_LIST_PTR_PTR ppFunction
 		CHECK_ARGUMENT_NULL(ppFunctionList);
 
 		*ppFunctionList = &functionList;
-
 		return CKR_OK;
 	}
-	catch (...)
-	{
-
-	}
+	CATCH("C_GetFunctionList");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -123,9 +119,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_Initialize)(CK_VOID_PTR pInitArgs)
 	try {
 		return pkcs11.Initialize(pInitArgs);
 	}
-	catch (...) {
-
-	}
+	CATCH("C_Initialize");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -136,10 +130,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_Finalize)(CK_VOID_PTR pReserved)
 	try {
 		return pkcs11.Finalize(pReserved);
 	}
-	catch (...)
-	{
-
-	}
+	CATCH("C_Finalize");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -150,9 +141,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetInfo)(CK_INFO_PTR pInfo)
 	{
 		return pkcs11.GetInfo(pInfo);
 	}
-	catch (...)
-	{
-	}
+	CATCH("C_GetInfo");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -167,9 +156,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetSlotList)(
 	{
 		return pkcs11.GetSlotList(tokenPresent, pSlotList, pulCount);
 	}
-	catch (...)
-	{
-	}
+	CATCH("C_GetSlotList");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -183,9 +170,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetSlotInfo)(
 	{
 		return pkcs11.GetSlotInfo(slotID, pInfo);
 	}
-	catch (...)
-	{
-	}
+	CATCH("C_GetSlotInfo");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -200,9 +185,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetTokenInfo)
 	{
 		return pkcs11.GetTokenInfo(slotID, pInfo);
 	}
-	catch (...)
-	{
-	}
+	CATCH("C_GetTokenInfo");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -218,9 +201,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetMechanismList)
 	{
 		return pkcs11.GetMechanismList(slotID, pMechanismList, pulCount);
 	}
-	catch (...)
-	{
-	}
+	CATCH("C_GetMechanismList");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -236,9 +217,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetMechanismInfo)
 	{
 		return pkcs11.GetMechanismInfo(slotID, type, pInfo);
 	}
-	catch (...)
-	{
-	}
+	CATCH("C_GetMechanismInfo");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -255,9 +234,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_InitToken)
 	{
 		return pkcs11.InitToken(slotID, pPin, ulPinLen, pLabel);
 	}
-	catch (...)
-	{
-	}
+	CATCH("C_InitToken");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -273,9 +250,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_InitPIN)
 	{
 		return pkcs11.InitPIN(hSession, pPin, ulPinLen);
 	}
-	catch (...)
-	{
-	}
+	CATCH("C_InitPIN");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -293,9 +268,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_SetPIN)
 	{
 		// return pkcs11.SetPIN(hSession, pOldPin, ulOldLen, pNewPin, ulNewLen);
 	}
-	catch (...)
-	{
-	}
+	CATCH("C_SetPIN");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -313,10 +286,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_OpenSession)
 	{
 		return pkcs11.OpenSession(slotID, flags, pApplication, Notify, phSession);
 	}
-	catch (...)
-	{
-		puts("Error: C_OpenSession");
-	}
+	CATCH("C_OpenSession");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -330,10 +300,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_CloseSession)
 	{
 		return pkcs11.CloseSession(hSession);
 	}
-	catch (...)
-	{
-		puts("Error: C_CloseSession");
-	}
+	CATCH("C_CloseSession");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -347,10 +314,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_CloseAllSessions)
 	{
 		return pkcs11.CloseAllSessions(slotID);
 	}
-	catch (...)
-	{
-		puts("Error: C_CloseAllSessions");
-	}
+	CATCH("C_CloseAllSessions");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -365,10 +329,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetSessionInfo)
 	{
 		return pkcs11.GetSessionInfo(hSession, pInfo);
 	}
-	catch (...)
-	{
-		puts("Error: C_CloseAllSessions");
-	}
+	CATCH("C_GetSessionInfo");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -481,9 +442,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_GetAttributeValue)
 	try {
 		return pkcs11.GetAttributeValue(hSession, hObject, pTemplate, ulCount);
 	}
-	catch (...) {
-		puts("Error: C_GetAttributeValue");
-	}
+	CATCH("C_GetAttributeValue");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -515,9 +474,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_FindObjectsInit)
 	try {
 		return pkcs11.FindObjectsInit(hSession, pTemplate, ulCount);
 	}
-	catch (...) {
-		puts("Error: C_FindObjectsInit");
-	}
+	CATCH("C_FindObjectsInit");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -537,14 +494,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_FindObjects)
 	try {
 		return pkcs11.FindObjects(hSession, phObject, ulMaxObjectCount, pulObjectCount);
 	}
-	// CATCH("C_FindObjects")
-	/*catch (const std::exception &e) {
-		sprintf("Error: %s\n", "C_FindObject");
-		sprintf("    %s\n", e.what());
-	}*/
-	catch (...) {
-		sprintf("Error: %s\n", "C_FindObject");
-	}
+	CATCH("C_FindObjects");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -560,9 +510,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_FindObjectsFinal)
 	try {
 		return pkcs11.FindObjectsFinal(hSession);
 	}
-	catch (...) {
-		puts("Error: C_FindObjectsFinal");
-	}
+	CATCH("C_FindObjectsFinal");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -692,8 +640,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_DigestInit)
 	try {
 		return pkcs11.DigestInit(hSession, pMechanism);
 	}
-	catch (...) {
-	}
+	CATCH("C_DigestInit");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -712,8 +659,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_Digest)
 	try {
 		return pkcs11.Digest(hSession, pData, ulDataLen, pDigest, pulDigestLen);
 	}
-	catch (...) {
-	}
+	CATCH("C_Digest");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -731,8 +677,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_DigestUpdate)
 	try {
 		return pkcs11.DigestUpdate(hSession, pPart, ulPartLen);
 	}
-	catch (...) {
-	}
+	CATCH("C_DigestUpdate");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -750,8 +695,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_DigestKey)
 	try {
 		return pkcs11.DigestKey(hSession, hKey);
 	}
-	catch (...) {
-	}
+	CATCH("C_DigestKey");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -769,8 +713,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_DigestFinal)
 	try {
 		return pkcs11.DigestFinal(hSession, pDigest, pulDigestLen);
 	}
-	catch (...) {
-	}
+	CATCH("C_DigestFinal");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -793,8 +736,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_SignInit)
 	try {
 		return pkcs11.SignInit(hSession, pMechanism, hKey);
 	}
-	catch (...) {
-	}
+	CATCH("C_SignInit");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -815,8 +757,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_Sign)
 	try {
 		return pkcs11.Sign(hSession, pData, ulDataLen, pSignature, pulSignatureLen);
 	}
-	catch (...) {
-	}
+	CATCH("C_Sign");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -835,8 +776,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_SignUpdate)
 	try {
 		return pkcs11.SignUpdate(hSession, pPart, ulPartLen);
 	}
-	catch (...) {
-	}
+	CATCH("C_SignUpdate");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -854,8 +794,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_SignFinal)
 	try {
 		return pkcs11.SignFinal(hSession, pSignature, pulSignatureLen);
 	}
-	catch (...) {
-	}
+	CATCH("C_SignFinal");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -905,8 +844,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_VerifyInit)
 	try {
 		return pkcs11.VerifyInit(hSession, pMechanism, hKey);
 	}
-	catch (...) {
-	}
+	CATCH("C_VerifyInit");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -927,8 +865,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_Verify)
 	try {
 		return pkcs11.Verify(hSession, pData, ulDataLen, pSignature, ulSignatureLen);
 	}
-	catch (...) {
-	}
+	CATCH("C_Verify");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -947,8 +884,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_VerifyUpdate)
 	try {
 		return pkcs11.VerifyUpdate(hSession, pPart, ulPartLen);
 	}
-	catch (...) {
-	}
+	CATCH("C_VerifyUpdate");
 
 	return CKR_FUNCTION_FAILED;
 }
@@ -966,8 +902,7 @@ CK_DEFINE_FUNCTION(CK_RV, C_VerifyFinal)
 	try {
 		return pkcs11.VerifyFinal(hSession, pSignature, ulSignatureLen);
 	}
-	catch (...) {
-	}
+	CATCH("C_VerifyFinal");
 
 	return CKR_FUNCTION_FAILED;
 }

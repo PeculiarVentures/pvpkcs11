@@ -3,6 +3,11 @@
 Storage::Storage()
 {
 	this->handle = reinterpret_cast<CK_OBJECT_HANDLE>(this);
+	this->token = false;
+	this->_private = false;
+	this->modifiable = false;
+	this->copyable = false;
+	this->label = Scoped<std::string>(new std::string());
 }
 
 
@@ -57,26 +62,25 @@ CK_RV Storage::SetAttributeValue
 
 DECLARE_GET_ATTRIBUTE(Storage::GetToken)
 {
-	return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	return this->GetBool(pValue, pulValueLen, token);
 }
 
 DECLARE_GET_ATTRIBUTE(Storage::GetPrivate)
 {
-	return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	return this->GetBool(pValue, pulValueLen, _private);
 }
 
 DECLARE_GET_ATTRIBUTE(Storage::GetModifiable)
 {
-	return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	return this->GetBool(pValue, pulValueLen, modifiable);
 }
 
 DECLARE_GET_ATTRIBUTE(Storage::GetLabel)
 {
-	puts("HEre");
-	return this->GetUtf8String(pValue, pulValueLen, NULL, 0);
+	return this->GetUtf8String(pValue, pulValueLen, (BYTE*)label->c_str(), label->length());
 }
 
 DECLARE_GET_ATTRIBUTE(Storage::GetCopyable)
 {
-	return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	return this->GetBool(pValue, pulValueLen, copyable);
 }

@@ -1,22 +1,15 @@
 #include "rsa_private_key.h"
 #include "helper.h"
 
-MscapiRsaPrivateKey::MscapiRsaPrivateKey(HCRYPTPROV hProv, HCRYPTKEY hKey)
+MscapiRsaPrivateKey::MscapiRsaPrivateKey(Scoped<crypt::Key> key, CK_BBOOL token) :
+	value(key)
 {
-	this->hProv = hProv;
-	this->hKey = hKey;
+	this->token = token;
+	*this->label = "RSA private key";
 }
 
 MscapiRsaPrivateKey::~MscapiRsaPrivateKey()
 {
-	if (hProv) {
-		CryptReleaseContext(hProv, 0);
-		hProv = NULL;
-	}
-	if (hKey) {
-		CryptDestroyKey(hKey);
-		hKey = NULL;
-	}
 }
 
 CK_RV MscapiRsaPrivateKey::GetKeyStruct(RsaPrivateKeyStruct* rsaKey)
