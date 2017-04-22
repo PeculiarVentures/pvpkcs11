@@ -34,7 +34,7 @@ Verify::Verify(
 	Scoped<Key>       key
 )
 {
-	hash = Hash::Create(key->getProvider(), algId, NULL, 0);
+	hash = Hash::Create(key->GetProvider(), algId, NULL, 0);
 	this->key = key;
 }
 

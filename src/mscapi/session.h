@@ -92,11 +92,56 @@ public:
 		CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
 	);
 
+	/* Encryption and decryption */
+
+	CK_RV EncryptInit
+	(
+		CK_MECHANISM_PTR  pMechanism,  /* the encryption mechanism */
+		CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
+	);
+
+	CK_RV EncryptUpdate
+	(
+		CK_BYTE_PTR       pPart,              /* the plaintext data */
+		CK_ULONG          ulPartLen,          /* plaintext data len */
+		CK_BYTE_PTR       pEncryptedPart,     /* gets ciphertext */
+		CK_ULONG_PTR      pulEncryptedPartLen /* gets c-text size */
+	);
+
+
+	CK_RV EncryptFinal
+	(
+		CK_BYTE_PTR       pLastEncryptedPart,      /* last c-text */
+		CK_ULONG_PTR      pulLastEncryptedPartLen  /* gets last size */
+	);
+
+	CK_RV DecryptInit
+	(
+		CK_MECHANISM_PTR  pMechanism,  /* the decryption mechanism */
+		CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
+	);
+
+	CK_RV DecryptUpdate
+	(
+		CK_BYTE_PTR       pEncryptedPart,      /* encrypted data */
+		CK_ULONG          ulEncryptedPartLen,  /* input length */
+		CK_BYTE_PTR       pPart,               /* gets plaintext */
+		CK_ULONG_PTR      pulPartLen           /* p-text size */
+	);
+
+	CK_RV DecryptFinal
+	(
+		CK_BYTE_PTR       pLastPart,      /* gets plaintext */
+		CK_ULONG_PTR      pulLastPartLen  /* p-text size */
+	);
+
 protected:
 	HCRYPTPROV hRsaAesProv;
 	Scoped<crypt::Hash> hash;
 	Scoped<crypt::Verify> verify;
 	Scoped<crypt::Sign> sign;
+	Scoped<crypt::Cipher> encrypt;
+	Scoped<crypt::Cipher> decrypt;
 	Collection<Scoped<crypt::CertStore>> certStores;
 	Collection<Scoped<Object>> objects;
 	virtual Scoped<Object> GetObject(CK_OBJECT_HANDLE hObject);

@@ -4,13 +4,14 @@
 using namespace crypt;
 
 Scoped<Key> Key::Generate(
-	Scoped<Provider>  prov, 
-	ALG_ID            uiAlgId, 
+	Scoped<Provider>  prov,
+	ALG_ID            uiAlgId,
 	DWORD             dwFlags
 )
 {
 	HCRYPTKEY hNewKey = NULL;
 	if (!CryptGenKey(prov->Get(), uiAlgId, dwFlags, &hNewKey)) {
+		PRINT_WIN_ERROR();
 		THROW_MS_ERROR();
 	}
 
@@ -104,7 +105,6 @@ void Key::Destroy()
 	}
 }
 
-
 HCRYPTKEY Key::Get()
 {
 	if (this->handle == NULL) {
@@ -122,7 +122,65 @@ void Key::Set(HCRYPTKEY value)
 	this->handle = value;
 }
 
-Scoped<Provider> Key::getProvider()
+Scoped<Provider> Key::GetProvider()
 {
 	return this->prov;
+}
+
+void Key::GetParam(DWORD dwPropId, BYTE* pbData, DWORD* pdwDataLen, DWORD dwFlags)
+{
+	if (!CryptGetKeyParam(handle, dwPropId, pbData, pdwDataLen, dwFlags)) {
+		THROW_MS_ERROR();
+	}
+}
+
+void Key::SetParam(DWORD dwPropId, BYTE* pbData, DWORD dwFlags)
+{
+	if (!CryptSetKeyParam(handle, dwPropId, pbData, dwFlags)) {
+		THROW_MS_ERROR();
+	}
+}
+
+DWORD Key::GetNumber(DWORD dwPropId)
+{
+	DWORD dwData;
+	DWORD dwDataLen = sizeof(DWORD);
+	this->GetParam(dwPropId, (BYTE*)&dwData, &dwDataLen);
+
+	return dwData;
+}
+
+DWORD Key::GetBlockLen()
+{
+	return this->GetNumber(KP_BLOCKLEN) >> 3;
+}
+
+ALG_ID Key::GetAlgId()
+{
+	return this->GetNumber(KP_ALGID);
+}
+
+void Key::SetIV(BYTE* pbData, DWORD dwDataLen)
+{
+	this->SetParam(KP_IV, pbData);
+}
+
+DWORD Key::GetMode()
+{
+	return this->GetNumber(KP_MODE);
+}
+
+void Key::SetNumber(DWORD dwPropId, DWORD dwData)
+{
+	this->SetParam(dwPropId, (BYTE*)&dwData, sizeof(DWORD));
+}
+
+DWORD Key::GetPadding()
+{
+	return this->GetNumber(KP_PADDING);
+}
+
+void Key::SetPadding(DWORD dwPadding)
+{
+	this->SetNumber(KP_PADDING, dwPadding);
 }

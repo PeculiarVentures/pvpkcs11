@@ -119,11 +119,23 @@ namespace crypt {
 		HCRYPTKEY Get();
 		void Set(HCRYPTKEY value);
 
-		Scoped<Provider>  getProvider();
+		Scoped<Provider>  GetProvider();
+		DWORD GetBlockLen();
+		ALG_ID GetAlgId();
+		DWORD GetMode();
+		DWORD GetPadding();
+
+		void SetIV(BYTE* pbData, DWORD pbDataLen);
+		void SetPadding(DWORD dwPadding);
 
 	protected:
 		HCRYPTKEY         handle;
 		Scoped<Provider>  prov;
+
+		void GetParam(DWORD dwPropId, BYTE* pbData, DWORD* pdwDataLen, DWORD dwFlags = 0);
+		DWORD GetNumber(DWORD dwPropId);
+		void SetParam(DWORD dwPropId, BYTE* pbData, DWORD dwFlags = 0);
+		void SetNumber(DWORD dwPropId, DWORD dwData);
 	};
 
 	class X509Certificate {
@@ -284,6 +296,40 @@ namespace crypt {
 	protected:
 		Scoped<Key>       key;
 		Scoped<Hash>      hash;
+
+	};
+
+	class Cipher {
+
+	public:
+		static Scoped<Cipher> Create(
+			bool        encrypt,
+			Scoped<Key> key
+		);
+
+		Cipher(
+			bool encrypt,
+			Scoped<Key> key
+		);
+
+		Scoped<std::string> Update(
+			BYTE*  pbData,
+			DWORD  dwDataLen
+		);
+
+		Scoped<std::string> Final();
+
+	protected:
+		Scoped<Key> key;
+		bool        encrypt;
+		DWORD       blockLen;
+		std::string buffer;
+
+		Scoped<std::string> Make(
+			bool   bFinal,
+			BYTE*  pbData,
+			DWORD  dwDataLen
+		);
 
 	};
 

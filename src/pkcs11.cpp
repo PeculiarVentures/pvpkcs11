@@ -527,7 +527,12 @@ CK_DEFINE_FUNCTION(CK_RV, C_EncryptInit)
 	CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.EncryptInit(hSession, pMechanism, hKey);
+	}
+	CATCH("C_EncryptInit");
+
+	return CKR_FUNCTION_FAILED;
 }
 
 
@@ -541,7 +546,18 @@ CK_DEFINE_FUNCTION(CK_RV, C_Encrypt)
 	CK_ULONG_PTR      pulEncryptedDataLen  /* gets c-text size */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.Encrypt(
+			hSession,            
+			pData,               
+			ulDataLen,           
+			pEncryptedData,      
+			pulEncryptedDataLen  
+		);
+	}
+	CATCH("C_Encrypt");
+
+	return CKR_FUNCTION_FAILED;
 }
 
 
@@ -556,7 +572,18 @@ CK_DEFINE_FUNCTION(CK_RV, C_EncryptUpdate)
 	CK_ULONG_PTR      pulEncryptedPartLen /* gets c-text size */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.EncryptUpdate(
+			hSession,
+			pPart,
+			ulPartLen,
+			pEncryptedPart,
+			pulEncryptedPartLen
+		);
+	}
+	CATCH("C_EncryptUpdate");
+
+	return CKR_FUNCTION_FAILED;
 }
 
 
@@ -569,7 +596,16 @@ CK_DEFINE_FUNCTION(CK_RV, C_EncryptFinal)
 	CK_ULONG_PTR      pulLastEncryptedPartLen  /* gets last size */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.EncryptFinal(
+			hSession,
+			pLastEncryptedPart,
+			pulLastEncryptedPartLen
+		);
+	}
+	CATCH("C_EncryptFinal");
+
+	return CKR_FUNCTION_FAILED;
 }
 
 
@@ -581,7 +617,16 @@ CK_DEFINE_FUNCTION(CK_RV, C_DecryptInit)
 	CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.DecryptInit(
+			hSession,
+			pMechanism,
+			hKey
+		);
+	}
+	CATCH("C_Decrypt");
+
+	return CKR_FUNCTION_FAILED;
 }
 
 
@@ -595,7 +640,18 @@ CK_DEFINE_FUNCTION(CK_RV, C_Decrypt)
 	CK_ULONG_PTR      pulDataLen          /* gets p-text size */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.Decrypt(
+			hSession,
+			pEncryptedData,
+			ulEncryptedDataLen,
+			pData,
+			pulDataLen
+		);
+	}
+	CATCH("C_Decrypt");
+
+	return CKR_FUNCTION_FAILED;
 }
 
 
@@ -610,7 +666,18 @@ CK_DEFINE_FUNCTION(CK_RV, C_DecryptUpdate)
 	CK_ULONG_PTR      pulPartLen           /* p-text size */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.DecryptUpdate(
+			hSession,
+			pEncryptedPart,
+			ulEncryptedPartLen,
+			pPart,
+			pulPartLen
+		);
+	}
+	CATCH("C_DecryptUpdate");
+
+	return CKR_FUNCTION_FAILED;
 }
 
 
@@ -623,10 +690,17 @@ CK_DEFINE_FUNCTION(CK_RV, C_DecryptFinal)
 	CK_ULONG_PTR      pulLastPartLen  /* p-text size */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.DecryptFinal(
+			hSession,
+			pLastPart,
+			pulLastPartLen
+		);
+	}
+	CATCH("C_DecryptFinal");
+
+	return CKR_FUNCTION_FAILED;
 }
-
-
 
 /* Message digesting */
 

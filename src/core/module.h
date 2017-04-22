@@ -83,7 +83,7 @@ public:
 		CK_SESSION_INFO_PTR pInfo      /* receives session info */
 	);
 
-	CK_RV C_Login
+	CK_RV Login
 	(
 		CK_SESSION_HANDLE hSession,  /* the session's handle */
 		CK_USER_TYPE      userType,  /* the user type */
@@ -223,6 +223,72 @@ public:
 		CK_SESSION_HANDLE hSession,       /* the session's handle */
 		CK_BYTE_PTR       pSignature,     /* signature to verify */
 		CK_ULONG          ulSignatureLen  /* signature length */
+	);
+
+	/* Encryption and decryption */
+
+	CK_RV EncryptInit
+	(
+		CK_SESSION_HANDLE hSession,    /* the session's handle */
+		CK_MECHANISM_PTR  pMechanism,  /* the encryption mechanism */
+		CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
+	);
+
+	CK_RV Encrypt
+	(
+		CK_SESSION_HANDLE hSession,    /* the session's handle */
+		CK_BYTE_PTR       pData,               /* the plaintext data */
+		CK_ULONG          ulDataLen,           /* bytes of plaintext */
+		CK_BYTE_PTR       pEncryptedData,      /* gets ciphertext */
+		CK_ULONG_PTR      pulEncryptedDataLen  /* gets c-text size */
+	);
+
+	CK_RV EncryptUpdate
+	(
+		CK_SESSION_HANDLE hSession,    /* the session's handle */
+		CK_BYTE_PTR       pPart,              /* the plaintext data */
+		CK_ULONG          ulPartLen,          /* plaintext data len */
+		CK_BYTE_PTR       pEncryptedPart,     /* gets ciphertext */
+		CK_ULONG_PTR      pulEncryptedPartLen /* gets c-text size */
+	);
+
+	CK_RV EncryptFinal
+	(
+		CK_SESSION_HANDLE hSession,    /* the session's handle */
+		CK_BYTE_PTR       pLastEncryptedPart,      /* last c-text */
+		CK_ULONG_PTR      pulLastEncryptedPartLen  /* gets last size */
+	);
+
+	CK_RV DecryptInit
+	(
+		CK_SESSION_HANDLE hSession,    /* the session's handle */
+		CK_MECHANISM_PTR  pMechanism,  /* the decryption mechanism */
+		CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
+	);
+
+	CK_RV Decrypt
+	(
+		CK_SESSION_HANDLE hSession,    /* the session's handle */
+		CK_BYTE_PTR       pEncryptedData,     /* ciphertext */
+		CK_ULONG          ulEncryptedDataLen, /* ciphertext length */
+		CK_BYTE_PTR       pData,              /* gets plaintext */
+		CK_ULONG_PTR      pulDataLen          /* gets p-text size */
+	);
+
+	CK_RV DecryptUpdate
+	(
+		CK_SESSION_HANDLE hSession,    /* the session's handle */
+		CK_BYTE_PTR       pEncryptedPart,      /* encrypted data */
+		CK_ULONG          ulEncryptedPartLen,  /* input length */
+		CK_BYTE_PTR       pPart,               /* gets plaintext */
+		CK_ULONG_PTR      pulPartLen           /* p-text size */
+	);
+
+	CK_RV DecryptFinal
+	(
+		CK_SESSION_HANDLE hSession,    /* the session's handle */
+		CK_BYTE_PTR       pLastPart,      /* gets plaintext */
+		CK_ULONG_PTR      pulLastPartLen  /* p-text size */
 	);
 protected:
 	Scoped<Slot> getSlotBySession(CK_SESSION_HANDLE hSession);

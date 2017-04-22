@@ -170,7 +170,7 @@ CK_RV Module::CloseSession
 {
 	CHECK_INITIALIZED();
 	Scoped<Slot> slot = this->getSlotBySession(hSession);
-	
+
 	if (slot == NULL_PTR) {
 		return CKR_SESSION_HANDLE_INVALID;
 	}
@@ -220,11 +220,11 @@ CK_RV Module::GetSessionInfo
 {
 	CHECK_INITIALIZED();
 	GET_SESSION(hSession);
-	
+
 	return session->GetSessionInfo(pInfo);
 }
 
-CK_RV Module::C_Login
+CK_RV Module::Login
 (
 	CK_SESSION_HANDLE hSession,  /* the session's handle */
 	CK_USER_TYPE      userType,  /* the user type */
@@ -235,7 +235,7 @@ CK_RV Module::C_Login
 	CHECK_INITIALIZED();
 	GET_SESSION(hSession);
 
-	return session->C_Login(userType, pPin, ulPinLen);
+	return session->Login(userType, pPin, ulPinLen);
 }
 
 CK_RV Module::GetAttributeValue
@@ -312,7 +312,7 @@ CK_RV Module::DigestInit
 {
 	CHECK_INITIALIZED();
 	GET_SESSION(hSession);
-	
+
 	return session->DigestInit(pMechanism);
 }
 
@@ -471,4 +471,145 @@ CK_RV Module::VerifyFinal
 	GET_SESSION(hSession);
 
 	return session->VerifyFinal(pSignature, ulSignatureLen);
+}
+
+CK_RV Module::EncryptInit
+(
+	CK_SESSION_HANDLE hSession,    /* the session's handle */
+	CK_MECHANISM_PTR  pMechanism,  /* the encryption mechanism */
+	CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->EncryptInit(pMechanism, hKey);
+}
+
+CK_RV Module::Encrypt
+(
+	CK_SESSION_HANDLE hSession,    /* the session's handle */
+	CK_BYTE_PTR       pData,               /* the plaintext data */
+	CK_ULONG          ulDataLen,           /* bytes of plaintext */
+	CK_BYTE_PTR       pEncryptedData,      /* gets ciphertext */
+	CK_ULONG_PTR      pulEncryptedDataLen  /* gets c-text size */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->Encrypt(
+		pData,
+		ulDataLen,
+		pEncryptedData,
+		pulEncryptedDataLen
+	);
+}
+
+CK_RV Module::EncryptUpdate
+(
+	CK_SESSION_HANDLE hSession,    /* the session's handle */
+	CK_BYTE_PTR       pPart,              /* the plaintext data */
+	CK_ULONG          ulPartLen,          /* plaintext data len */
+	CK_BYTE_PTR       pEncryptedPart,     /* gets ciphertext */
+	CK_ULONG_PTR      pulEncryptedPartLen /* gets c-text size */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->EncryptUpdate(
+		pPart,
+		ulPartLen,
+		pEncryptedPart,
+		pulEncryptedPartLen
+	);
+}
+
+CK_RV Module::EncryptFinal
+(
+	CK_SESSION_HANDLE hSession,    /* the session's handle */
+	CK_BYTE_PTR       pLastEncryptedPart,      /* last c-text */
+	CK_ULONG_PTR      pulLastEncryptedPartLen  /* gets last size */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->EncryptFinal(
+		pLastEncryptedPart,
+		pulLastEncryptedPartLen
+	);
+}
+
+CK_RV Module::DecryptInit
+(
+	CK_SESSION_HANDLE hSession,    /* the session's handle */
+	CK_MECHANISM_PTR  pMechanism,  /* the decryption mechanism */
+	CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->DecryptInit(
+		pMechanism,
+		hKey
+	);
+}
+
+CK_RV Module::Decrypt
+(
+	CK_SESSION_HANDLE hSession,    /* the session's handle */
+	CK_BYTE_PTR       pEncryptedData,     /* ciphertext */
+	CK_ULONG          ulEncryptedDataLen, /* ciphertext length */
+	CK_BYTE_PTR       pData,              /* gets plaintext */
+	CK_ULONG_PTR      pulDataLen          /* gets p-text size */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->Decrypt(
+		pEncryptedData,
+		ulEncryptedDataLen,
+		pData,
+		pulDataLen
+	);
+}
+
+CK_RV Module::DecryptUpdate
+(
+	CK_SESSION_HANDLE hSession,    /* the session's handle */
+	CK_BYTE_PTR       pEncryptedPart,      /* encrypted data */
+	CK_ULONG          ulEncryptedPartLen,  /* input length */
+	CK_BYTE_PTR       pPart,               /* gets plaintext */
+	CK_ULONG_PTR      pulPartLen           /* p-text size */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->DecryptUpdate(
+		pEncryptedPart,
+		ulEncryptedPartLen,
+		pPart,
+		pulPartLen
+	);
+}
+
+CK_RV Module::DecryptFinal
+(
+	CK_SESSION_HANDLE hSession,    /* the session's handle */
+	CK_BYTE_PTR       pLastPart,      /* gets plaintext */
+	CK_ULONG_PTR      pulLastPartLen  /* p-text size */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->DecryptFinal(
+		pLastPart,
+		pulLastPartLen
+	);
 }

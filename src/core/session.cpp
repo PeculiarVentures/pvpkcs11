@@ -65,6 +65,8 @@ Session::Session()
 	this->signInitialized = false;
 	this->verifyInitialized = false;
 	this->digestInitialized = false;
+	this->encryptInitialized = false;
+	this->decryptInitialized = false;
 }
 
 Session::~Session()
@@ -128,7 +130,7 @@ CK_RV Session::GetSessionInfo
 	return CKR_OK;
 }
 
-CK_RV Session::C_Login
+CK_RV Session::Login
 (
 	CK_USER_TYPE      userType,  /* the user type */
 	CK_UTF8CHAR_PTR   pPin,      /* the user's PIN */
@@ -494,5 +496,170 @@ CK_RV Session::SignFinal(
 		return CKR_OPERATION_NOT_INITIALIZED;
 	}
 
+	return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+/* Encryption and decryption */
+
+CK_RV Session::EncryptInit
+(
+	CK_MECHANISM_PTR  pMechanism,  /* the encryption mechanism */
+	CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
+)
+{
+	CK_RV res;
+	if (this->encryptInitialized) {
+		return CKR_OPERATION_ACTIVE;
+	}
+	CHECK_ARGUMENT_NULL(pMechanism);
+	CHECK_MECHANISM_TYPE(pMechanism->mechanism, CKF_ENCRYPT);
+	CHECK_ARGUMENT_NULL(hKey);
+	Scoped<Object> object = this->GetObject(hKey);
+
+	if (!object) {
+		return CKR_OBJECT_HANDLE_INVALID;
+	}
+	Key* key;
+	if (key = dynamic_cast<Key*>(object.get())) {
+		// Check type of Key
+		CK_ULONG ulKeyType;
+		CK_ULONG ulKeyTypeLen = sizeof(CK_ULONG);
+		res = key->GetClass((CK_BYTE_PTR)&ulKeyType, &ulKeyTypeLen);
+		if (res != CKR_OK) {
+			return CKR_FUNCTION_FAILED;
+		}
+		if (!(ulKeyType == CKO_PUBLIC_KEY || ulKeyType == CKO_SECRET_KEY)) {
+			return CKR_KEY_TYPE_INCONSISTENT;
+		}
+	}
+	else {
+		return CKR_KEY_HANDLE_INVALID;
+	}
+
+	return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV Session::Encrypt
+(
+	CK_BYTE_PTR       pData,               /* the plaintext data */
+	CK_ULONG          ulDataLen,           /* bytes of plaintext */
+	CK_BYTE_PTR       pEncryptedData,      /* gets ciphertext */
+	CK_ULONG_PTR      pulEncryptedDataLen  /* gets c-text size */
+)
+{
+	CK_RV res = EncryptUpdate(pData, ulDataLen, pEncryptedData, pulEncryptedDataLen);
+	if (res != CKR_OK) {
+		return res;
+	}
+	res = EncryptFinal(pEncryptedData, pulEncryptedDataLen);
+
+	return res;
+}
+
+CK_RV Session::EncryptUpdate
+(
+	CK_BYTE_PTR       pPart,              /* the plaintext data */
+	CK_ULONG          ulPartLen,          /* plaintext data len */
+	CK_BYTE_PTR       pEncryptedPart,     /* gets ciphertext */
+	CK_ULONG_PTR      pulEncryptedPartLen /* gets c-text size */
+)
+{
+	if (!this->signInitialized) {
+		return CKR_OPERATION_NOT_INITIALIZED;
+	}
+	return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+
+CK_RV Session::EncryptFinal
+(
+	CK_BYTE_PTR       pLastEncryptedPart,      /* last c-text */
+	CK_ULONG_PTR      pulLastEncryptedPartLen  /* gets last size */
+)
+{
+	if (!this->signInitialized) {
+		return CKR_OPERATION_NOT_INITIALIZED;
+	}
+	return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV Session::DecryptInit
+(
+	CK_MECHANISM_PTR  pMechanism,  /* the decryption mechanism */
+	CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
+)
+{
+	CK_RV res;
+	if (this->decryptInitialized) {
+		return CKR_OPERATION_ACTIVE;
+	}
+	CHECK_ARGUMENT_NULL(pMechanism);
+	CHECK_MECHANISM_TYPE(pMechanism->mechanism, CKF_DECRYPT);
+	CHECK_ARGUMENT_NULL(hKey);
+	Scoped<Object> object = this->GetObject(hKey);
+
+	if (!object) {
+		return CKR_OBJECT_HANDLE_INVALID;
+	}
+	Key* key;
+	if (key = dynamic_cast<Key*>(object.get())) {
+		// Check type of Key
+		CK_ULONG ulKeyType;
+		CK_ULONG ulKeyTypeLen = sizeof(CK_ULONG);
+		res = key->GetClass((CK_BYTE_PTR)&ulKeyType, &ulKeyTypeLen);
+		if (res != CKR_OK) {
+			return CKR_FUNCTION_FAILED;
+		}
+		if (!(ulKeyType == CKO_PRIVATE_KEY || ulKeyType == CKO_SECRET_KEY)) {
+			return CKR_KEY_TYPE_INCONSISTENT;
+		}
+	}
+	else {
+		return CKR_KEY_HANDLE_INVALID;
+	}
+
+	return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV Session::Decrypt
+(
+	CK_BYTE_PTR       pEncryptedData,     /* ciphertext */
+	CK_ULONG          ulEncryptedDataLen, /* ciphertext length */
+	CK_BYTE_PTR       pData,              /* gets plaintext */
+	CK_ULONG_PTR      pulDataLen          /* gets p-text size */
+)
+{
+	CK_RV res = DecryptUpdate(pEncryptedData, ulEncryptedDataLen, pData, pulDataLen);
+	if (res != CKR_OK) {
+		return res;
+	}
+	res = DecryptFinal(pData, pulDataLen);
+
+	return res;
+}
+
+CK_RV Session::DecryptUpdate
+(
+	CK_BYTE_PTR       pEncryptedPart,      /* encrypted data */
+	CK_ULONG          ulEncryptedPartLen,  /* input length */
+	CK_BYTE_PTR       pPart,               /* gets plaintext */
+	CK_ULONG_PTR      pulPartLen           /* p-text size */
+)
+{
+	if (!this->decryptInitialized) {
+		return CKR_OPERATION_NOT_INITIALIZED;
+	}
+	return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV Session::DecryptFinal
+(
+	CK_BYTE_PTR       pLastPart,      /* gets plaintext */
+	CK_ULONG_PTR      pulLastPartLen  /* p-text size */
+)
+{
+	if (!this->decryptInitialized) {
+		return CKR_OPERATION_NOT_INITIALIZED;
+	}
 	return CKR_FUNCTION_NOT_SUPPORTED;
 }

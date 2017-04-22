@@ -6,6 +6,72 @@
 #include "rsa_private_key.h"
 #include "helper.h"
 
+static void TestPrintContainers(DWORD provType)
+{
+	// Print containers
+	Scoped<crypt::Provider> prov = crypt::Provider::Create(NULL, NULL, provType, 0);
+	auto containers = prov->GetContainers();
+	fprintf(stdout, "Containers amount %u\n", containers->count());
+	for (int i = 0; i < containers->count(); i++) {
+		puts(containers->items(i)->c_str());
+	}
+}
+
+#define PRINT_ERROR() \
+    PRINT_WIN_ERROR(); fprintf(stdout, "%s:%d\n", __FILE__,__LINE__); throw std::exception("Oops");
+
+static void TestCipher() {
+	Scoped<crypt::Provider> prov = crypt::Provider::Create(NULL, NULL, PROV_RSA_AES, 0);
+	// Scoped<crypt::Key> key = crypt::Key::Generate(prov, CALG_AES_256, 0);
+	BYTE aesKey[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2 };
+	BYTE aesIv[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
+	struct aes256keyBlob
+	{
+		BLOBHEADER hdr;
+		DWORD keySize;
+		BYTE bytes[32];
+	} blob;
+
+	blob.hdr.bType = PLAINTEXTKEYBLOB;
+	blob.hdr.bVersion = CUR_BLOB_VERSION;
+	blob.hdr.reserved = 0;
+	blob.hdr.aiKeyAlg = CALG_AES_256;
+	blob.keySize = 32;
+	memcpy(blob.bytes, aesKey, 32);
+	Scoped<crypt::Key> key = crypt::Key::Import(prov, (BYTE*)&blob, sizeof(aes256keyBlob), 0);
+	Scoped<crypt::Key> key1 = key->Copy();
+	Scoped<crypt::Key> key2 = key->Copy();
+	key1->SetIV(aesIv, 16);
+	key2->SetIV(aesIv, 16);
+
+
+	auto cipher = crypt::Cipher::Create(true, key1);
+	auto decipher = crypt::Cipher::Create(false, key2);
+
+	auto encData = cipher->Update((BYTE*)"first", 5);
+	fprintf(stdout, "Encrypted length: %d\n", encData->length());
+	*encData.get() += *cipher->Update((BYTE*)"second", 6).get();
+	fprintf(stdout, "Encrypted length: %d\n", encData->length());
+	*encData.get() += *cipher->Update((BYTE*)"12345678901234567890", 20).get();
+	fprintf(stdout, "Encrypted length: %d\n", encData->length());
+	*encData.get() += *cipher->Final().get();
+	fprintf(stdout, "Encrypted length: %d\n", encData->length());
+	fprintf(stdout, "Encrypted: ");
+	for (int i = 0; i < encData->length(); i++) {
+		fprintf(stdout, "%02x", (unsigned char)encData->c_str()[i]);
+	}
+	fprintf(stdout, "\n");
+
+	auto decData = decipher->Update((BYTE*)encData->c_str(), encData->length());
+	*decData += *decipher->Final();
+	fprintf(stdout, "Decrypted length: %d\n", decData->length());
+	fprintf(stdout, "Decrypted: %s\n", decData->c_str());
+
+
+	// *decData += *decipher->Final();
+	// fprintf(stdout, "Decrypted: %s\n", decData->c_str());
+}
+
 MscapiSession::MscapiSession() : Session()
 {
 	hRsaAesProv = NULL;
@@ -74,12 +140,8 @@ CK_RV MscapiSession::OpenSession
 	CK_SESSION_HANDLE_PTR phSession      /* gets session handle */
 )
 {
-	Scoped<crypt::Provider> prov = crypt::Provider::Create(NULL, NULL, PROV_RSA_AES, 0);
-	auto containers = prov->GetContainers();
-	for (int i = 0; i < containers->count(); i++) {
-		puts(containers->items(i)->c_str());
-	}
-
+	// TestPrintContainers(PROV_RSA_AES);
+	// TestCipher();
 
 	CK_RV res = Session::OpenSession(flags, pApplication, Notify, phSession);
 
@@ -466,4 +528,106 @@ CK_BBOOL MscapiSession::TEMPLATES_EQUALS(CK_ATTRIBUTE_PTR pTemplate1, CK_ULONG u
 	}
 
 	return true;
+}
+
+CK_RV MscapiSession::EncryptInit
+(
+	CK_MECHANISM_PTR  pMechanism,  /* the encryption mechanism */
+	CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
+) 
+{
+	CK_RV res = Session::EncryptInit(pMechanism, hKey);
+	if (res != CKR_FUNCTION_NOT_SUPPORTED) {
+		return res;
+	}
+	res = CKR_OK;
+
+	this->encryptInitialized = true;
+
+	return res;
+}
+
+CK_RV MscapiSession::EncryptUpdate
+(
+	CK_BYTE_PTR       pPart,              /* the plaintext data */
+	CK_ULONG          ulPartLen,          /* plaintext data len */
+	CK_BYTE_PTR       pEncryptedPart,     /* gets ciphertext */
+	CK_ULONG_PTR      pulEncryptedPartLen /* gets c-text size */
+)
+{
+	CK_RV res = Session::EncryptUpdate(pPart, ulPartLen, pEncryptedPart, pulEncryptedPartLen);
+	if (res != CKR_FUNCTION_NOT_SUPPORTED) {
+		return res;
+	}
+	res = CKR_OK;
+
+	return res;
+}
+
+CK_RV MscapiSession::EncryptFinal
+(
+	CK_BYTE_PTR       pLastEncryptedPart,      /* last c-text */
+	CK_ULONG_PTR      pulLastEncryptedPartLen  /* gets last size */
+)
+{
+	CK_RV res = Session::EncryptFinal(pLastEncryptedPart, pulLastEncryptedPartLen);
+	if (res != CKR_FUNCTION_NOT_SUPPORTED) {
+		return res;
+	}
+	res = CKR_OK;
+
+	this->encryptInitialized = false;
+
+	return res;
+}
+
+CK_RV MscapiSession::DecryptInit
+(
+	CK_MECHANISM_PTR  pMechanism,  /* the decryption mechanism */
+	CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
+)
+{
+	CK_RV res = Session::DecryptInit(pMechanism, hKey);
+	if (res != CKR_FUNCTION_NOT_SUPPORTED) {
+		return res;
+	}
+	res = CKR_OK;
+
+	this->decryptInitialized = true;
+
+	return res;
+}
+
+CK_RV MscapiSession::DecryptUpdate
+(
+	CK_BYTE_PTR       pEncryptedPart,      /* encrypted data */
+	CK_ULONG          ulEncryptedPartLen,  /* input length */
+	CK_BYTE_PTR       pPart,               /* gets plaintext */
+	CK_ULONG_PTR      pulPartLen           /* p-text size */
+)
+{
+	CK_RV res = Session::DecryptUpdate(pEncryptedPart, ulEncryptedPartLen, pPart, pulPartLen);
+	if (res != CKR_FUNCTION_NOT_SUPPORTED) {
+		return res;
+	}
+	res = CKR_OK;
+
+	return res;
+}
+
+CK_RV MscapiSession::DecryptFinal
+(
+	CK_BYTE_PTR       pLastPart,      /* gets plaintext */
+	CK_ULONG_PTR      pulLastPartLen  /* p-text size */
+)
+{
+	CK_RV res = Session::DecryptFinal(pLastPart, pulLastPartLen);
+	if (res != CKR_FUNCTION_NOT_SUPPORTED) {
+		return res;
+	}
+	res = CKR_OK;
+
+	this->decryptInitialized = false;
+
+	return res;
 }

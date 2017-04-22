@@ -54,13 +54,13 @@ DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetSubject)
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetEncrypt)
 {
-	return this->GetBool(pValue, pulValueLen, this->value->getProvider()->GetKeySpec() & AT_KEYEXCHANGE == AT_KEYEXCHANGE);
+	return this->GetBool(pValue, pulValueLen, this->value->GetProvider()->GetKeySpec() & AT_KEYEXCHANGE == AT_KEYEXCHANGE);
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetVerify)
 {
-	fprintf(stdout, "KeySpec: %d\n", this->value->getProvider()->GetKeySpec());
-	return this->GetBool(pValue, pulValueLen, this->value->getProvider()->GetKeySpec() & AT_SIGNATURE == AT_SIGNATURE);
+	fprintf(stdout, "KeySpec: %d\n", this->value->GetProvider()->GetKeySpec());
+	return this->GetBool(pValue, pulValueLen, this->value->GetProvider()->GetKeySpec() & AT_SIGNATURE == AT_SIGNATURE);
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetVerifyRecover)
@@ -70,7 +70,7 @@ DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetVerifyRecover)
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetWrap)
 {
-	return this->GetBool(pValue, pulValueLen, this->value->getProvider()->GetKeySpec() & AT_KEYEXCHANGE == AT_KEYEXCHANGE);
+	return this->GetBool(pValue, pulValueLen, this->value->GetProvider()->GetKeySpec() & AT_KEYEXCHANGE == AT_KEYEXCHANGE);
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPublicKey::GetTrusted)
