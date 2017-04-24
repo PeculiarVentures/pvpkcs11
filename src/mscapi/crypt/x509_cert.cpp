@@ -44,62 +44,74 @@ bool X509Certificate::HasPrivateKey()
 }
 
 Scoped<std::string> X509Certificate::GetHashPublicKey() {
-	if (!PUBLIC_KEY_HASH.get()) {
-		PUBLIC_KEY_HASH = DIGEST_SHA1(
-			this->handle->pCertInfo->SubjectPublicKeyInfo.PublicKey.pbData,
-			this->handle->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData
-		);
+	try {
+		if (!PUBLIC_KEY_HASH.get()) {
+			PUBLIC_KEY_HASH = DIGEST_SHA1(
+				this->handle->pCertInfo->SubjectPublicKeyInfo.PublicKey.pbData,
+				this->handle->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData
+			);
+		}
+		return PUBLIC_KEY_HASH;
 	}
-	return PUBLIC_KEY_HASH;
+	CATCH_EXCEPTION;
 }
 
 Scoped<std::string> X509Certificate::GetLabel()
 {
-	if (!LABEL.get()) {
-		WCHAR pszNameString[126];
-		if (!CertGetNameStringW(this->handle, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, (LPWSTR)pszNameString, 128)) {
-			THROW_MS_ERROR();
+	try {
+		if (!LABEL.get()) {
+			WCHAR pszNameString[126];
+			if (!CertGetNameStringW(this->handle, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, (LPWSTR)pszNameString, 128)) {
+				THROW_MSCAPI_ERROR();
+			}
+			char buf[256];
+			WideCharToMultiByte(CP_UTF8, 0, pszNameString, -1, buf, 256, NULL, NULL);
+			LABEL = Scoped<std::string>(new std::string(buf));
 		}
-		char buf[256];
-		WideCharToMultiByte(CP_UTF8, 0, pszNameString, -1, buf, 256, NULL, NULL);
-		LABEL = Scoped<std::string>(new std::string(buf));
+		return LABEL;
 	}
-	return LABEL;
+	CATCH_EXCEPTION;
 }
 
 Scoped<Key> X509Certificate::GetPublicKey()
 {
-	LPSTR pcPublicKeyAlgOID = this->handle->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId;
-	DWORD dwProvType;
-	if (strstr(pcPublicKeyAlgOID, szOID_PKCS_1)) {
-		// RSA
-		dwProvType = PROV_RSA_AES;
-	}
-	else {
-		// EC
-		dwProvType = PROV_EC_ECDSA_FULL;
-	}
+	try {
+		LPSTR pcPublicKeyAlgOID = this->handle->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId;
+		DWORD dwProvType;
+		if (strstr(pcPublicKeyAlgOID, szOID_PKCS_1)) {
+			// RSA
+			dwProvType = PROV_RSA_AES;
+		}
+		else {
+			// EC
+			dwProvType = PROV_EC_ECDSA_FULL;
+		}
 
-	Scoped<Provider> prov = Provider::Create(NULL, NULL, dwProvType, CRYPT_VERIFYCONTEXT);
-	Scoped<Key> key = Key::Import(
-		prov,
-		X509_ASN_ENCODING,
-		&handle->pCertInfo->SubjectPublicKeyInfo
-	);
+		Scoped<Provider> prov = Provider::Create(NULL, NULL, dwProvType, CRYPT_VERIFYCONTEXT);
+		Scoped<Key> key = Key::Import(
+			prov,
+			X509_ASN_ENCODING,
+			&handle->pCertInfo->SubjectPublicKeyInfo
+		);
 
-	return key;
+		return key;
+	}
+	CATCH_EXCEPTION;
 }
 
 void X509Certificate::GetParam(DWORD dwPropId, void* pvData, DWORD* pdwDataLen)
 {
-	if (!CertGetCertificateContextProperty(
-		this->handle,
-		dwPropId,
-		pvData,
-		pdwDataLen
-	)) {
-		THROW_MS_ERROR();
+	try {
+		if (!CertGetCertificateContextProperty(
+			this->handle,
+			dwPropId,
+			pvData,
+			pdwDataLen
+		)) {
+			THROW_MSCAPI_ERROR();
+		}
 	}
+	CATCH_EXCEPTION;
 }
 
 Scoped<std::string> X509Certificate::GetBufferParam(DWORD dwPropId)
@@ -113,9 +125,7 @@ Scoped<std::string> X509Certificate::GetBufferParam(DWORD dwPropId)
 
 		return result;
 	}
-	catch (const Exception &e) {
-		THROW_MS_ERROR();
-	}
+	CATCH_EXCEPTION;
 }
 
 template<typename T>
@@ -129,9 +139,7 @@ Scoped<T> X509Certificate::GetStructureParam(DWORD dwPropId)
 
 		return keyContext;
 	}
-	catch (const Exception &e) {
-		THROW_MS_ERROR();
-	}
+	CATCH_EXCEPTION;
 }
 
 Scoped<CERT_KEY_CONTEXT> X509Certificate::GetKeyContext()
@@ -139,9 +147,7 @@ Scoped<CERT_KEY_CONTEXT> X509Certificate::GetKeyContext()
 	try {
 		return this->GetStructureParam<CERT_KEY_CONTEXT>(CERT_KEY_CONTEXT_PROP_ID);
 	}
-	catch (const Exception &e) {
-		THROW_MS_ERROR();
-	}
+	CATCH_EXCEPTION;
 }
 
 Scoped<CRYPT_KEY_PROV_INFO> X509Certificate::GetKeyProviderInfo()
@@ -149,21 +155,20 @@ Scoped<CRYPT_KEY_PROV_INFO> X509Certificate::GetKeyProviderInfo()
 	try {
 		return this->GetStructureParam<CRYPT_KEY_PROV_INFO>(CERT_KEY_PROV_INFO_PROP_ID);
 	}
-	catch (const Exception &e) {
-		THROW_MS_ERROR();
-	}
+	CATCH_EXCEPTION;
 }
 
 Scoped<Key> X509Certificate::GetPrivateKey()
 {
-	if (!HasPrivateKey()) {
-		throw std::exception("X509Certificate::GetPrivateKey: Certificated hasn't got Private key");
+	try {
+		if (!HasPrivateKey()) {
+			THROW_EXCEPTION("Certificated hasn't got Private key");
+		}
+		auto provInfo = this->GetKeyProviderInfo();
+		Provider::CreateW(provInfo->pwszContainerName, provInfo->pwszProvName, provInfo->dwProvType, CRYPT_SILENT);
+		Scoped<Provider> prov = Provider::CreateW(provInfo->pwszContainerName, provInfo->pwszProvName, provInfo->dwProvType, 0);
+		Scoped<Key> privateKey(new Key(prov));
+		return privateKey;
 	}
-
-	auto provInfo = this->GetKeyProviderInfo();
-	// fwprintf(stdout, L"Get private key from Provider '%s' and '%s' container\n", provInfo->pwszProvName, provInfo->pwszContainerName);
-	Provider::CreateW(provInfo->pwszContainerName, provInfo->pwszProvName, provInfo->dwProvType, CRYPT_SILENT);
-	Scoped<Provider> prov = Provider::CreateW(provInfo->pwszContainerName, provInfo->pwszProvName, provInfo->dwProvType, 0);
-	Scoped<Key> privateKey(new Key(prov));
-	return privateKey;
+	CATCH_EXCEPTION;
 }

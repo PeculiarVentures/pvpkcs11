@@ -5,6 +5,8 @@
 class Key : public Storage {
 
 public:
+	Key();
+
 	CK_RV GetAttributeValue
 	(
 		CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes; gets values */
@@ -19,5 +21,10 @@ public:
 	virtual DECLARE_GET_ATTRIBUTE(GetLocal);
 	virtual DECLARE_GET_ATTRIBUTE(GetKeyGenMechanism);
 	virtual DECLARE_GET_ATTRIBUTE(GetAllowedMechanisms);
+
+protected:
+	CK_ULONG     propKeyType;
+	std::string  propId;
+	CK_BBOOL     propDerive;
 
 };

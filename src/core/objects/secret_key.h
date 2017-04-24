@@ -30,4 +30,18 @@ public:
 	virtual DECLARE_GET_ATTRIBUTE(GetWrapTemplate);
 	virtual DECLARE_GET_ATTRIBUTE(GetUnwrapTemplate);
 
+protected:
+	CK_BBOOL    propSensitive;
+	CK_BBOOL    propEncrypt;
+	CK_BBOOL    propDecrypt;
+	CK_BBOOL    propSign;
+	CK_BBOOL    propVerify;
+	CK_BBOOL    propWrap;
+	CK_BBOOL    propUnwrap;
+	CK_BBOOL    propExtractable;
+	CK_BBOOL    propAlwaysSensitive;
+	CK_BBOOL    propNeverExtractable;
+	std::string propCheckValue;
+	CK_BBOOL    propWrapWithTrusted;
+	CK_BBOOL    propTrusted;
 };

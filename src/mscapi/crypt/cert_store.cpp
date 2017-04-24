@@ -4,30 +4,42 @@ using namespace crypt;
 
 CertStore::CertStore()
 {
-	this->hStore = NULL;
+	try {
+		this->hStore = NULL;
+	}
+	CATCH_EXCEPTION;
 }
 
 CertStore::~CertStore()
 {
-	this->Close();
+	try {
+		this->Close();
+	}
+	CATCH_EXCEPTION;
 }
 
 void CertStore::Open(LPCSTR storeName)
 {
-	this->hStore = CertOpenSystemStoreA((HCRYPTPROV)NULL, storeName);
-	if (this->hStore == NULL_PTR) {
-		THROW_MS_ERROR();
+	try {
+		this->hStore = CertOpenSystemStoreA((HCRYPTPROV)NULL, storeName);
+		if (this->hStore == NULL_PTR) {
+			THROW_MSCAPI_ERROR();
+		}
+		this->name = storeName;
+		this->opened = true;
 	}
-	this->name = storeName;
-	this->opened = true;
+	CATCH_EXCEPTION;
 }
 
 void CertStore::Close()
 {
-	if (this->hStore) {
-		CertCloseStore(this->hStore, 0);
-		this->hStore = NULL;
+	try {
+		if (this->hStore) {
+			CertCloseStore(this->hStore, 0);
+			this->hStore = NULL;
+		}
 	}
+	CATCH_EXCEPTION;
 }
 
 Scoped<Collection<Scoped<X509Certificate>>> CertStore::GetCertificates() {

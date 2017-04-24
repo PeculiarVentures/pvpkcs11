@@ -3,11 +3,11 @@
 Storage::Storage()
 {
 	this->handle = reinterpret_cast<CK_OBJECT_HANDLE>(this);
-	this->token = false;
-	this->_private = false;
-	this->modifiable = false;
-	this->copyable = false;
-	this->label = Scoped<std::string>(new std::string());
+	this->propToken = false;
+	this->propPrivate = false;
+	this->propModifiable = false;
+	this->propCopyable = false;
+	this->propLabel = Scoped<std::string>(new std::string());
 }
 
 
@@ -21,34 +21,37 @@ CK_RV Storage::GetAttributeValue
 	CK_ULONG          ulCount     /* attributes in template */
 )
 {
-	CHECK_ARGUMENT_NULL(pTemplate);
-	CK_RV res = CKR_OK;
+	try {
+		CHECK_ARGUMENT_NULL(pTemplate);
+		CK_RV res = CKR_OK;
 
-	for (size_t i = 0; i < ulCount && res == CKR_OK; i++) {
-		CK_ATTRIBUTE_PTR attr = &pTemplate[i];
+		for (size_t i = 0; i < ulCount && res == CKR_OK; i++) {
+			CK_ATTRIBUTE_PTR attr = &pTemplate[i];
 
-		switch (attr->type) {
-		case CKA_TOKEN:
-			res = GetToken((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-			break;
-		case CKA_PRIVATE:
-			res = GetPrivate((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-			break;
-		case CKA_MODIFIABLE:
-			res = GetModifiable((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-			break;
-		case CKA_LABEL:
-			res = GetLabel((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-			break;
-		case CKA_COPYABLE:
-			res = GetCopyable((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-			break;
-		default:
-			res = Object::GetAttributeValue(attr, 1);
+			switch (attr->type) {
+			case CKA_TOKEN:
+				res = GetToken((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
+				break;
+			case CKA_PRIVATE:
+				res = GetPrivate((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
+				break;
+			case CKA_MODIFIABLE:
+				res = GetModifiable((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
+				break;
+			case CKA_LABEL:
+				res = GetLabel((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
+				break;
+			case CKA_COPYABLE:
+				res = GetCopyable((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
+				break;
+			default:
+				res = Object::GetAttributeValue(attr, 1);
+			}
 		}
-	}
 
-	return res;
+		return res;
+	}
+	CATCH_EXCEPTION;
 }
 
 CK_RV Storage::SetAttributeValue
@@ -57,30 +60,48 @@ CK_RV Storage::SetAttributeValue
 	CK_ULONG          ulCount     /* attributes in template */
 )
 {
-	return Object::GetAttributeValue(pTemplate, ulCount);
+	try {
+		return Object::GetAttributeValue(pTemplate, ulCount);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(Storage::GetToken)
 {
-	return this->GetBool(pValue, pulValueLen, token);
+	try {
+		return this->GetBool(pValue, pulValueLen, propToken);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(Storage::GetPrivate)
 {
-	return this->GetBool(pValue, pulValueLen, _private);
+	try {
+		return this->GetBool(pValue, pulValueLen, propPrivate);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(Storage::GetModifiable)
 {
-	return this->GetBool(pValue, pulValueLen, modifiable);
+	try {
+		return this->GetBool(pValue, pulValueLen, propModifiable);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(Storage::GetLabel)
 {
-	return this->GetUtf8String(pValue, pulValueLen, (BYTE*)label->c_str(), label->length());
+	try {
+		return this->GetUtf8String(pValue, pulValueLen, (BYTE*)propLabel->c_str(), propLabel->length());
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(Storage::GetCopyable)
 {
-	return this->GetBool(pValue, pulValueLen, copyable);
+	try {
+		return this->GetBool(pValue, pulValueLen, propCopyable);
+	}
+	CATCH_EXCEPTION;
 }

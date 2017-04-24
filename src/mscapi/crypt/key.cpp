@@ -11,8 +11,7 @@ Scoped<Key> Key::Generate(
 {
 	HCRYPTKEY hNewKey = NULL;
 	if (!CryptGenKey(prov->Get(), uiAlgId, dwFlags, &hNewKey)) {
-		PRINT_WIN_ERROR();
-		THROW_MS_ERROR();
+		THROW_MSCAPI_ERROR();
 	}
 
 	Scoped<Key> result(new Key(hNewKey));
@@ -37,7 +36,7 @@ Scoped<Key> Key::Import(
 		dwFlags,
 		&hNewKey
 	)) {
-		THROW_MS_ERROR();
+		THROW_MSCAPI_ERROR();
 	}
 
 	Scoped<Key> result(new Key(hNewKey));
@@ -59,7 +58,7 @@ Scoped<Key> Key::Import(
 		pInfo,
 		&hNewKey
 	)) {
-		THROW_MS_ERROR();
+		THROW_MSCAPI_ERROR();
 	}
 
 	Scoped<Key> result(new Key(hNewKey));
@@ -92,7 +91,7 @@ Scoped<Key> Key::Copy()
 {
 	HCRYPTKEY dupKey;
 	if (!CryptDuplicateKey(this->handle, NULL, 0, &dupKey)) {
-		THROW_MS_ERROR();
+		THROW_MSCAPI_ERROR();
 	}
 	return Scoped<Key>(new Key(dupKey));
 }
@@ -109,8 +108,7 @@ HCRYPTKEY Key::Get()
 {
 	if (this->handle == NULL) {
 		if (!CryptGetUserKey(this->prov->Get(), AT_SIGNATURE, &this->handle)) {
-			PRINT_WIN_ERROR();
-			THROW_MS_ERROR();
+			THROW_MSCAPI_ERROR();
 		}
 	}
 	return this->handle;
@@ -130,57 +128,89 @@ Scoped<Provider> Key::GetProvider()
 void Key::GetParam(DWORD dwPropId, BYTE* pbData, DWORD* pdwDataLen, DWORD dwFlags)
 {
 	if (!CryptGetKeyParam(handle, dwPropId, pbData, pdwDataLen, dwFlags)) {
-		THROW_MS_ERROR();
+		THROW_MSCAPI_ERROR();
 	}
 }
 
 void Key::SetParam(DWORD dwPropId, BYTE* pbData, DWORD dwFlags)
 {
 	if (!CryptSetKeyParam(handle, dwPropId, pbData, dwFlags)) {
-		THROW_MS_ERROR();
+		THROW_MSCAPI_ERROR();
 	}
 }
 
 DWORD Key::GetNumber(DWORD dwPropId)
 {
-	DWORD dwData;
-	DWORD dwDataLen = sizeof(DWORD);
-	this->GetParam(dwPropId, (BYTE*)&dwData, &dwDataLen);
+	try {
+		DWORD dwData;
+		DWORD dwDataLen = sizeof(DWORD);
+		this->GetParam(dwPropId, (BYTE*)&dwData, &dwDataLen);
 
-	return dwData;
+		return dwData;
+	}
+	CATCH_EXCEPTION;
+}
+
+DWORD Key::GetKeyLen()
+{
+	try {
+		return this->GetNumber(KP_KEYLEN) >> 3;
+	}
+	CATCH_EXCEPTION;
 }
 
 DWORD Key::GetBlockLen()
 {
-	return this->GetNumber(KP_BLOCKLEN) >> 3;
+	try {
+		return this->GetNumber(KP_BLOCKLEN) >> 3;
+	}
+	CATCH_EXCEPTION;
 }
 
 ALG_ID Key::GetAlgId()
 {
-	return this->GetNumber(KP_ALGID);
+	try {
+		return this->GetNumber(KP_ALGID);
+	}
+	CATCH_EXCEPTION;
 }
 
 void Key::SetIV(BYTE* pbData, DWORD dwDataLen)
 {
-	this->SetParam(KP_IV, pbData);
+	try {
+		this->SetParam(KP_IV, pbData);
+	}
+	CATCH_EXCEPTION;
 }
 
 DWORD Key::GetMode()
 {
-	return this->GetNumber(KP_MODE);
+	try {
+		return this->GetNumber(KP_MODE);
+	}
+	CATCH_EXCEPTION;
 }
 
 void Key::SetNumber(DWORD dwPropId, DWORD dwData)
 {
-	this->SetParam(dwPropId, (BYTE*)&dwData, sizeof(DWORD));
+	try {
+		this->SetParam(dwPropId, (BYTE*)&dwData, sizeof(DWORD));
+	}
+	CATCH_EXCEPTION;
 }
 
 DWORD Key::GetPadding()
 {
-	return this->GetNumber(KP_PADDING);
+	try {
+		return this->GetNumber(KP_PADDING);
+	}
+	CATCH_EXCEPTION;
 }
 
 void Key::SetPadding(DWORD dwPadding)
 {
-	this->SetNumber(KP_PADDING, dwPadding);
+	try {
+		this->SetNumber(KP_PADDING, dwPadding);
+	}
+	CATCH_EXCEPTION;
 }

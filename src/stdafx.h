@@ -17,10 +17,14 @@
 #include <stdio.h>
 #include <memory>
 #include <vector>
+#include <string>
 
 template <typename T>
 using Scoped = std::shared_ptr<T>;
 
+/**
+ * Set padded string for PKCS#11 structures
+ */
 void SET_STRING(CK_UTF8CHAR* storage, char* data, int size);
 
 // check incoming argument, if argument is NULL returns CKR_ARGUMENTS_BAD

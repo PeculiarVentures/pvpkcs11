@@ -1,11 +1,20 @@
 #include "stdafx.h"
 #include "core/module.h"
+#include "core/excep.h"
 #include "mscapi/slot.h"
 
 #define CATCH(functionName)                                     \
+    catch (Scoped<core::Exception> e) {                         \
+        fprintf(stdout, "Error: %s\n", functionName);           \
+		core::Pkcs11Exception* exception;                       \
+        puts(e->what());                                        \
+		if (exception = dynamic_cast<core::Pkcs11Exception*>(e.get())) { \
+			return strcmp(exception->name.c_str(), PKCS11_EXCEPTION_NAME) ? CKR_FUNCTION_FAILED : exception->code;\
+		}                                                       \
+    }                                                           \
 	catch (const std::exception &e) {                           \
 		fprintf(stdout, "Error: %s\n", functionName);           \
-		fprintf(stdout, "%s\n", e.what());               \
+		fprintf(stdout, "%s\n", e.what());                      \
 	}                                                           \
 	catch (...) {                                               \
 		fprintf(stdout, "Error: %s\n", functionName);           \
@@ -1087,7 +1096,18 @@ CK_DEFINE_FUNCTION(CK_RV, C_GenerateKey)
 	CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.GenerateKey(
+			hSession, 
+			pMechanism, 
+			pTemplate,
+			ulCount,
+			phKey
+		);
+	}
+	CATCH(__FUNCTION__);
+
+	return CKR_FUNCTION_FAILED;
 }
 
 

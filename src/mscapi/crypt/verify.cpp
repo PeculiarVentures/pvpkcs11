@@ -11,8 +11,11 @@ Scoped<Verify> Verify::Create(
 	Scoped<Key>       key
 )
 {
-	Scoped<Verify> verify(new Verify(algId, key));
-	return verify;
+	try {
+		Scoped<Verify> verify(new Verify(algId, key));
+		return verify;
+	}
+	CATCH_EXCEPTION;
 }
 
 bool Verify::Once(
@@ -24,9 +27,12 @@ bool Verify::Once(
 	DWORD         dwSignatureLen
 )
 {
-	Scoped<Verify> verify(new Verify(algId, key));
-	verify->Update(pbData, dwDataLen);
-	return verify->Final(pbSignature, dwSignatureLen);
+	try {
+		Scoped<Verify> verify(new Verify(algId, key));
+		verify->Update(pbData, dwDataLen);
+		return verify->Final(pbSignature, dwSignatureLen);
+	}
+	CATCH_EXCEPTION;
 }
 
 Verify::Verify(
@@ -34,8 +40,11 @@ Verify::Verify(
 	Scoped<Key>       key
 )
 {
-	hash = Hash::Create(key->GetProvider(), algId, NULL, 0);
-	this->key = key;
+	try {
+		hash = Hash::Create(key->GetProvider(), algId, NULL, 0);
+		this->key = key;
+	}
+	CATCH_EXCEPTION;
 }
 
 void Verify::Update(
@@ -43,7 +52,10 @@ void Verify::Update(
 	CK_ULONG          ulPartLen  /* length of signed data */
 )
 {
-	hash->Update(pPart, ulPartLen);
+	try {
+		hash->Update(pPart, ulPartLen);
+	}
+	CATCH_EXCEPTION;
 }
 
 bool Verify::Final(
@@ -51,21 +63,24 @@ bool Verify::Final(
 	DWORD  dwSignatureLen
 )
 {
-	// reverse signature
-	BYTE*  pbSignatureReversed = (BYTE*)malloc(dwSignatureLen);
-	memcpy(pbSignatureReversed, pbSignature, dwSignatureLen);
-	std::reverse(&pbSignatureReversed[0], &pbSignatureReversed[dwSignatureLen]);
+	try {
+		// reverse signature
+		BYTE*  pbSignatureReversed = (BYTE*)malloc(dwSignatureLen);
+		memcpy(pbSignatureReversed, pbSignature, dwSignatureLen);
+		std::reverse(&pbSignatureReversed[0], &pbSignatureReversed[dwSignatureLen]);
 
-	// Calculate signature
-	if (!CryptVerifySignature(hash->Get(), pbSignatureReversed, dwSignatureLen, this->key->Get(), NULL, 0)) {
-		free(pbSignatureReversed);
-		DWORD dwLastError = GetLastError();
-		if (dwLastError == NTE_BAD_SIGNATURE) {
-			return false;
+		// Calculate signature
+		if (!CryptVerifySignature(hash->Get(), pbSignatureReversed, dwSignatureLen, this->key->Get(), NULL, 0)) {
+			free(pbSignatureReversed);
+			DWORD dwLastError = GetLastError();
+			if (dwLastError == NTE_BAD_SIGNATURE) {
+				return false;
+			}
+			THROW_MSCAPI_CODE_ERROR(dwLastError);
 		}
-		throw Exception(dwLastError, __FUNCTION__);
-	}
-	free(pbSignatureReversed);
+		free(pbSignatureReversed);
 
-	return true;
+		return true;
+	}
+	CATCH_EXCEPTION
 }

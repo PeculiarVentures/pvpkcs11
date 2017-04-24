@@ -44,14 +44,6 @@ static void ATTRIBUTE_copy(CK_ATTRIBUTE* attrDst, CK_ATTRIBUTE* attrSrc)
 		return CKR_OPERATION_NOT_INITIALIZED;				\
 	}
 
-#define CHECK_MECHANISM_TYPE(mechanismType, usage)                          \
-{                                                                           \
-	CK_RV __res = this->CheckMechanismType(mechanismType, usage);           \
-	if (__res != CKR_OK) {                                                  \
-		return __res;                                                       \
-	}                                                                       \
-}
-
 Session::Session()
 {
 	this->Handle = 0;
@@ -257,7 +249,7 @@ CK_RV Session::DigestInit
 )
 {
 	CHECK_ARGUMENT_NULL(pMechanism);
-	CHECK_MECHANISM_TYPE(pMechanism->mechanism, CKF_DIGEST);
+	CheckMechanismType(pMechanism->mechanism, CKF_DIGEST);
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -310,19 +302,20 @@ CK_RV Session::DigestFinal
 	return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV Session::CheckMechanismType(CK_MECHANISM_TYPE mechanism, CK_ULONG usage)
+void Session::CheckMechanismType(CK_MECHANISM_TYPE mechanism, CK_ULONG usage)
 {
 	CK_ULONG ulMechanismCount;
 	CK_RV res = C_GetMechanismList(this->SlotID, NULL_PTR, &ulMechanismCount);
 	if (res != CKR_OK) {
-		return res;
+		THROW_PKCS11_EXCEPTION(res, "Cannot get mechanism list");
 	}
 
 	bool found = false;
 	CK_MECHANISM_TYPE_PTR mechanisms = static_cast<CK_MECHANISM_TYPE_PTR>(malloc(ulMechanismCount * sizeof(CK_MECHANISM_TYPE)));
 	res = C_GetMechanismList(this->SlotID, mechanisms, &ulMechanismCount);
 	if (res != CKR_OK) {
-		return res;
+		free(mechanisms);
+		THROW_PKCS11_EXCEPTION(res, "Cannot get mechanism list");
 	}
 	for (size_t i = 0; i < ulMechanismCount; i++) {
 		if (mechanisms[i] == mechanism) {
@@ -330,7 +323,8 @@ CK_RV Session::CheckMechanismType(CK_MECHANISM_TYPE mechanism, CK_ULONG usage)
 			// check mechanism usage
 			res = C_GetMechanismInfo(this->SlotID, mechanism, &info);
 			if (res != CKR_OK) {
-				return res;
+				free(mechanisms);
+				THROW_PKCS11_EXCEPTION(res, "Cannot get mechanism info");
 			}
 			else {
 				if (info.flags & usage) {
@@ -342,7 +336,9 @@ CK_RV Session::CheckMechanismType(CK_MECHANISM_TYPE mechanism, CK_ULONG usage)
 	}
 	free(mechanisms);
 
-	return found ? CKR_OK : CKR_MECHANISM_INVALID;
+	if (!found) {
+		THROW_PKCS11_EXCEPTION(CKR_MECHANISM_INVALID, "Mechanism not found");
+	}
 }
 
 CK_RV Session::VerifyInit(
@@ -355,7 +351,7 @@ CK_RV Session::VerifyInit(
 		return CKR_OPERATION_ACTIVE;
 	}
 	CHECK_ARGUMENT_NULL(pMechanism);
-	CHECK_MECHANISM_TYPE(pMechanism->mechanism, CKF_VERIFY);
+	CheckMechanismType(pMechanism->mechanism, CKF_VERIFY);
 	CHECK_ARGUMENT_NULL(hKey);
 	Scoped<Object> object = this->GetObject(hKey);
 
@@ -432,7 +428,7 @@ CK_RV Session::SignInit(
 		return CKR_OPERATION_ACTIVE;
 	}
 	CHECK_ARGUMENT_NULL(pMechanism);
-	CHECK_MECHANISM_TYPE(pMechanism->mechanism, CKF_SIGN);
+	CheckMechanismType(pMechanism->mechanism, CKF_SIGN);
 	CHECK_ARGUMENT_NULL(hKey);
 	Scoped<Object> object = this->GetObject(hKey);
 
@@ -512,7 +508,7 @@ CK_RV Session::EncryptInit
 		return CKR_OPERATION_ACTIVE;
 	}
 	CHECK_ARGUMENT_NULL(pMechanism);
-	CHECK_MECHANISM_TYPE(pMechanism->mechanism, CKF_ENCRYPT);
+	CheckMechanismType(pMechanism->mechanism, CKF_ENCRYPT);
 	CHECK_ARGUMENT_NULL(hKey);
 	Scoped<Object> object = this->GetObject(hKey);
 
@@ -542,16 +538,30 @@ CK_RV Session::EncryptInit
 CK_RV Session::Encrypt
 (
 	CK_BYTE_PTR       pData,               /* the plaintext data */
-	CK_ULONG          ulDataLen,           /* bytes of plaintext */
+	CK_ULONG          ulDataLength,           /* bytes of plaintext */
 	CK_BYTE_PTR       pEncryptedData,      /* gets ciphertext */
 	CK_ULONG_PTR      pulEncryptedDataLen  /* gets c-text size */
 )
 {
-	CK_RV res = EncryptUpdate(pData, ulDataLen, pEncryptedData, pulEncryptedDataLen);
+	std::string update;
+	CK_ULONG ulDataLen = *pulEncryptedDataLen;
+	update.resize(ulDataLen);
+	CK_RV res = EncryptUpdate(pData, ulDataLength, (CK_BYTE_PTR)update.c_str(), &ulDataLen);
 	if (res != CKR_OK) {
 		return res;
 	}
-	res = EncryptFinal(pEncryptedData, pulEncryptedDataLen);
+	update.resize(ulDataLen);
+
+	std::string final;
+	ulDataLen = *pulEncryptedDataLen - ulDataLen;
+	final.resize(ulDataLen);
+	res = EncryptFinal((CK_BYTE_PTR)final.c_str(), &ulDataLen);
+	final.resize(ulDataLen);
+
+	std::string data = update + final;
+
+	memcpy(pEncryptedData, data.c_str(), data.length());
+	*pulEncryptedDataLen = data.length();
 
 	return res;
 }
@@ -564,7 +574,7 @@ CK_RV Session::EncryptUpdate
 	CK_ULONG_PTR      pulEncryptedPartLen /* gets c-text size */
 )
 {
-	if (!this->signInitialized) {
+	if (!this->encryptInitialized) {
 		return CKR_OPERATION_NOT_INITIALIZED;
 	}
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -577,7 +587,7 @@ CK_RV Session::EncryptFinal
 	CK_ULONG_PTR      pulLastEncryptedPartLen  /* gets last size */
 )
 {
-	if (!this->signInitialized) {
+	if (!this->encryptInitialized) {
 		return CKR_OPERATION_NOT_INITIALIZED;
 	}
 	return CKR_FUNCTION_NOT_SUPPORTED;
@@ -594,7 +604,7 @@ CK_RV Session::DecryptInit
 		return CKR_OPERATION_ACTIVE;
 	}
 	CHECK_ARGUMENT_NULL(pMechanism);
-	CHECK_MECHANISM_TYPE(pMechanism->mechanism, CKF_DECRYPT);
+	CheckMechanismType(pMechanism->mechanism, CKF_DECRYPT);
 	CHECK_ARGUMENT_NULL(hKey);
 	Scoped<Object> object = this->GetObject(hKey);
 
@@ -629,11 +639,25 @@ CK_RV Session::Decrypt
 	CK_ULONG_PTR      pulDataLen          /* gets p-text size */
 )
 {
-	CK_RV res = DecryptUpdate(pEncryptedData, ulEncryptedDataLen, pData, pulDataLen);
+	std::string update;
+	CK_ULONG ulDataLen = *pulDataLen;
+	update.resize(ulDataLen);
+	CK_RV res = DecryptUpdate(pEncryptedData, ulEncryptedDataLen, (CK_BYTE_PTR)update.c_str(), &ulDataLen);
 	if (res != CKR_OK) {
 		return res;
 	}
-	res = DecryptFinal(pData, pulDataLen);
+	update.resize(ulDataLen);
+
+	std::string final;
+	ulDataLen = *pulDataLen - ulDataLen;
+	final.resize(ulDataLen);
+	res = DecryptFinal((CK_BYTE_PTR)final.c_str(), &ulDataLen);
+	final.resize(ulDataLen);
+
+	std::string data = update + final;
+
+	memcpy(pData, data.c_str(), data.length());
+	*pulDataLen = data.length();
 
 	return res;
 }
@@ -661,5 +685,21 @@ CK_RV Session::DecryptFinal
 	if (!this->decryptInitialized) {
 		return CKR_OPERATION_NOT_INITIALIZED;
 	}
+	return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+CK_RV Session::GenerateKey
+(
+	CK_MECHANISM_PTR     pMechanism,  /* key generation mech. */
+	CK_ATTRIBUTE_PTR     pTemplate,   /* template for new key */
+	CK_ULONG             ulCount,     /* # of attrs in template */
+	CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
+)
+{
+	CHECK_ARGUMENT_NULL(pMechanism);
+	CheckMechanismType(pMechanism->mechanism, CKF_GENERATE);
+	CHECK_ARGUMENT_NULL(pTemplate);
+	CHECK_ARGUMENT_NULL(phKey);
+
 	return CKR_FUNCTION_NOT_SUPPORTED;
 }

@@ -50,10 +50,13 @@ Scoped<Provider> Provider::Create(
 	DWORD     dwFlags
 )
 {
-	Scoped<Provider> prov(new Provider());
-	prov->AcquireContext(szContainer, szProvider, dwProvType, dwFlags);
+	try {
+		Scoped<Provider> prov(new Provider());
+		prov->AcquireContext(szContainer, szProvider, dwProvType, dwFlags);
 
-	return prov;
+		return prov;
+	}
+	CATCH_EXCEPTION;
 }
 
 Scoped<Provider> Provider::CreateW(
@@ -63,10 +66,13 @@ Scoped<Provider> Provider::CreateW(
 	DWORD     dwFlags
 )
 {
-	Scoped<Provider> prov(new Provider());
-	prov->AcquireContextW(szContainer, szProvider, dwProvType, dwFlags);
+	try {
+		Scoped<Provider> prov(new Provider());
+		prov->AcquireContextW(szContainer, szProvider, dwProvType, dwFlags);
 
-	return prov;
+		return prov;
+	}
+	CATCH_EXCEPTION;
 }
 
 void Provider::AcquireContext(
@@ -76,11 +82,14 @@ void Provider::AcquireContext(
 	DWORD     dwFlags
 )
 {
-	// Remove old provider handle
-	this->Destroy();
-	if (!CryptAcquireContextA(&this->handle, szContainer, szProvider, dwProvType, dwFlags)) {
-		THROW_MS_ERROR();
+	try {
+		// Remove old provider handle
+		this->Destroy();
+		if (!CryptAcquireContextA(&this->handle, szContainer, szProvider, dwProvType, dwFlags)) {
+			THROW_MSCAPI_ERROR();
+		}
 	}
+	CATCH_EXCEPTION;
 }
 
 void Provider::AcquireContextW(
@@ -90,11 +99,14 @@ void Provider::AcquireContextW(
 	DWORD     dwFlags
 )
 {
-	// Remove old provider handle
-	this->Destroy();
-	if (!CryptAcquireContextW(&this->handle, szContainer, szProvider, dwProvType, dwFlags)) {
-		THROW_MS_ERROR();
+	try {
+		// Remove old provider handle
+		this->Destroy();
+		if (!CryptAcquireContextW(&this->handle, szContainer, szProvider, dwProvType, dwFlags)) {
+			THROW_MSCAPI_ERROR();
+		}
 	}
+	CATCH_EXCEPTION;
 }
 
 void Provider::GetParam(
@@ -104,9 +116,12 @@ void Provider::GetParam(
 	DWORD   dwFlags
 )
 {
-	if (!CryptGetProvParam(this->handle, dwParam, pbData, pdwDataLen, dwFlags)) {
-		THROW_MS_ERROR();
+	try {
+		if (!CryptGetProvParam(this->handle, dwParam, pbData, pdwDataLen, dwFlags)) {
+			THROW_MSCAPI_ERROR();
+		}
 	}
+	CATCH_EXCEPTION;
 }
 
 Scoped<std::string> Provider::GetBufferParam(
@@ -124,9 +139,7 @@ Scoped<std::string> Provider::GetBufferParam(
 		}
 		return result;
 	}
-	catch (const Exception &e) {
-		THROW_MS_ERROR();
-	}
+	CATCH_EXCEPTION;
 }
 
 DWORD Provider::GetNumberParam(
@@ -140,9 +153,7 @@ DWORD Provider::GetNumberParam(
 
 		return result;
 	}
-	catch (const Exception &e) {
-		THROW_MS_ERROR();
-	}
+	CATCH_EXCEPTION;
 }
 
 Scoped<std::string> Provider::GetContainer()
@@ -150,9 +161,7 @@ Scoped<std::string> Provider::GetContainer()
 	try {
 		return this->GetBufferParam(PP_CONTAINER);
 	}
-	catch (const Exception &e) {
-		THROW_MS_ERROR();
-	}
+	CATCH_EXCEPTION;
 }
 
 Scoped<std::string> Provider::GetName()
@@ -160,9 +169,7 @@ Scoped<std::string> Provider::GetName()
 	try {
 		return this->GetBufferParam(PP_NAME);
 	}
-	catch (const Exception &e) {
-		THROW_MS_ERROR();
-	}
+	CATCH_EXCEPTION;
 }
 
 DWORD Provider::GetType()
@@ -170,9 +177,7 @@ DWORD Provider::GetType()
 	try {
 		return this->GetNumberParam(PP_PROVTYPE);
 	}
-	catch (const Exception &e) {
-		THROW_MS_ERROR();
-	}
+	CATCH_EXCEPTION;
 }
 
 DWORD Provider::GetKeySpec()
@@ -180,9 +185,7 @@ DWORD Provider::GetKeySpec()
 	try {
 		return this->GetNumberParam(PP_KEYSPEC);
 	}
-	catch (const Exception &e) {
-		THROW_MS_ERROR();
-	}
+	CATCH_EXCEPTION;
 }
 
 Scoped<Collection<Scoped<std::string>>> Provider::GetContainers()
@@ -194,7 +197,8 @@ Scoped<Collection<Scoped<std::string>>> Provider::GetContainers()
 			res->add(container);
 		}
 	}
-	catch (const Exception &e) {
+	catch (Scoped<core::Exception>) {
+		// Ignore last exception
 	}
 	return res;
 }

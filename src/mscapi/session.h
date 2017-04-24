@@ -135,6 +135,16 @@ public:
 		CK_ULONG_PTR      pulLastPartLen  /* p-text size */
 	);
 
+	// Key generation
+
+	CK_RV GenerateKey
+	(
+		CK_MECHANISM_PTR     pMechanism,  /* key generation mech. */
+		CK_ATTRIBUTE_PTR     pTemplate,   /* template for new key */
+		CK_ULONG             ulCount,     /* # of attrs in template */
+		CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
+	);
+
 protected:
 	HCRYPTPROV hRsaAesProv;
 	Scoped<crypt::Hash> hash;

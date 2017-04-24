@@ -26,10 +26,10 @@ public:
 	virtual DECLARE_GET_ATTRIBUTE(GetCopyable);
 
 protected:
-	CK_BBOOL            token;
-	CK_BBOOL            _private;
-	CK_BBOOL            modifiable;
-	Scoped<std::string> label;
-	CK_BBOOL            copyable;
+	CK_BBOOL            propToken;
+	CK_BBOOL            propPrivate;
+	CK_BBOOL            propModifiable;
+	Scoped<std::string> propLabel;
+	CK_BBOOL            propCopyable;
 };
 

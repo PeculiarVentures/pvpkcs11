@@ -9,7 +9,10 @@ Scoped<Hash> Hash::Create(
 	DWORD             dwFlag
 )
 {
-	return Scoped<Hash>(new Hash(prov, algId, key, dwFlag));
+	try {
+		return Scoped<Hash>(new Hash(prov, algId, key, dwFlag));
+	}
+	CATCH_EXCEPTION;
 }
 
 Hash::Hash(
@@ -17,13 +20,16 @@ Hash::Hash(
 	ALG_ID            algId,
 	Scoped<Key>       key,
 	DWORD             dwFlag
-):
+) :
 	prov(prov),
 	key(key)
 {
-	if (!CryptCreateHash(prov ? prov->Get() : NULL, algId, key ? key->Get() : NULL, dwFlag, &this->handle)) {
-		THROW_MS_ERROR();
+	try {
+		if (!CryptCreateHash(prov ? prov->Get() : NULL, algId, key ? key->Get() : NULL, dwFlag, &this->handle)) {
+			THROW_MSCAPI_ERROR();
+		}
 	}
+	CATCH_EXCEPTION;
 }
 
 void Hash::Update(
@@ -31,43 +37,61 @@ void Hash::Update(
 	DWORD dwDataLen
 )
 {
-	if (!CryptHashData(this->handle, pbData, dwDataLen, 0)) {
-		THROW_MS_ERROR();
+	try {
+		if (!CryptHashData(this->handle, pbData, dwDataLen, 0)) {
+			THROW_MSCAPI_ERROR();
+		}
 	}
+	CATCH_EXCEPTION;
 }
 
 void Hash::GetParam(DWORD dwPropId, BYTE* pvData, DWORD* pdwDataLen)
 {
-	if (!CryptGetHashParam(this->handle, dwPropId, pvData, pdwDataLen, 0)) {
-		THROW_MS_ERROR();
+	try {
+		if (!CryptGetHashParam(this->handle, dwPropId, pvData, pdwDataLen, 0)) {
+			THROW_MSCAPI_ERROR();
+		}
 	}
+	CATCH_EXCEPTION;
 }
 
 DWORD Hash::GetNumber(DWORD dwPropId)
 {
-	DWORD dwData;
-	DWORD dwDataLen = sizeof(DWORD);
-	this->GetParam(dwPropId, (BYTE*)&dwData, &dwDataLen);
-	return dwData;
+	try {
+		DWORD dwData;
+		DWORD dwDataLen = sizeof(DWORD);
+		this->GetParam(dwPropId, (BYTE*)&dwData, &dwDataLen);
+		return dwData;
+	}
+	CATCH_EXCEPTION;
 }
 
 DWORD Hash::GetSize()
 {
-	return this->GetNumber(HP_HASHSIZE);
+	try {
+		return this->GetNumber(HP_HASHSIZE);
+	}
+	CATCH_EXCEPTION;
 }
 
 DWORD Hash::GetAlgId()
 {
-	return this->GetNumber(HP_ALGID);
+	try {
+		return this->GetNumber(HP_ALGID);
+	}
+	CATCH_EXCEPTION;
 }
 
 Scoped<std::string> Hash::GetValue()
 {
-	DWORD dwDataLen = this->GetSize();
-	Scoped<std::string> result(new std::string());
-	result->resize(dwDataLen);
-	this->GetParam(HP_HASHVAL, (BYTE*)result->c_str(), &dwDataLen);
-	return result;
+	try {
+		DWORD dwDataLen = this->GetSize();
+		Scoped<std::string> result(new std::string());
+		result->resize(dwDataLen);
+		this->GetParam(HP_HASHVAL, (BYTE*)result->c_str(), &dwDataLen);
+		return result;
+	}
+	CATCH_EXCEPTION;
 }
 
 Scoped<std::string> Hash::Once(
@@ -77,13 +101,19 @@ Scoped<std::string> Hash::Once(
 	DWORD    dwDataLen
 )
 {
-	Scoped<Provider> prov = Provider::Create(NULL, NULL, provType, 0);
-	Scoped<Hash> hash = Hash::Create(prov, algId, NULL, 0);
-	hash->Update(pbData, dwDataLen);
-	return hash->GetValue();
+	try {
+		Scoped<Provider> prov = Provider::Create(NULL, NULL, provType, 0);
+		Scoped<Hash> hash = Hash::Create(prov, algId, NULL, 0);
+		hash->Update(pbData, dwDataLen);
+		return hash->GetValue();
+	}
+	CATCH_EXCEPTION;
 }
 
 HCRYPTHASH Hash::Get()
 {
-	return this->handle;
+	try {
+		return this->handle;
+	}
+	CATCH_EXCEPTION;
 }

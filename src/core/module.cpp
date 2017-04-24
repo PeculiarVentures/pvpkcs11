@@ -613,3 +613,23 @@ CK_RV Module::DecryptFinal
 		pulLastPartLen
 	);
 }
+
+CK_RV Module::GenerateKey
+(
+	CK_SESSION_HANDLE    hSession,    /* the session's handle */
+	CK_MECHANISM_PTR     pMechanism,  /* key generation mech. */
+	CK_ATTRIBUTE_PTR     pTemplate,   /* template for new key */
+	CK_ULONG             ulCount,     /* # of attrs in template */
+	CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->GenerateKey(
+		pMechanism,
+		pTemplate,
+		ulCount,
+		phKey
+	);
+}

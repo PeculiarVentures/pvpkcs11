@@ -2,9 +2,9 @@
 
 using namespace crypt;
 
-static Scoped<std::string> GetLastErrorAsString(DWORD code)
+Scoped<std::string> GetLastErrorAsString(DWORD code)
 {
-	Scoped<std::string> result(new std::string("MSCAPI:Error: "));
+	Scoped<std::string> result(new std::string);
 	//Get the error message, if any.
 	if (code == 0) {
 		*result.get() += "No error message";
@@ -25,14 +25,20 @@ static Scoped<std::string> GetLastErrorAsString(DWORD code)
 	return result;
 }
 
-Exception::Exception(const DWORD code, const char* funcName) :
-	std::exception(),
-	code(code),
-	functionName(funcName)
-{
-	this->message = GetLastErrorAsString(code);
-}
-
-char const* Exception::what() const {
-	return this->message->c_str();
-}
+Exception::Exception(
+	const char*        name,
+	int                code,
+	const char*        message,
+	const char*        function,
+	const char*        file,
+	int                line
+) : Pkcs11Exception(
+	name,
+	code,
+	message,
+	function,
+	file,
+	line
+) {
+	this->message = *GetLastErrorAsString(code);
+};

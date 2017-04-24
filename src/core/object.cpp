@@ -94,3 +94,8 @@ CK_RV Object::GetBytes(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, CK_BYTE_PTR
 
 	return CKR_OK;
 }
+
+CK_RV Object::GetBytes(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, std::string* strBuffer)
+{
+	return GetBytes(pValue, pulValueLen, (BYTE*)strBuffer->c_str(), strBuffer->length());
+}

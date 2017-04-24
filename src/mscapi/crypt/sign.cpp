@@ -7,8 +7,11 @@ Scoped<Sign> Sign::Create(
 	Scoped<Key>       key
 )
 {
-	Scoped<Sign> sign(new Sign(algId, key));
-	return sign;
+	try {
+		Scoped<Sign> sign(new Sign(algId, key));
+		return sign;
+	}
+	CATCH_EXCEPTION;
 }
 
 Scoped<std::string> Sign::Once(
@@ -18,9 +21,12 @@ Scoped<std::string> Sign::Once(
 	DWORD         dwDataLen
 )
 {
-	Scoped<Sign> sign(new Sign(algId, key));
-	sign->Update(pbData, dwDataLen);
-	return sign->Final();
+	try {
+		Scoped<Sign> sign(new Sign(algId, key));
+		sign->Update(pbData, dwDataLen);
+		return sign->Final();
+	}
+	CATCH_EXCEPTION;
 }
 
 Sign::Sign(
@@ -28,8 +34,11 @@ Sign::Sign(
 	Scoped<Key>       key
 )
 {
-	hash = Hash::Create(key->GetProvider(), algId, NULL, 0);
-	this->key = key;
+	try {
+		hash = Hash::Create(key->GetProvider(), algId, NULL, 0);
+		this->key = key;
+	}
+	CATCH_EXCEPTION;
 }
 
 void Sign::Update(
@@ -37,24 +46,31 @@ void Sign::Update(
 	CK_ULONG          ulPartLen  /* length of signed data */
 )
 {
-	hash->Update(pPart, ulPartLen);
+	try {
+		hash->Update(pPart, ulPartLen);
+	}
+	CATCH_EXCEPTION;
 }
 
 Scoped<std::string> Sign::Final()
 {
-	Scoped<std::string> result(new std::string());
-	DWORD dwDataLen;
-	// Calculate signature
-	if (!CryptSignHash(hash->Get(), AT_SIGNATURE, NULL, 0, NULL, &dwDataLen)) {
-		THROW_MS_ERROR();
-	}
-	result->resize(dwDataLen);
-	if (!CryptSignHash(hash->Get(), AT_SIGNATURE, NULL, 0, (BYTE*)result->c_str(), &dwDataLen)) {
-		THROW_MS_ERROR();
-	}
+	try {
+		Scoped<std::string> result(new std::string());
+		DWORD dwDataLen;
+		// Calculate signature
+		if (!CryptSignHash(hash->Get(), AT_SIGNATURE, NULL, 0, NULL, &dwDataLen)) {
+			THROW_MSCAPI_ERROR();
+		}
+		result->resize(dwDataLen);
+		if (!CryptSignHash(hash->Get(), AT_SIGNATURE, NULL, 0, (BYTE*)result->c_str(), &dwDataLen)) {
+			THROW_MSCAPI_ERROR();
+		}
 
-	// reverse signature
-	std::reverse(result->begin(), result->end());
+		// reverse signature
+		std::reverse(result->begin(), result->end());
 
-	return result;
+		return result;
+	}
+	CATCH_EXCEPTION;
+
 }

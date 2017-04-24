@@ -2,6 +2,7 @@
 
 #include "../../stdafx.h"
 #include "../../core/collection.h"
+#include "../../core/excep.h"
 
 namespace crypt {
 
@@ -9,16 +10,16 @@ namespace crypt {
 	 * Exception
 	 */
 
-	class Exception : public std::exception {
+	class Exception : public core::Pkcs11Exception {
 	public:
-		const char* functionName;
-		const char* codeLine;
-		const DWORD code;
-		Scoped<std::string> message;
-
-		Exception(const DWORD code, const char* funcName);
-
-		virtual char const* what() const;
+		Exception(
+			const char*        name,
+			int                code,
+			const char*        message,
+			const char*        function,
+			const char*        file,
+			int                line
+		);
 	};
 
 	/**
@@ -95,31 +96,32 @@ namespace crypt {
 			Scoped<Provider>  prov,
 			ALG_ID            uiAlgId,
 			DWORD             dwFlags
-		);
+		) throw(Exception);
 		static Scoped<Key> Import(
 			Scoped<Provider>  prov,
 			BYTE              *pbData,
 			DWORD             dwDataLen,
 			DWORD             dwFlags
-		);
+		) throw(Exception);
 		static Scoped<Key> Import(
 			Scoped<Provider>       prov,
 			DWORD                  dwCertEncodingType,
 			PCERT_PUBLIC_KEY_INFO  pInfo
-		);
+		) throw(Exception);
 
 		Key();
 		Key(Scoped<Provider> prov);
 		Key(HCRYPTKEY handle);
 		~Key();
 
-		Scoped<Key> Copy();
+		Scoped<Key> Copy() throw(Exception);
 		void Destroy();
 
-		HCRYPTKEY Get();
+		HCRYPTKEY Get() throw(Exception);
 		void Set(HCRYPTKEY value);
 
 		Scoped<Provider>  GetProvider();
+		DWORD GetKeyLen();
 		DWORD GetBlockLen();
 		ALG_ID GetAlgId();
 		DWORD GetMode();
@@ -132,10 +134,10 @@ namespace crypt {
 		HCRYPTKEY         handle;
 		Scoped<Provider>  prov;
 
-		void GetParam(DWORD dwPropId, BYTE* pbData, DWORD* pdwDataLen, DWORD dwFlags = 0);
-		DWORD GetNumber(DWORD dwPropId);
-		void SetParam(DWORD dwPropId, BYTE* pbData, DWORD dwFlags = 0);
-		void SetNumber(DWORD dwPropId, DWORD dwData);
+		void GetParam(DWORD dwPropId, BYTE* pbData, DWORD* pdwDataLen, DWORD dwFlags = 0) throw(Exception);
+		DWORD GetNumber(DWORD dwPropId) throw(Exception);
+		void SetParam(DWORD dwPropId, BYTE* pbData, DWORD dwFlags = 0) throw(Exception);
+		void SetNumber(DWORD dwPropId, DWORD dwData) throw(Exception);
 	};
 
 	class X509Certificate {
@@ -250,8 +252,8 @@ namespace crypt {
 		);
 
 		void Update(
-			BYTE* pbData,
-			DWORD dwDataLen
+			CK_BYTE_PTR       pPart,     /* signed data */
+			CK_ULONG          ulPartLen  /* length of signed data */
 		);
 
 		Scoped<std::string> Final();
@@ -284,8 +286,8 @@ namespace crypt {
 		);
 
 		void Update(
-			BYTE*  pbData,
-			DWORD  dwDataLen
+			CK_BYTE_PTR       pPart,     /* signed data */
+			CK_ULONG          ulPartLen  /* length of signed data */
 		);
 
 		bool Final(
@@ -335,9 +337,16 @@ namespace crypt {
 
 }
 
-#define THROW_MS_ERROR()                                            \
-	fprintf(stdout, "NativeError: %s:%d\n", __FILE__, __LINE__);    \
-    throw crypt::Exception(GetLastError(), __FUNCTION__);
+#define MSCAPI_EXCEPTION_NAME "MSCAPIException"
+
+#define THROW_MSCAPI_CODE_ERROR(dwErrorCode)                        \
+	throw Scoped<core::Exception>(new crypt::Exception(MSCAPI_EXCEPTION_NAME, dwErrorCode, "", __FUNCTION__, __FILE__, __LINE__)); \
+
+#define THROW_MSCAPI_ERROR()                                        \
+	{                                                               \
+		DWORD dwErrorCode = GetLastError();							\
+		THROW_MSCAPI_CODE_ERROR(dwErrorCode); \
+	}
 
 #define DIGEST_SHA1(pbData, dwDataLen)                              \
 	crypt::Hash::Once(PROV_RSA_AES, CALG_SHA1, pbData, dwDataLen)

@@ -4,8 +4,8 @@
 MscapiRsaPrivateKey::MscapiRsaPrivateKey(Scoped<crypt::Key> key, CK_BBOOL token) :
 	value(key)
 {
-	this->token = token;
-	*this->label = "RSA private key";
+	this->propToken = token;
+	*this->propLabel = "RSA private key";
 }
 
 MscapiRsaPrivateKey::~MscapiRsaPrivateKey()
@@ -14,134 +14,207 @@ MscapiRsaPrivateKey::~MscapiRsaPrivateKey()
 
 CK_RV MscapiRsaPrivateKey::GetKeyStruct(RsaPrivateKeyStruct* rsaKey)
 {
-	if (rsaKey == NULL) {
-		puts("MscapiRsaPrivateKey::GetKeyStruct: Parameter rsaKey is NULL");
-		return ERROR_BAD_ARGUMENTS;
-	}
+	try {
+		if (rsaKey == NULL) {
+			THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "Parameter rsaKey is NULL");
+		}
 
-	puts("MscapiRsaPrivateKey::GetKeyStruct: Function is not implemented");
-	return CKR_FUNCTION_NOT_SUPPORTED;
+		THROW_PKCS11_EXCEPTION(CKR_FUNCTION_NOT_SUPPORTED, "Function is not implemented");
+	}
+	CATCH_EXCEPTION;
 }
 
 // Storage
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetToken)
 {
-	return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	}
+	CATCH_EXCEPTION;
 }
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetPrivate)
 {
-	return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetModifiable)
 {
-	return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetLabel)
 {
-	std::string label("RSA Private key");
-	return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)label.c_str(), label.length());
+	try {
+		std::string label("RSA Private key");
+		return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)label.c_str(), label.length());
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetCopyable)
 {
-	return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	}
+	CATCH_EXCEPTION;
 }
 
 // Key
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetID)
 {
-	return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)id.c_str(), id.length());
+	try {
+		return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)id.c_str(), id.length());
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetStartDate)
 {
-	return this->GetBytes(pValue, pulValueLen, NULL, 0);
+	try {
+		return this->GetBytes(pValue, pulValueLen, NULL, 0);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetEndDate)
 {
-	return this->GetBytes(pValue, pulValueLen, NULL, 0);
+	try {
+		return this->GetBytes(pValue, pulValueLen, NULL, 0);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetDerive)
 {
-	return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetLocal)
 {
-	return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetKeyGenMechanism)
 {
-	return this->GetNumber(pValue, pulValueLen, CKK_RSA);
+	try {
+		return this->GetNumber(pValue, pulValueLen, CKK_RSA);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetAllowedMechanisms)
 {
-	return this->GetBytes(pValue, pulValueLen, NULL, 0);
+	try {
+		return this->GetBytes(pValue, pulValueLen, NULL, 0);
+	}
+	CATCH_EXCEPTION;
 }
 
 // Private
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetSubject)
 {
-	return this->GetBytes(pValue, pulValueLen, NULL, 0);
+	try {
+		return this->GetBytes(pValue, pulValueLen, NULL, 0);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetSensitive)
 {
-	return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetDecrypt)
 {
-	return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetSign)
 {
-	return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetSignRecover)
 {
-	return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetUnwrap)
 {
-	return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetExtractable)
 {
-	return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetAlwaysSensitive)
 {
-	return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetNeverExtractable)
 {
-	return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_TRUE);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetWrapWithTrusted)
 {
-	return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	}
+	CATCH_EXCEPTION;
 }
 
 DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetUnwrapTemplate)
 {
-	return this->GetBytes(pValue, pulValueLen, NULL, 0);
+	try {
+		return this->GetBytes(pValue, pulValueLen, NULL, 0);
+	}
+	CATCH_EXCEPTION;
 }
 
-DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetAlwaysAuthenticate) 
+DECLARE_GET_ATTRIBUTE(MscapiRsaPrivateKey::GetAlwaysAuthenticate)
 {
-	return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	try {
+		return this->GetBool(pValue, pulValueLen, CK_FALSE);
+	}
+	CATCH_EXCEPTION;
 }

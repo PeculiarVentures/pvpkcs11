@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../stdafx.h"
+#include "excep.h"
 
 /**
  * Get function for C_GetAttributeValue
@@ -40,5 +41,6 @@ protected:
 	CK_RV GetNumber(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, CK_ULONG ulValue);
 	CK_RV GetUtf8String(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, CK_UTF8CHAR_PTR pData, CK_ULONG ulDataLen);
 	CK_RV GetBytes(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, CK_BYTE_PTR pData, CK_ULONG ulDataLen);
+	CK_RV GetBytes(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, std::string* strBuffer);
 };
 
