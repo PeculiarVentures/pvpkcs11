@@ -22,7 +22,6 @@ public:
 	virtual DECLARE_GET_ATTRIBUTE(GetKeyGenMechanism);
 	virtual DECLARE_GET_ATTRIBUTE(GetAllowedMechanisms);
 
-protected:
 	CK_ULONG     propKeyType;
 	std::string  propId;
 	CK_BBOOL     propDerive;

@@ -48,32 +48,32 @@ DECLARE_GET_ATTRIBUTE(PublicKey::GetClass) {
 
 DECLARE_GET_ATTRIBUTE(PublicKey::GetSubject)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBytes(pValue, pulValueLen, &propSubject);
 }
 
 DECLARE_GET_ATTRIBUTE(PublicKey::GetEncrypt)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propEncrypt);
 }
 
 DECLARE_GET_ATTRIBUTE(PublicKey::GetVerify)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propVerify);
 }
 
 DECLARE_GET_ATTRIBUTE(PublicKey::GetVerifyRecover)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propVerifyRecover);
 }
 
 DECLARE_GET_ATTRIBUTE(PublicKey::GetWrap)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propWrap);
 }
 
 DECLARE_GET_ATTRIBUTE(PublicKey::GetTrusted)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propTrusted);
 }
 
 DECLARE_GET_ATTRIBUTE(PublicKey::GetWrapTemplate)

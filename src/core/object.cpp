@@ -4,7 +4,6 @@ Object::Object()
 {
 }
 
-
 Object::~Object()
 {
 }
@@ -16,7 +15,7 @@ CK_RV Object::GetAttributeValue
 )
 {
 	CHECK_ARGUMENT_NULL(pTemplate);
-	
+
 	CK_RV res = CKR_OK;
 
 	for (size_t i = 0; i < ulCount && res == CKR_OK; i++) {

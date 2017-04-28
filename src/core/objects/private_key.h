@@ -27,4 +27,17 @@ public:
 	virtual DECLARE_GET_ATTRIBUTE(GetUnwrapTemplate);
 	virtual DECLARE_GET_ATTRIBUTE(GetAlwaysAuthenticate);
 
+	std::string    propSubject;
+	CK_BBOOL       propSensitive;
+	CK_BBOOL       propDecrypt;
+	CK_BBOOL       propSign;
+	CK_BBOOL       propSignRecover;
+	CK_BBOOL       propUnwrap;
+	CK_BBOOL       propExtractable;
+	CK_BBOOL       propAlwaysSensitive;
+	CK_BBOOL       propNeverExtractable;
+	CK_BBOOL       propWrapWithTrusted;
+	// TODO: propUnwrapTemplate;
+	CK_BBOOL       propAlwaysAuthenticate;
+
 };

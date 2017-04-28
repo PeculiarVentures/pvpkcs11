@@ -557,11 +557,11 @@ CK_DEFINE_FUNCTION(CK_RV, C_Encrypt)
 {
 	try {
 		return pkcs11.Encrypt(
-			hSession,            
-			pData,               
-			ulDataLen,           
-			pEncryptedData,      
-			pulEncryptedDataLen  
+			hSession,
+			pData,
+			ulDataLen,
+			pEncryptedData,
+			pulEncryptedDataLen
 		);
 	}
 	CATCH("C_Encrypt");
@@ -1098,8 +1098,8 @@ CK_DEFINE_FUNCTION(CK_RV, C_GenerateKey)
 {
 	try {
 		return pkcs11.GenerateKey(
-			hSession, 
-			pMechanism, 
+			hSession,
+			pMechanism,
 			pTemplate,
 			ulCount,
 			phKey
@@ -1115,29 +1115,31 @@ CK_DEFINE_FUNCTION(CK_RV, C_GenerateKey)
 * creating new key objects. */
 CK_DEFINE_FUNCTION(CK_RV, C_GenerateKeyPair)
 (
-	CK_SESSION_HANDLE    hSession,                    /* session
-													  * handle */
-	CK_MECHANISM_PTR     pMechanism,                  /* key-gen
-													  * mechanism */
-	CK_ATTRIBUTE_PTR     pPublicKeyTemplate,          /* template
-													  * for pub.
-													  * key */
-	CK_ULONG             ulPublicKeyAttributeCount,   /* # pub.
-													  * attributes */
-	CK_ATTRIBUTE_PTR     pPrivateKeyTemplate,         /* template
-													  * for private
-													  * key */
-	CK_ULONG             ulPrivateKeyAttributeCount,  /* # private
-													  * attributes */
-	CK_OBJECT_HANDLE_PTR phPublicKey,                 /* gets pub.
-													  * key
-													  * handle */
-	CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets
-													  * private key
-													  * handle */
+	CK_SESSION_HANDLE    hSession,                    /* session handle */
+	CK_MECHANISM_PTR     pMechanism,                  /* key-gen mechanism */
+	CK_ATTRIBUTE_PTR     pPublicKeyTemplate,          /* template for pub. key */
+	CK_ULONG             ulPublicKeyAttributeCount,   /* # pub. attributes */
+	CK_ATTRIBUTE_PTR     pPrivateKeyTemplate,         /* template for private key */
+	CK_ULONG             ulPrivateKeyAttributeCount,  /* # private attributes */
+	CK_OBJECT_HANDLE_PTR phPublicKey,                 /* gets pub. key handle */
+	CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		return pkcs11.GenerateKeyPair(
+			hSession,
+			pMechanism,
+			pPublicKeyTemplate,
+			ulPublicKeyAttributeCount,
+			pPrivateKeyTemplate,
+			ulPrivateKeyAttributeCount,
+			phPublicKey,
+			phPrivateKey
+		);
+	}
+	CATCH(__FUNCTION__);
+
+	return CKR_FUNCTION_FAILED;
 }
 
 

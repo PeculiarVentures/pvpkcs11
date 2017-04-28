@@ -301,6 +301,19 @@ public:
 		CK_ULONG             ulCount,     /* # of attrs in template */
 		CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
 	);
+
+	CK_RV GenerateKeyPair
+	(
+		CK_SESSION_HANDLE    hSession,                    /* session handle */
+		CK_MECHANISM_PTR     pMechanism,                  /* key-gen mechanism */
+		CK_ATTRIBUTE_PTR     pPublicKeyTemplate,          /* template for pub. key */
+		CK_ULONG             ulPublicKeyAttributeCount,   /* # pub. attributes */
+		CK_ATTRIBUTE_PTR     pPrivateKeyTemplate,         /* template for private key */
+		CK_ULONG             ulPrivateKeyAttributeCount,  /* # private attributes */
+		CK_OBJECT_HANDLE_PTR phPublicKey,                 /* gets pub. key handle */
+		CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
+	);
+
 protected:
 	Scoped<Slot> getSlotBySession(CK_SESSION_HANDLE hSession);
 	Scoped<Session> getSession(CK_SESSION_HANDLE hSession);

@@ -21,4 +21,12 @@ public:
 	virtual DECLARE_GET_ATTRIBUTE(GetTrusted);
 	virtual DECLARE_GET_ATTRIBUTE(GetWrapTemplate);
 
+	std::string     propSubject;
+	CK_BBOOL        propEncrypt;
+	CK_BBOOL        propVerify;
+	CK_BBOOL        propVerifyRecover;
+	CK_BBOOL        propWrap;
+	CK_BBOOL        propTrusted;
+	// TODO GetWrapTemplate
+
 };

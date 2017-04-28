@@ -2,6 +2,7 @@
 
 #include "../stdafx.h"
 #include "excep.h"
+#include "template.h"
 
 /**
  * Get function for C_GetAttributeValue

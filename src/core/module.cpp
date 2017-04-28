@@ -633,3 +633,29 @@ CK_RV Module::GenerateKey
 		phKey
 	);
 }
+
+CK_RV Module::GenerateKeyPair
+(
+	CK_SESSION_HANDLE    hSession,                    /* session handle */
+	CK_MECHANISM_PTR     pMechanism,                  /* key-gen mechanism */
+	CK_ATTRIBUTE_PTR     pPublicKeyTemplate,          /* template for pub. key */
+	CK_ULONG             ulPublicKeyAttributeCount,   /* # pub. attributes */
+	CK_ATTRIBUTE_PTR     pPrivateKeyTemplate,         /* template for private key */
+	CK_ULONG             ulPrivateKeyAttributeCount,  /* # private attributes */
+	CK_OBJECT_HANDLE_PTR phPublicKey,                 /* gets pub. key handle */
+	CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
+)
+{
+	CHECK_INITIALIZED();
+	GET_SESSION(hSession);
+
+	return session->GenerateKeyPair(
+		pMechanism,                  
+		pPublicKeyTemplate,          
+		ulPublicKeyAttributeCount,   
+		pPrivateKeyTemplate,         
+		ulPrivateKeyAttributeCount,  
+		phPublicKey,                 
+		phPrivateKey                 
+	);
+}

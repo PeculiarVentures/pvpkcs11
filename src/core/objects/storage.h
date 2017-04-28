@@ -25,7 +25,6 @@ public:
 	virtual DECLARE_GET_ATTRIBUTE(GetLabel);
 	virtual DECLARE_GET_ATTRIBUTE(GetCopyable);
 
-protected:
 	CK_BBOOL            propToken;
 	CK_BBOOL            propPrivate;
 	CK_BBOOL            propModifiable;

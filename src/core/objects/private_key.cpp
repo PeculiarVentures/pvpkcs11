@@ -64,52 +64,52 @@ DECLARE_GET_ATTRIBUTE(PrivateKey::GetClass)
 
 DECLARE_GET_ATTRIBUTE(PrivateKey::GetSubject)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBytes(pValue, pulValueLen, &propSubject);
 }
 
 DECLARE_GET_ATTRIBUTE(PrivateKey::GetSensitive)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propSensitive);
 }
 
 DECLARE_GET_ATTRIBUTE(PrivateKey::GetDecrypt)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propDecrypt);
 }
 
 DECLARE_GET_ATTRIBUTE(PrivateKey::GetSign)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propSign);
 }
 
 DECLARE_GET_ATTRIBUTE(PrivateKey::GetSignRecover)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propSignRecover);
 }
 
 DECLARE_GET_ATTRIBUTE(PrivateKey::GetUnwrap)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propUnwrap);
 }
 
 DECLARE_GET_ATTRIBUTE(PrivateKey::GetExtractable)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propExtractable);
 }
 
 DECLARE_GET_ATTRIBUTE(PrivateKey::GetAlwaysSensitive)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propAlwaysSensitive);
 }
 
 DECLARE_GET_ATTRIBUTE(PrivateKey::GetNeverExtractable)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propNeverExtractable);
 }
 
 DECLARE_GET_ATTRIBUTE(PrivateKey::GetWrapWithTrusted)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propWrapWithTrusted);
 }
 
 DECLARE_GET_ATTRIBUTE(PrivateKey::GetUnwrapTemplate)
@@ -119,5 +119,5 @@ DECLARE_GET_ATTRIBUTE(PrivateKey::GetUnwrapTemplate)
 
 DECLARE_GET_ATTRIBUTE(PrivateKey::GetAlwaysAuthenticate)
 {
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+	return GetBool(pValue, pulValueLen, propAlwaysAuthenticate);
 }

@@ -24,7 +24,7 @@ static void TestCipher() {
 	Scoped<crypt::Provider> prov = crypt::Provider::Create(NULL, NULL, PROV_RSA_AES, 0);
 	// Scoped<crypt::Key> key = crypt::Key::Generate(prov, CALG_AES_256, CRYPT_EXPORTABLE);
 	BYTE aesIv[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6 };
-	
+
 	BYTE aesKey[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2 };
 	struct aes256keyBlob
 	{
@@ -117,7 +117,7 @@ void MscapiSession::LoadMyStore()
 				Scoped<crypt::Key> publicKey = x509->GetPublicKey();
 				// fprintf(stdout, "Certificate '%s' has public key\n", x509->GetLabel()->c_str());
 				Scoped<MscapiRsaPublicKey> key(new MscapiRsaPublicKey(publicKey, true));
-				key->id = *x509->GetHashPublicKey().get();
+				key->propId = *x509->GetHashPublicKey().get();
 				publicKeyObject = key;
 			}
 			catch (Scoped<core::Exception> e) {
@@ -648,7 +648,7 @@ CK_RV MscapiSession::EncryptUpdate
 		if (res != CKR_FUNCTION_NOT_SUPPORTED) {
 			return res;
 		}
-		
+
 		auto encryptedData = encrypt->Update(pPart, ulPartLen);
 
 		memcpy(pEncryptedPart, encryptedData->c_str(), encryptedData->length());
@@ -807,6 +807,64 @@ CK_RV MscapiSession::GenerateKey
 		this->objects.add(obj);
 
 		*phKey = obj->handle;
+		return CKR_OK;
+	}
+	CATCH_EXCEPTION;
+}
+
+CK_RV MscapiSession::GenerateKeyPair
+(
+	CK_MECHANISM_PTR     pMechanism,                  /* key-gen mechanism */
+	CK_ATTRIBUTE_PTR     pPublicKeyTemplate,          /* template for pub. key */
+	CK_ULONG             ulPublicKeyAttributeCount,   /* # pub. attributes */
+	CK_ATTRIBUTE_PTR     pPrivateKeyTemplate,         /* template for private key */
+	CK_ULONG             ulPrivateKeyAttributeCount,  /* # private attributes */
+	CK_OBJECT_HANDLE_PTR phPublicKey,                 /* gets pub. key handle */
+	CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
+)
+{
+	try {
+		CK_RV res = Session::GenerateKeyPair(
+			pMechanism,
+			pPublicKeyTemplate,
+			ulPublicKeyAttributeCount,
+			pPrivateKeyTemplate,
+			ulPrivateKeyAttributeCount,
+			phPublicKey,
+			phPrivateKey
+		);
+		if (res != CKR_FUNCTION_NOT_SUPPORTED) {
+			return res;
+		}
+
+		// Select mechanism and call needed key generation
+		Scoped<Object> objPrivateKey;
+		Scoped<Object> objPublicKey;
+		Scoped<Template> tmplPublicKey(new Template(pPublicKeyTemplate, ulPublicKeyAttributeCount));
+		Scoped<Template> tmplPrivateKey(new Template(pPrivateKeyTemplate, ulPrivateKeyAttributeCount));
+		switch (pMechanism->mechanism) {
+		case CKM_RSA_PKCS_KEY_PAIR_GEN: {
+			Scoped<MscapiRsaPrivateKey> privateKey(new MscapiRsaPrivateKey());
+			Scoped<MscapiRsaPrivateKey> publicKey(new MscapiRsaPrivateKey());
+			privateKey->propToken = tmplPrivateKey->GetBool(CKA_TOKEN, false, true);
+
+			DWORD dwFlag = 0;
+			if (privateKey->propToken || publicKey->propToken) {
+				dwFlag |= CRYPT_NEWKEYSET;
+			}
+			auto prov = crypt::Provider::Create(NULL, NULL, PROV_RSA_AES, dwFlag);
+			
+			// crypt::Key::Generate(prov, AT_SIGNATURE | AT_KEYEXCHANGE, RSA);
+			break;
+		}
+		default:
+			THROW_PKCS11_EXCEPTION(CKR_MECHANISM_INVALID, "Mechanism is not implemented");
+		}
+
+		// add key to session's objects
+		objects.add(objPublicKey);
+		objects.add(objPrivateKey);
+		// set handles for keys
 		return CKR_OK;
 	}
 	CATCH_EXCEPTION;
