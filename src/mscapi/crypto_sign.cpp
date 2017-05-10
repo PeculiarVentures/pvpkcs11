@@ -110,6 +110,7 @@ CK_RV RsaPKCS1Sign::Final(
         else {
             digest->Final(hash, &hashLen);
             status = NCryptSignHash(key->key->Get(), &paddingInfo, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, BCRYPT_PAD_PKCS1);
+            active = false;
             if (status) {
                 THROW_NT_EXCEPTION(status);
             }
@@ -143,6 +144,7 @@ CK_RV RsaPKCS1Sign::Final(
             pSignature, ulSignatureLen,
             BCRYPT_PAD_PKCS1
         );
+        active = false;
         if (status) {
             if (status == NTE_BAD_SIGNATURE) {
                 return CKR_SIGNATURE_INVALID;
@@ -272,6 +274,7 @@ CK_RV RsaPSSSign::Final(
         else {
             digest->Final(hash, &hashLen);
             status = NCryptSignHash(key->key->Get(), &paddingInfo, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, BCRYPT_PAD_PSS);
+            active = false;
             if (status) {
                 THROW_NT_EXCEPTION(status);
             }
@@ -305,6 +308,7 @@ CK_RV RsaPSSSign::Final(
             pSignature, ulSignatureLen,
             BCRYPT_PAD_PSS
         );
+        active = false;
         if (status) {
             if (status == NTE_BAD_SIGNATURE) {
                 return CKR_SIGNATURE_INVALID;
@@ -416,6 +420,7 @@ CK_RV EcDSASign::Final(
         else {
             digest->Final(hash, &hashLen);
             status = NCryptSignHash(key->key->Get(), NULL, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, 0);
+            active = false;
             if (status) {
                 THROW_NT_EXCEPTION(status);
             }
@@ -448,6 +453,7 @@ CK_RV EcDSASign::Final(
             pSignature, ulSignatureLen,
             0
         );
+        active = false;
         if (status) {
             if (status == NTE_BAD_SIGNATURE) {
                 return CKR_SIGNATURE_INVALID;

@@ -10,7 +10,7 @@ Scoped<CryptoKeyPair> EcKey::Generate(
 {
     try {
         NTSTATUS status;
-        Scoped<std::string> point = publicTemplate->GetBytes(CKA_EC_POINT, true, "");
+        Scoped<std::string> point = publicTemplate->GetBytes(CKA_EC_PARAMS, true, "");
 
         LPCWSTR pszAlgorithm;
         if (strcmp(core::EC_P256_BLOB, point->c_str()) == 0) {
