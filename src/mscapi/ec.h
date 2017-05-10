@@ -28,6 +28,8 @@ namespace mscapi {
             Scoped<ncrypt::Key> key
         ) : core::EcPublicKey(), CryptoKey(key)
         {}
+
+        void GetKeyStruct();
     };
 
 }

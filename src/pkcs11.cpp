@@ -467,7 +467,8 @@ CK_DEFINE_FUNCTION(CK_RV, C_SetAttributeValue)
 	CK_ULONG          ulCount     /* attributes in template */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+    return CKR_OK;
+	// return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 

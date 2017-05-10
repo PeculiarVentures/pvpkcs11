@@ -42,7 +42,7 @@ DECLARE_GET_ATTRIBUTE(EcPrivateKey::GetKeyType)
     CATCH_EXCEPTION
 }
 
-DECLARE_GET_ATTRIBUTE(EcPrivateKey::GetParams) 
+DECLARE_GET_ATTRIBUTE(EcPrivateKey::GetParams)
 {
     try {
         return GetBytes(pValue, pulValueLen, propParams.get());
@@ -96,6 +96,8 @@ CK_RV EcPublicKey::GetAttributeValue
 DECLARE_GET_ATTRIBUTE(EcPublicKey::GetParams)
 {
     try {
+        GetKeyStruct();
+
         return GetBytes(pValue, pulValueLen, propParams.get());
     }
     CATCH_EXCEPTION
@@ -104,6 +106,8 @@ DECLARE_GET_ATTRIBUTE(EcPublicKey::GetParams)
 DECLARE_GET_ATTRIBUTE(EcPublicKey::GetPoint)
 {
     try {
+        GetKeyStruct();
+
         return GetBytes(pValue, pulValueLen, propPoint.get());
     }
     CATCH_EXCEPTION

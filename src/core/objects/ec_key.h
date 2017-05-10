@@ -43,6 +43,8 @@ namespace core {
         virtual DECLARE_GET_ATTRIBUTE(GetParams);
         virtual DECLARE_GET_ATTRIBUTE(GetPoint);
 
+        virtual void GetKeyStruct() = 0;
+
     protected:
         Scoped<std::string> propParams;
         Scoped<std::string> propPoint;

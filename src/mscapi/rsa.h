@@ -23,6 +23,8 @@ namespace mscapi {
 			core::RsaPrivateKey(),
 			CryptoKey(key)
 		{};
+
+        CK_RV GetKeyStruct(core::RsaPrivateKeyStruct* rsaKey);
 	};
 
 	class RsaPublicKey : public core::RsaPublicKey, public CryptoKey {
@@ -31,6 +33,11 @@ namespace mscapi {
 			core::RsaPublicKey(), 
 			CryptoKey(key) 
 		{};
+
+        // RSA
+        DECLARE_GET_ATTRIBUTE(GetModulus);
+        DECLARE_GET_ATTRIBUTE(GetModulusBits);
+        DECLARE_GET_ATTRIBUTE(GetPublicExponent);
 	};
 
 }
