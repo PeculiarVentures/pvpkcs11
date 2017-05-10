@@ -1,0 +1,24 @@
+{
+  "name": "pvpkcs11",
+  "version": "1.0.0",
+  "description": "[![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat)](https://raw.githubusercontent.com/PeculiarVentures/2key-ratchet/master/LICENSE.md)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PeculiarVentures/pvpkcs11.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/PeculiarVentures/pvpkcs11/issues"
+  },
+  "homepage": "https://github.com/PeculiarVentures/pvpkcs11#readme",
+  "devDependencies": {
+    "@types/mocha": "^2.2.41",
+    "pkcs11js": "^1.0.8"
+  }
+}

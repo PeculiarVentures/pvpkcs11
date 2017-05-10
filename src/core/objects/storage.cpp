@@ -1,5 +1,7 @@
 #include "storage.h"
 
+using namespace core;
+
 Storage::Storage()
 {
 	this->handle = reinterpret_cast<CK_OBJECT_HANDLE>(this);

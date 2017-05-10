@@ -1,0 +1,1 @@
+python C:\\Users\\micro\\Downloads\\gyp-master\\gyp_main.py binding.gyp -f msvs -G msvs_version=auto --depth=. --generator-output ./build

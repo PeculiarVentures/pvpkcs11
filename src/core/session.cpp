@@ -4,6 +4,8 @@
 #include "objects/public_key.h"
 #include "object.h"
 
+using namespace core;
+
 static CK_ATTRIBUTE_PTR ATTRIBUTE_new()
 {
 	CK_ATTRIBUTE_PTR attr = (CK_ATTRIBUTE*)malloc(sizeof(CK_ATTRIBUTE));
@@ -39,11 +41,6 @@ static void ATTRIBUTE_copy(CK_ATTRIBUTE* attrDst, CK_ATTRIBUTE* attrSrc)
 	ATTRIBUTE_set_value(attrDst, attrSrc->pValue, attrSrc->ulValueLen);
 }
 
-#define CHECK_DIGEST_OPERATION()							\
-	if (!this->digestInitialized) {							\
-		return CKR_OPERATION_NOT_INITIALIZED;				\
-	}
-
 Session::Session()
 {
 	this->Handle = 0;
@@ -54,9 +51,6 @@ Session::Session()
 	this->find = {
 		false, NULL_PTR, 0, 0
 	};
-	this->signInitialized = false;
-	this->verifyInitialized = false;
-	this->digestInitialized = false;
 	this->encryptInitialized = false;
 	this->decryptInitialized = false;
 }
@@ -74,7 +68,7 @@ CK_RV Session::InitPIN
 	return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
-CK_RV Session::OpenSession
+CK_RV core::Session::Open
 (
 	CK_FLAGS              flags,         /* from CK_SESSION_INFO */
 	CK_VOID_PTR           pApplication,  /* passed to callback */
@@ -82,32 +76,37 @@ CK_RV Session::OpenSession
 	CK_SESSION_HANDLE_PTR phSession      /* gets session handle */
 )
 {
-	CHECK_ARGUMENT_NULL(phSession);
-	// the CKF_SERIAL_SESSION bit must always be set
-	if (!(flags & CKF_SERIAL_SESSION)) {
-		// if a call to C_OpenSession does not have this bit set, 
-		// the call should return unsuccessfully with the error code CKR_SESSION_PARALLEL_NOT_SUPPORTED
-		return CKR_SESSION_PARALLEL_NOT_SUPPORTED;
+	try {
+		if (phSession == NULL_PTR) {
+			THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "phSession is NULL");
+		}
+		// the CKF_SERIAL_SESSION bit must always be set
+		if (!(flags & CKF_SERIAL_SESSION)) {
+			// if a call to C_OpenSession does not have this bit set, 
+			// the call should return unsuccessfully with the error code CKR_SESSION_PARALLEL_NOT_SUPPORTED
+			THROW_PKCS11_EXCEPTION(CKR_SESSION_PARALLEL_NOT_SUPPORTED, "the CKF_SERIAL_SESSION bit must always be set");
+		}
+
+		this->ReadOnly = !!(flags & CKF_RW_SESSION);
+		this->Application = pApplication;
+		this->Notify = Notify;
+		this->Handle = reinterpret_cast<CK_SESSION_HANDLE>(this);
+		*phSession = this->Handle;
+
+		// Info
+		this->Flags = flags;
+
+		return CKR_OK;
 	}
-
-	this->ReadOnly = !!(flags & CKF_RW_SESSION);
-	this->Application = pApplication;
-	this->Notify = Notify;
-	this->Handle = reinterpret_cast<CK_SESSION_HANDLE>(this);
-	*phSession = this->Handle;
-
-	// Info
-	this->Flags = flags;
-
-	return CKR_OK;
+	CATCH_EXCEPTION;
 }
 
-CK_RV Session::CloseSession()
+CK_RV core::Session::Close()
 {
 	return CKR_OK;
 }
 
-CK_RV Session::GetSessionInfo
+CK_RV core::Session::GetInfo
 (
 	CK_SESSION_INFO_PTR pInfo      /* receives session info */
 )
@@ -122,7 +121,7 @@ CK_RV Session::GetSessionInfo
 	return CKR_OK;
 }
 
-CK_RV Session::Login
+CK_RV core::Session::Login
 (
 	CK_USER_TYPE      userType,  /* the user type */
 	CK_UTF8CHAR_PTR   pPin,      /* the user's PIN */
@@ -206,18 +205,60 @@ CK_RV Session::FindObjects
 	CK_ULONG_PTR         pulObjectCount     /* actual # returned */
 )
 {
-	if (!this->find.active) {
-		return CKR_OPERATION_NOT_INITIALIZED;
-	}
-	CHECK_ARGUMENT_NULL(phObject);
-	CHECK_ARGUMENT_NULL(pulObjectCount);
-	if (ulMaxObjectCount < 0) {
-		return CKR_ARGUMENTS_BAD;
-	}
+	try {
+		if (!this->find.active) {
+			THROW_PKCS11_OPERATION_NOT_INITIALIZED();
+		}
+		if (phObject == NULL_PTR) {
+			THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "phObject");
+		}
+		if (pulObjectCount == NULL_PTR) {
+			THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pulObjectCount");
+		}
+		if (ulMaxObjectCount < 0) {
+			THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "ulMaxObjectCount must be more than 0");
+		}
 
-	*pulObjectCount = 0;
+		*pulObjectCount = 0;
+		CK_RV res;
+		for (this->find.index; this->find.index < objects.count() && *pulObjectCount < ulMaxObjectCount; this->find.index++) {
+			Scoped<Object> obj = this->objects.items(this->find.index);
+			size_t i = 0;
+			for (i; i < this->find.ulTemplateSize; i++) {
+				CK_ATTRIBUTE_PTR findAttr = &this->find.pTemplate[i];
+				CK_BYTE_PTR pbAttrValue = NULL;
+				CK_ATTRIBUTE attr = { findAttr->type , NULL_PTR, 0 };
+				res = obj->GetAttributeValue(&attr, 1);
+				if (res != CKR_OK) {
+					break;
+				}
+				if (attr.ulValueLen != findAttr->ulValueLen) {
+					break;
+				}
+				pbAttrValue = (CK_BYTE_PTR)malloc(attr.ulValueLen);
+				attr.pValue = pbAttrValue;
+				res = obj->GetAttributeValue(&attr, 1);
+				if (res != CKR_OK) {
+					free(pbAttrValue);
+					break;
+				}
+				if (memcmp(findAttr->pValue, attr.pValue, findAttr->ulValueLen)) {
+					free(pbAttrValue);
+					break;
+				}
+				free(pbAttrValue);
+			}
+			if (i != this->find.ulTemplateSize) {
+				continue;
+			}
 
-	return CKR_OK;
+			phObject[*pulObjectCount] = obj->handle;
+			*pulObjectCount += 1;
+		}
+
+		return CKR_OK;
+	}
+	CATCH_EXCEPTION;
 }
 
 CK_RV Session::FindObjectsFinal()
@@ -241,65 +282,6 @@ CK_RV Session::FindObjectsFinal()
 	this->find.index = 0;
 
 	return CKR_OK;
-}
-
-CK_RV Session::DigestInit
-(
-	CK_MECHANISM_PTR  pMechanism  /* the digesting mechanism */
-)
-{
-	CHECK_ARGUMENT_NULL(pMechanism);
-	CheckMechanismType(pMechanism->mechanism, CKF_DIGEST);
-
-	return CKR_FUNCTION_NOT_SUPPORTED;
-}
-
-CK_RV Session::Digest
-(
-	CK_BYTE_PTR       pData,        /* data to be digested */
-	CK_ULONG          ulDataLen,    /* bytes of data to digest */
-	CK_BYTE_PTR       pDigest,      /* gets the message digest */
-	CK_ULONG_PTR      pulDigestLen  /* gets digest length */
-)
-{
-	CK_RV res = DigestUpdate(pData, ulDataLen);
-	if (res != CKR_OK) {
-		return res;
-	}
-	res = DigestFinal(pDigest, pulDigestLen);
-
-	return res;
-}
-
-CK_RV Session::DigestUpdate
-(
-	CK_BYTE_PTR       pPart,     /* data to be digested */
-	CK_ULONG          ulPartLen  /* bytes of data to be digested */
-)
-{
-	CHECK_DIGEST_OPERATION();
-
-	return CKR_FUNCTION_NOT_SUPPORTED;
-}
-
-CK_RV Session::DigestKey
-(
-	CK_OBJECT_HANDLE  hKey       /* secret key to digest */
-)
-{
-	return CKR_FUNCTION_NOT_SUPPORTED;
-}
-
-CK_RV Session::DigestFinal
-(
-	CK_BYTE_PTR       pDigest,      /* gets the message digest */
-	CK_ULONG_PTR      pulDigestLen  /* gets byte count of digest */
-)
-{
-	CHECK_DIGEST_OPERATION();
-	CHECK_ARGUMENT_NULL(pDigest);
-
-	return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 void Session::CheckMechanismType(CK_MECHANISM_TYPE mechanism, CK_ULONG usage)
@@ -346,76 +328,16 @@ CK_RV Session::VerifyInit(
 	CK_OBJECT_HANDLE  hKey         /* verification key */
 )
 {
-	CK_RV res;
-	if (this->verifyInitialized) {
-		return CKR_OPERATION_ACTIVE;
-	}
-	CHECK_ARGUMENT_NULL(pMechanism);
-	CheckMechanismType(pMechanism->mechanism, CKF_VERIFY);
-	CHECK_ARGUMENT_NULL(hKey);
-	Scoped<Object> object = this->GetObject(hKey);
-
-	if (!object) {
-		return CKR_OBJECT_HANDLE_INVALID;
-	}
-	Key* key;
-	if (key = dynamic_cast<Key*>(object.get())) {
-		// Check type of Key
-		CK_ULONG ulKeyType;
-		CK_ULONG ulKeyTypeLen = sizeof(CK_ULONG);
-		res = key->GetClass((CK_BYTE_PTR)&ulKeyType, &ulKeyTypeLen);
-		if (res != CKR_OK) {
-			return CKR_FUNCTION_FAILED;
-		}
-		if (!(ulKeyType == CKO_PUBLIC_KEY || ulKeyType == CKO_SECRET_KEY)) {
-			return CKR_KEY_TYPE_INCONSISTENT;
-		}
-	}
-	else {
-		return CKR_KEY_HANDLE_INVALID;
-	}
-
-	return CKR_FUNCTION_NOT_SUPPORTED;
-}
-
-CK_RV Session::Verify(
-	CK_BYTE_PTR       pData,          /* signed data */
-	CK_ULONG          ulDataLen,      /* length of signed data */
-	CK_BYTE_PTR       pSignature,     /* signature */
-	CK_ULONG          ulSignatureLen  /* signature length*/
-)
-{
-	CK_RV res = VerifyUpdate(pData, ulDataLen);
-	if (res != CKR_OK) {
-		return res;
-	}
-	res = VerifyFinal(pSignature, ulSignatureLen);
-
-	return res;
-}
-
-CK_RV Session::VerifyUpdate(
-	CK_BYTE_PTR       pPart,     /* signed data */
-	CK_ULONG          ulPartLen  /* length of signed data */
-)
-{
-	if (!this->verifyInitialized) {
-		return CKR_OPERATION_NOT_INITIALIZED;
-	}
-
-	return CKR_FUNCTION_NOT_SUPPORTED;
-}
-
-CK_RV Session::VerifyFinal(
-	CK_BYTE_PTR       pSignature,     /* signature to verify */
-	CK_ULONG          ulSignatureLen  /* signature length */
-)
-{
-	if (!this->verifyInitialized) {
-		return CKR_OPERATION_NOT_INITIALIZED;
-	}
-
-	return CKR_FUNCTION_NOT_SUPPORTED;
+    try {
+        if (pMechanism == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_MECHANISM_INVALID, "pMechanism is NULL");
+        }
+        CheckMechanismType(pMechanism->mechanism, CKF_VERIFY);
+        if (hKey == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "hKey is NULL");
+        }
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Session::SignInit(
@@ -423,76 +345,16 @@ CK_RV Session::SignInit(
 	CK_OBJECT_HANDLE  hKey         /* handle of signature key */
 )
 {
-	CK_RV res;
-	if (this->signInitialized) {
-		return CKR_OPERATION_ACTIVE;
-	}
-	CHECK_ARGUMENT_NULL(pMechanism);
-	CheckMechanismType(pMechanism->mechanism, CKF_SIGN);
-	CHECK_ARGUMENT_NULL(hKey);
-	Scoped<Object> object = this->GetObject(hKey);
-
-	if (!object) {
-		return CKR_OBJECT_HANDLE_INVALID;
-	}
-	Key* key;
-	if (key = dynamic_cast<Key*>(object.get())) {
-		// Check type of Key
-		CK_ULONG ulKeyType;
-		CK_ULONG ulKeyTypeLen = sizeof(CK_ULONG);
-		res = key->GetClass((CK_BYTE_PTR)&ulKeyType, &ulKeyTypeLen);
-		if (res != CKR_OK) {
-			return CKR_FUNCTION_FAILED;
-		}
-		if (!(ulKeyType == CKO_PRIVATE_KEY || ulKeyType == CKO_SECRET_KEY)) {
-			return CKR_KEY_TYPE_INCONSISTENT;
-		}
-	}
-	else {
-		return CKR_KEY_HANDLE_INVALID;
-	}
-
-	return CKR_FUNCTION_NOT_SUPPORTED;
-}
-
-CK_RV Session::Sign(
-	CK_BYTE_PTR       pData,           /* the data to sign */
-	CK_ULONG          ulDataLen,       /* count of bytes to sign */
-	CK_BYTE_PTR       pSignature,      /* gets the signature */
-	CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
-)
-{
-	CK_RV res = SignUpdate(pData, ulDataLen);
-	if (res != CKR_OK) {
-		return res;
-	}
-	res = SignFinal(pSignature, pulSignatureLen);
-
-	return res;
-}
-
-CK_RV Session::SignUpdate(
-	CK_BYTE_PTR       pPart,     /* the data to sign */
-	CK_ULONG          ulPartLen  /* count of bytes to sign */
-)
-{
-	if (!this->signInitialized) {
-		return CKR_OPERATION_NOT_INITIALIZED;
-	}
-
-	return CKR_FUNCTION_NOT_SUPPORTED;
-}
-
-CK_RV Session::SignFinal(
-	CK_BYTE_PTR       pSignature,      /* gets the signature */
-	CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
-)
-{
-	if (!this->signInitialized) {
-		return CKR_OPERATION_NOT_INITIALIZED;
-	}
-
-	return CKR_FUNCTION_NOT_SUPPORTED;
+    try {
+        if (pMechanism == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_MECHANISM_INVALID, "pMechanism is NULL");
+        }
+        CheckMechanismType(pMechanism->mechanism, CKF_VERIFY);
+        if (hKey == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "hKey is NULL");
+        }
+    }
+    CATCH_EXCEPTION
 }
 
 /* Encryption and decryption */
@@ -722,4 +584,50 @@ CK_RV Session::GenerateKeyPair
 	CHECK_ARGUMENT_NULL(phPublicKey);
 
 	return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
+Scoped<Object> Session::GetObject(
+	CK_OBJECT_HANDLE hObject
+)
+{
+	try {
+		for (int i = 0; i < objects.count(); i++) {
+			auto object = objects.items(i);
+			if (object->handle == hObject) {
+				return object;
+			}
+		}
+		THROW_PKCS11_EXCEPTION(CKR_OBJECT_HANDLE_INVALID, "Cannot get Object by Handle");
+	}
+	CATCH_EXCEPTION
+}
+
+CK_RV core::Session::SeedRandom(
+	CK_BYTE_PTR       pSeed,     /* the seed material */
+	CK_ULONG          ulSeedLen  /* length of seed material */
+)
+{
+	try {
+		if (pSeed == NULL_PTR) {
+			THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pSeed is NULL");
+		}
+
+		return CKR_FUNCTION_NOT_SUPPORTED;
+	}
+	CATCH_EXCEPTION;
+}
+
+CK_RV core::Session::GenerateRandom(
+	CK_BYTE_PTR       pRandomData,  /* receives the random data */
+	CK_ULONG          ulRandomLen  /* # of bytes to generate */
+)
+{
+	try {
+		if (pRandomData == NULL_PTR) {
+			THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pRandomData is NULL");
+		}
+
+		return CKR_FUNCTION_NOT_SUPPORTED;
+	}
+	CATCH_EXCEPTION;
 }

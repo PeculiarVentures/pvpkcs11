@@ -27,19 +27,26 @@ typedef struct _NT_STATUS_MESSAGE {
 
 NT_STATUS_MESSAGE NT_STATUS_MESSAGES[] = {
 	{ 0, "The operation completed successfully." },
-	{ NTE_INVALID_HANDLE, "An invalid HANDLE was specified" },
-	{ NTE_BUFFER_TOO_SMALL, "The buffer is too small to contain the entry" },
-	{ NTE_INVALID_PARAMETER, "One or more parameters are not valid." },
-	{ NTE_NO_MEMORY, "A memory allocation failure occurred." },
-	{ NTE_NOT_SUPPORTED, "The request is not supported." },
+	{ STATUS_INVALID_HANDLE, "An invalid HANDLE was specified" },
+	{ STATUS_BUFFER_TOO_SMALL, "The buffer is too small to contain the entry" },
+	{ STATUS_INVALID_PARAMETER, "One or more parameters are not valid." },
+	{ STATUS_NO_MEMORY, "A memory allocation failure occurred." },
+	{ STATUS_NOT_SUPPORTED, "The request is not supported." },
+	{ NTE_INVALID_HANDLE, "The supplied handle is invalid." },
 	{ NTE_BAD_ALGID, "Wrong algorithm identity." },
 	{ NTE_BAD_FLAGS, "Wrong flags value." },
+	{ NTE_INVALID_PARAMETER, "One or more parameters are not valid." },
+	{ NTE_NO_MEMORY, "A memory allocation failure occurred." },
+	{ NTE_NOT_SUPPORTED, "The specified property is not supported for the object." }
+	
 };
 
 std::string GetNTErrorAsString(NTSTATUS status)
 {
+	fprintf(stdout, "Status: %X\n", status);
 	ULONG ulMessagesCount = sizeof(NT_STATUS_MESSAGES) / sizeof(NT_STATUS_MESSAGE);
 	for (int i = 0; i < ulMessagesCount; i++) {
+		// fprintf(stdout, "%X:%s\n", NT_STATUS_MESSAGES[i].ulStatus, NT_STATUS_MESSAGES[i].pMessage);
 		if (NT_STATUS_MESSAGES[i].ulStatus == status) {
 			return std::string(NT_STATUS_MESSAGES[i].pMessage);
 		}

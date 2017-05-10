@@ -1,5 +1,7 @@
 #include "rsa_public_key.h"
 
+using namespace core;
+
 CK_RV RsaPublicKey::GetAttributeValue
 (
 	CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes; gets values */

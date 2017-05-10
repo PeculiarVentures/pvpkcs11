@@ -1,0 +1,218 @@
+#pragma once
+
+#include "../stdafx.h"
+#include "../core/crypto.h"
+
+#include "bcrypt.h"
+#include "key.h"
+#include "helper.h"
+
+namespace mscapi {
+
+    class CryptoDigest : public core::CryptoDigest {
+    public:
+        CryptoDigest() : core::CryptoDigest(), hDigest(NULL) {}
+
+        ~CryptoDigest();
+
+        CK_RV Init
+        (
+            CK_MECHANISM_PTR  pMechanism  /* the digesting mechanism */
+        );
+
+        CK_RV Update(
+            CK_BYTE_PTR       pPart,     /* data to be digested */
+            CK_ULONG          ulPartLen  /* bytes of data to be digested */
+        );
+
+        CK_RV Final(
+            CK_BYTE_PTR       pDigest,      /* gets the message digest */
+            CK_ULONG_PTR      pulDigestLen  /* gets byte count of digest */
+        );
+
+    protected:
+        Scoped<bcrypt::Algorithm> algorithm;
+        BCRYPT_HASH_HANDLE        hDigest;
+
+        void Dispose();
+    };
+
+    /**
+    * Sign/Verify
+    */
+    class CryptoSign : public core::CryptoSign {
+    public:
+        CryptoSign(
+            CK_BBOOL type
+        ) : core::CryptoSign(type) 
+        {}
+    };
+    /**
+     * Sign/Verify
+     */
+    class RsaPKCS1Sign : public CryptoSign {
+    public:
+        RsaPKCS1Sign(
+            CK_BBOOL type
+        );
+
+        CK_RV Init
+        (
+            CK_MECHANISM_PTR        pMechanism,  /* the signature mechanism */
+            Scoped<core::Object>    key          /* signature key */
+        );
+
+        CK_RV Update(
+            CK_BYTE_PTR       pPart,     /* the data to sign/verify */
+            CK_ULONG          ulPartLen  /* count of bytes to sign/verify */
+        );
+
+        /**
+         * C_SignFinal finishes a multiple-part signature operation,
+         * returning the signature.
+         */
+        CK_RV Final(
+            CK_BYTE_PTR       pSignature,      /* gets the signature */
+            CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
+        );
+
+        /**
+         * C_VerifyFinal finishes a multiple-part verification
+         * operation, checking the signature.
+         */
+        CK_RV Final(
+            CK_BYTE_PTR       pSignature,     /* signature to verify */
+            CK_ULONG          ulSignatureLen  /* signature length */
+        );
+
+    protected:
+        Scoped<CryptoDigest> digest;
+        LPCWSTR              digestAlgorithm;
+        CryptoKey*           key;
+    };
+
+    /**
+    * Sign/Verify
+    */
+    class RsaPSSSign : public CryptoSign {
+    public:
+        RsaPSSSign(
+            CK_BBOOL type
+        );
+
+        CK_RV Init
+        (
+            CK_MECHANISM_PTR        pMechanism,  /* the signature mechanism */
+            Scoped<core::Object>    key          /* signature key */
+        );
+
+        CK_RV Update(
+            CK_BYTE_PTR       pPart,     /* the data to sign/verify */
+            CK_ULONG          ulPartLen  /* count of bytes to sign/verify */
+        );
+
+        /**
+        * C_SignFinal finishes a multiple-part signature operation,
+        * returning the signature.
+        */
+        CK_RV Final(
+            CK_BYTE_PTR       pSignature,      /* gets the signature */
+            CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
+        );
+
+        /**
+        * C_VerifyFinal finishes a multiple-part verification
+        * operation, checking the signature.
+        */
+        CK_RV Final(
+            CK_BYTE_PTR       pSignature,     /* signature to verify */
+            CK_ULONG          ulSignatureLen  /* signature length */
+        );
+
+    protected:
+        Scoped<CryptoDigest> digest;
+        LPCWSTR              digestAlgorithm;
+        ULONG                salt;
+        CryptoKey*           key;
+    };
+
+    /**
+    * Sign/Verify
+    */
+    class EcDSASign : public CryptoSign {
+    public:
+        EcDSASign(
+            CK_BBOOL type
+        );
+
+        CK_RV Init
+        (
+            CK_MECHANISM_PTR        pMechanism,  /* the signature mechanism */
+            Scoped<core::Object>    key          /* signature key */
+        );
+
+        CK_RV Update(
+            CK_BYTE_PTR       pPart,     /* the data to sign/verify */
+            CK_ULONG          ulPartLen  /* count of bytes to sign/verify */
+        );
+
+        /**
+        * C_SignFinal finishes a multiple-part signature operation,
+        * returning the signature.
+        */
+        CK_RV Final(
+            CK_BYTE_PTR       pSignature,      /* gets the signature */
+            CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
+        );
+
+        /**
+        * C_VerifyFinal finishes a multiple-part verification
+        * operation, checking the signature.
+        */
+        CK_RV Final(
+            CK_BYTE_PTR       pSignature,     /* signature to verify */
+            CK_ULONG          ulSignatureLen  /* signature length */
+        );
+
+    protected:
+        Scoped<CryptoDigest> digest;
+        CryptoKey*           key;
+    };
+
+    class CryptoEncrypt : public core::CryptoEncrypt {
+    public:
+        CryptoEncrypt(
+            CK_BBOOL type
+        ): core::CryptoEncrypt(type) 
+        {}
+    };
+
+    class CryptoRsaOAEPEncrypt : public CryptoEncrypt {
+    public:
+        CryptoRsaOAEPEncrypt(
+            CK_BBOOL type
+        );
+
+        CK_RV Init
+        (
+            CK_MECHANISM_PTR  pMechanism,
+            Scoped<core::Object>    hKey
+        );
+
+        CK_RV Update
+        (
+            CK_BYTE_PTR       pPart,
+            CK_ULONG          ulPartLen,
+            CK_BYTE_PTR       pEncryptedPart,
+            CK_ULONG_PTR      pulEncryptedPartLen
+        );
+
+        CK_RV Final
+        (
+            CK_BYTE_PTR       pLastEncryptedPart,
+            CK_ULONG_PTR      pulLastEncryptedPartLen
+        );
+        
+    };
+
+}

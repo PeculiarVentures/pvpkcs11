@@ -1,5 +1,7 @@
 #include "object.h"
 
+using namespace core;
+
 Object::Object()
 {
 }

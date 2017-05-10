@@ -1,6 +1,8 @@
 #include "template.h"
 #include "excep.h"
 
+using namespace core;
+
 Template::Template(
 	CK_ATTRIBUTE* pTemplate,
 	CK_ULONG      ulTemplateLen
@@ -45,7 +47,7 @@ CK_ULONG Template::GetNumber(CK_ULONG ulType, CK_BBOOL bRequired, CK_ULONG ulDef
 				THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, message.c_str());
 			}
 		}
-		if (attr->ulValueLen) {
+		if (attr && attr->ulValueLen) {
 			// Check size of attribute value
 			if (attr->ulValueLen != sizeof(CK_ULONG)) {
 				std::string message = "Attribute value is invalid (" + std::to_string(ulType) + ")";
@@ -72,7 +74,7 @@ CK_BBOOL Template::GetBool(CK_ULONG ulType, CK_BBOOL bRequired, CK_BBOOL bDefaul
 				THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, message.c_str());
 			}
 		}
-		if (attr->ulValueLen) {
+		if (attr && attr->ulValueLen) {
 			// Check size of attribute value
 			if (attr->ulValueLen != sizeof(CK_BBOOL)) {
 				std::string message = "Attribute value is invalid (" + std::to_string(ulType) + ")";

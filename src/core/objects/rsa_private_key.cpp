@@ -1,5 +1,7 @@
 #include "rsa_private_key.h"
 
+using namespace core;
+
 CK_RV RsaPrivateKey::GetAttributeValue
 (
 	CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes; gets values */

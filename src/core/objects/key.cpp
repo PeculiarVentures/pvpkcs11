@@ -1,5 +1,7 @@
 #include "key.h"
 
+using namespace core;
+
 Key::Key() :
 	Storage()
 {

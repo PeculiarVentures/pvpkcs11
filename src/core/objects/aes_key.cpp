@@ -1,5 +1,7 @@
 #include "aes_key.h"
 
+using namespace core;
+
 AesKey::AesKey() 
 {
 	propKeyType = CKK_AES;

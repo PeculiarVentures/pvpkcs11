@@ -1,6 +1,6 @@
 #include "x509_certificate.h"
 
-
+using namespace core;
 
 X509Certificate::X509Certificate()
 {

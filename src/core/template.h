@@ -2,24 +2,28 @@
 
 #include "../stdafx.h"
 
-class Template {
+namespace core {
 
-public:
-	Template(
-		CK_ATTRIBUTE* pTemplate,
-		CK_ULONG      ulTemplateLen
-	);
+	class Template {
 
-	CK_ULONG length();
+	public:
+		Template(
+			CK_ATTRIBUTE* pTemplate,
+			CK_ULONG      ulTemplateLen
+		);
 
-	CK_ATTRIBUTE_PTR GetAttributeByIndex(CK_ULONG ulIndex);
-	CK_ATTRIBUTE_PTR GetAttributeByType(CK_ULONG ulType);
+		CK_ULONG length();
 
-	CK_ULONG GetNumber(CK_ULONG ulType, CK_BBOOL bRequired, CK_ULONG ulDefaulValue = 0);
-	CK_BBOOL GetBool(CK_ULONG ulType, CK_BBOOL bRequired, CK_BBOOL bDefaulValue = false);
-	Scoped<std::string> GetBytes(CK_ULONG ulType, CK_BBOOL bRequired, const char* cDefaultValue = "");
+		CK_ATTRIBUTE_PTR GetAttributeByIndex(CK_ULONG ulIndex);
+		CK_ATTRIBUTE_PTR GetAttributeByType(CK_ULONG ulType);
 
-protected:
-	CK_ATTRIBUTE_PTR pTemplate;
-	CK_ULONG         ulTemplateLen;
-};
+		CK_ULONG GetNumber(CK_ULONG ulType, CK_BBOOL bRequired, CK_ULONG ulDefaulValue = 0);
+		CK_BBOOL GetBool(CK_ULONG ulType, CK_BBOOL bRequired, CK_BBOOL bDefaulValue = false);
+		Scoped<std::string> GetBytes(CK_ULONG ulType, CK_BBOOL bRequired, const char* cDefaultValue = "");
+
+	protected:
+		CK_ATTRIBUTE_PTR pTemplate;
+		CK_ULONG         ulTemplateLen;
+	};
+
+}

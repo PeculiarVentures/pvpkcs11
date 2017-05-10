@@ -1,20 +1,23 @@
 #pragma once
 
-class Mechanism
-{
-public:
+namespace core {
 
-	CK_MECHANISM_TYPE     type;
-	CK_ULONG              ulMinKeySize;
-	CK_ULONG              ulMaxKeySize;
-	CK_FLAGS              flags;
+	class Mechanism
+	{
+	public:
 
-	Mechanism(
-		CK_MECHANISM_TYPE     type,
-		CK_ULONG              ulMinKeySize,
-		CK_ULONG              ulMaxKeySize,
-		CK_FLAGS              flags
-	);
-	~Mechanism();
-};
+		CK_MECHANISM_TYPE     type;
+		CK_ULONG              ulMinKeySize;
+		CK_ULONG              ulMaxKeySize;
+		CK_FLAGS              flags;
 
+		Mechanism(
+			CK_MECHANISM_TYPE     type,
+			CK_ULONG              ulMinKeySize,
+			CK_ULONG              ulMaxKeySize,
+			CK_FLAGS              flags
+		);
+		~Mechanism();
+	};
+
+}

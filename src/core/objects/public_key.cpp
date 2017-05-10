@@ -1,5 +1,7 @@
 #include "public_key.h"
 
+using namespace core;
+
 CK_RV PublicKey::GetAttributeValue
 (
 	CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes; gets values */

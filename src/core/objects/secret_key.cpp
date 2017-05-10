@@ -1,5 +1,7 @@
 #include "secret_key.h"
 
+using namespace core;
+
 CK_RV SecretKey::GetAttributeValue
 (
 	CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes; gets values */

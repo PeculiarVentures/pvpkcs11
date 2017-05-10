@@ -1,5 +1,7 @@
 #include "private_key.h"
 
+using namespace core;
+
 CK_RV PrivateKey::GetAttributeValue
 (
 	CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes; gets values */

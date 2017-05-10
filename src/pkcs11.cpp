@@ -95,12 +95,12 @@ static CK_FUNCTION_LIST functionList =
 	C_WaitForSlotEvent
 };
 
-Module pkcs11 = Module();
+core::Module pkcs11 = core::Module();
 
 class App {
 public:
 	App() {
-		Scoped<Slot> mscapiSlot(new MscapiSlot());
+		Scoped<core::Slot> mscapiSlot(new mscapi::Slot());
 		pkcs11.slots.add(mscapiSlot);
 		mscapiSlot->slotID = pkcs11.slots.count() - 1;
 	}
@@ -1204,7 +1204,10 @@ CK_DEFINE_FUNCTION(CK_RV, C_SeedRandom)
 	CK_ULONG          ulSeedLen  /* length of seed material */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		pkcs11.SeedRandom(hSession, pSeed, ulSeedLen);
+	}
+	CATCH(__FUNCTION__);
 }
 
 
@@ -1216,7 +1219,10 @@ CK_DEFINE_FUNCTION(CK_RV, C_GenerateRandom)
 	CK_ULONG          ulRandomLen  /* # of bytes to generate */
 	)
 {
-	return CKR_FUNCTION_NOT_SUPPORTED;
+	try {
+		pkcs11.GenerateRandom(hSession, RandomData, ulRandomLen);
+	}
+	CATCH(__FUNCTION__);
 }
 
 

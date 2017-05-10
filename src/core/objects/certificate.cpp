@@ -1,5 +1,7 @@
 #include "certificate.h"
 
+using namespace core;
+
 Certificate::Certificate()
 {
 }

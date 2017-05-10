@@ -2,10 +2,14 @@
 
 #include "../core/slot.h";
 
-class MscapiSlot : public Slot {
-public:
-	MscapiSlot();
+namespace mscapi {
 
-protected:
-	Scoped<Session> CreateSession();
-};
+	class Slot : public core::Slot {
+	public:
+		Slot();
+
+	protected:
+		Scoped<core::Session> CreateSession();
+	};
+
+}
