@@ -22,14 +22,42 @@ void Algorithm::Open(
 	}
 }
 
-Scoped<Key> Algorithm::GenerateKeyPair(
-	_In_    ULONG   dwLength,
-	_In_    ULONG   dwFlags
+Scoped<std::string> Algorithm::GenerateRandom(
+    ULONG dwLength
 )
 {
-	Scoped<Key> key(new Key());
-	auto hKey = key->Get();
-	NTSTATUS status = BCryptGenerateKeyPair(handle, &hKey, dwLength, dwFlags);
+    Scoped<std::string> buf(new std::string(""));
+    buf->resize(dwLength);
+    PUCHAR pbBuf = (PUCHAR)buf->c_str();
+    NTSTATUS status = BCryptGenRandom(NULL, pbBuf, buf->length(), BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+    if (status) {
+        THROW_NT_EXCEPTION(status);
+    }
+    return buf;
+}
 
-	return key;
+Scoped<bcrypt::Key> Algorithm::GenerateKey(
+    _Out_writes_bytes_all_opt_(cbKeyObject) PUCHAR  pbKeyObject,
+    _In_                                    ULONG   cbKeyObject,
+    _In_reads_bytes_(cbSecret)              PUCHAR  pbSecret,
+    _In_                                    ULONG   cbSecret,
+    _In_                                    ULONG   dwFlags
+) 
+{
+    BCRYPT_KEY_HANDLE hKey;
+
+    NTSTATUS status = BCryptGenerateSymmetricKey(
+        handle,
+        &hKey,
+        pbKeyObject,
+        cbKeyObject,
+        pbSecret,
+        cbSecret,
+        dwFlags
+    );
+    if (status) {
+        THROW_NT_EXCEPTION(status);
+    }
+
+    return Scoped<Key>(new Key(hKey));
 }

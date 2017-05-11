@@ -68,11 +68,11 @@ void EcPublicKey::GetKeyStruct()
         DWORD dwKeyLen = 0;
         BYTE* pbKey = NULL;
         NTSTATUS status;
-        if (status = NCryptExportKey(this->key->Get(), NULL, BCRYPT_ECCPUBLIC_BLOB, 0, NULL, 0, &dwKeyLen, 0)) {
+        if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_ECCPUBLIC_BLOB, 0, NULL, 0, &dwKeyLen, 0)) {
             THROW_NT_EXCEPTION(status);
         }
         pbKey = (BYTE*)malloc(dwKeyLen);
-        if (status = NCryptExportKey(this->key->Get(), NULL, BCRYPT_ECCPUBLIC_BLOB, 0, pbKey, dwKeyLen, &dwKeyLen, 0)) {
+        if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_ECCPUBLIC_BLOB, 0, pbKey, dwKeyLen, &dwKeyLen, 0)) {
             free(pbKey);
             THROW_NT_EXCEPTION(status);
         }

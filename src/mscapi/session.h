@@ -61,6 +61,18 @@ namespace mscapi {
             CK_OBJECT_HANDLE  hKey         /* handle of signature key */
         );
 
+        CK_RV EncryptInit
+        (
+            CK_MECHANISM_PTR  pMechanism,  /* the encryption mechanism */
+            CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
+        );
+
+        CK_RV DecryptInit
+        (
+            CK_MECHANISM_PTR  pMechanism,  /* the decryption mechanism */
+            CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
+        );
+
 	protected:
 		void LoadMyStore();
 	};

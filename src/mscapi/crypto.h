@@ -199,6 +199,14 @@ namespace mscapi {
             Scoped<core::Object>    hKey
         );
 
+        CK_RV Once
+        (
+            CK_BYTE_PTR       pData,
+            CK_ULONG          ulDataLen,
+            CK_BYTE_PTR       pEncryptedData,
+            CK_ULONG_PTR      pulEncryptedDataLen
+        );
+
         CK_RV Update
         (
             CK_BYTE_PTR       pPart,
@@ -212,6 +220,9 @@ namespace mscapi {
             CK_BYTE_PTR       pLastEncryptedPart,
             CK_ULONG_PTR      pulLastEncryptedPartLen
         );
+
+    protected:
+        CryptoKey*          key;
         
     };
 

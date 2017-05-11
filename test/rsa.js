@@ -224,6 +224,46 @@ context("RSA", () => {
                 });
             });
 
+            context("RSA-OAEP", () => {
+                [
+                    "SHA-1",
+                    "SHA-256",
+                    "SHA-384",
+                    "SHA-512",
+                ].forEach((hash) => {
+                    it(hash, (done) => {
+                        const alg = {
+                            name: "RSA-OAEP",
+                            hash,
+                            publicExponent: new Uint8Array([1, 0, 1]),
+                            modulusLength: 2048,
+                            label: new Buffer("label value") 
+                        };
+                        const data = new Buffer("Test data");
+                        Promise.resolve()
+                            .then(() => {
+                                return p11.subtle.generateKey(alg, true, ["encrypt", "decrypt"])
+                                    .then((keys) => {
+                                        return p11.subtle.exportKey("spki", keys.publicKey)
+                                            .then((spki) => {
+                                                return ossl.subtle.importKey("spki", spki, alg, true, ["encrypt"]);
+                                            })
+                                            .then((publicKey) => {
+                                                return ossl.subtle.encrypt(alg, publicKey, data);
+                                            })
+                                            .then((enc) => {
+                                                return p11.subtle.decrypt(alg, keys.privateKey, enc);
+                                            })
+                                            .then((dec) => {
+                                                assert.equal(new Buffer(dec).toString(), data.toString());
+                                            })
+                                    })
+                            })
+                            .then(done, done);
+                    })
+                })
+            })
+
         });
     })
 

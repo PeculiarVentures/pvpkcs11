@@ -600,15 +600,18 @@ CK_RV Module::Encrypt
     CK_ULONG_PTR      pulEncryptedDataLen  /* gets c-text size */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
 
-    return session->Encrypt(
-        pData,
-        ulDataLen,
-        pEncryptedData,
-        pulEncryptedDataLen
-    );
+        return session->encrypt->Once(
+            pData,
+            ulDataLen,
+            pEncryptedData,
+            pulEncryptedDataLen
+        );
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::EncryptUpdate
@@ -620,15 +623,18 @@ CK_RV Module::EncryptUpdate
     CK_ULONG_PTR      pulEncryptedPartLen /* gets c-text size */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
 
-    return session->EncryptUpdate(
-        pPart,
-        ulPartLen,
-        pEncryptedPart,
-        pulEncryptedPartLen
-    );
+        return session->encrypt->Update(
+            pPart,
+            ulPartLen,
+            pEncryptedPart,
+            pulEncryptedPartLen
+        );
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::EncryptFinal
@@ -638,13 +644,16 @@ CK_RV Module::EncryptFinal
     CK_ULONG_PTR      pulLastEncryptedPartLen  /* gets last size */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
 
-    return session->EncryptFinal(
-        pLastEncryptedPart,
-        pulLastEncryptedPartLen
-    );
+        return session->encrypt->Final(
+            pLastEncryptedPart,
+            pulLastEncryptedPartLen
+        );
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::DecryptInit
@@ -672,15 +681,18 @@ CK_RV Module::Decrypt
     CK_ULONG_PTR      pulDataLen          /* gets p-text size */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
 
-    return session->Decrypt(
-        pEncryptedData,
-        ulEncryptedDataLen,
-        pData,
-        pulDataLen
-    );
+        return session->decrypt->Once(
+            pEncryptedData,
+            ulEncryptedDataLen,
+            pData,
+            pulDataLen
+        );
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::DecryptUpdate
@@ -692,15 +704,18 @@ CK_RV Module::DecryptUpdate
     CK_ULONG_PTR      pulPartLen           /* p-text size */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
 
-    return session->DecryptUpdate(
-        pEncryptedPart,
-        ulEncryptedPartLen,
-        pPart,
-        pulPartLen
-    );
+        return session->decrypt->Update(
+            pEncryptedPart,
+            ulEncryptedPartLen,
+            pPart,
+            pulPartLen
+        );
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::DecryptFinal
@@ -710,13 +725,16 @@ CK_RV Module::DecryptFinal
     CK_ULONG_PTR      pulLastPartLen  /* p-text size */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
 
-    return session->DecryptFinal(
-        pLastPart,
-        pulLastPartLen
-    );
+        return session->decrypt->Final(
+            pLastPart,
+            pulLastPartLen
+        );
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::GenerateKey

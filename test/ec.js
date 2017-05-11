@@ -39,7 +39,6 @@ context("EC", () => {
             ];
 
             const keys = mod.C_GenerateKeyPair(session, { mechanism: pkcs11.CKM_ECDSA_KEY_PAIR_GEN, parameter: null }, publicTemplate, privateTemplate);
-            console.log(keys);
 
             let attrs = mod.C_GetAttributeValue(session, keys.privateKey, [
                 { type: pkcs11.CKA_TOKEN }

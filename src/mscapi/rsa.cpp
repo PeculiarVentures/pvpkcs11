@@ -36,7 +36,7 @@ Scoped<CryptoKeyPair> RsaKey::Generate(
         }
         if (publicTemplate->GetBool(CKA_ENCRYPT, false, false) || publicTemplate->GetBool(CKA_DECRYPT, false, false) ||
             publicTemplate->GetBool(CKA_WRAP, false, false) || publicTemplate->GetBool(CKA_UNWRAP, false, false)) {
-            keyUsage |= NCRYPT_ALLOW_SIGNING_FLAG;
+            keyUsage |= NCRYPT_ALLOW_DECRYPT_FLAG;
         }
         key->SetNumber(NCRYPT_KEY_USAGE_PROPERTY, keyUsage);
         // TODO: Extractable
@@ -46,11 +46,13 @@ Scoped<CryptoKeyPair> RsaKey::Generate(
         Scoped<core::PrivateKey> privateKey(new RsaPrivateKey(key));
         privateKey->propId = *privateTemplate->GetBytes(CKA_ID, false, "");
         privateKey->propSign = privateTemplate->GetBool(CKA_SIGN, false, false);
+        privateKey->propDecrypt = privateTemplate->GetBool(CKA_DECRYPT, false, false);
         privateKey->propExtractable = privateTemplate->GetBool(CKA_EXTRACTABLE, false, false);
 
         Scoped<core::PublicKey> publicKey(new RsaPublicKey(key));
         publicKey->propId = *publicTemplate->GetBytes(CKA_ID, false, "");
         publicKey->propVerify = publicTemplate->GetBool(CKA_VERIFY, false, false);
+        publicKey->propEncrypt = publicTemplate->GetBool(CKA_ENCRYPT, false, false);
 
         return Scoped<CryptoKeyPair>(new CryptoKeyPair(privateKey, publicKey));
     }
@@ -66,11 +68,11 @@ CK_RV RsaPrivateKey::GetKeyStruct(
     DWORD dwKeyLen = 0;
     BYTE* pbKey = NULL;
     NTSTATUS status;
-    if (status = NCryptExportKey(this->key->Get(), NULL, BCRYPT_RSAPRIVATE_BLOB, 0, NULL, 0, &dwKeyLen, 0)) {
+    if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_RSAPRIVATE_BLOB, 0, NULL, 0, &dwKeyLen, 0)) {
         THROW_NT_EXCEPTION(status);
     }
     pbKey = (BYTE*)malloc(dwKeyLen);
-    if (status = NCryptExportKey(this->key->Get(), NULL, BCRYPT_RSAPRIVATE_BLOB, 0, pbKey, dwKeyLen, &dwKeyLen, 0)) {
+    if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_RSAPRIVATE_BLOB, 0, pbKey, dwKeyLen, &dwKeyLen, 0)) {
         free(pbKey);
         THROW_NT_EXCEPTION(status);
     }
@@ -91,11 +93,11 @@ DECLARE_GET_ATTRIBUTE(RsaPublicKey::GetModulus)
         DWORD dwPublicKeyLen = 0;
         BYTE* pbPublicKey = NULL;
         NTSTATUS status;
-        if (status = NCryptExportKey(this->key->Get(), NULL, BCRYPT_RSAPUBLIC_BLOB, 0, NULL, 0, &dwPublicKeyLen, 0)) {
+        if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_RSAPUBLIC_BLOB, 0, NULL, 0, &dwPublicKeyLen, 0)) {
             THROW_NT_EXCEPTION(status);
         }
         pbPublicKey = (BYTE*)malloc(dwPublicKeyLen);
-        if (status = NCryptExportKey(this->key->Get(), NULL, BCRYPT_RSAPUBLIC_BLOB, 0, pbPublicKey, dwPublicKeyLen, &dwPublicKeyLen, 0)) {
+        if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_RSAPUBLIC_BLOB, 0, pbPublicKey, dwPublicKeyLen, &dwPublicKeyLen, 0)) {
             free(pbPublicKey);
             THROW_NT_EXCEPTION(status);
         }
@@ -118,11 +120,11 @@ DECLARE_GET_ATTRIBUTE(RsaPublicKey::GetModulusBits)
         DWORD dwPublicKeyLen = 0;
         BYTE* pbPublicKey = NULL;
         NTSTATUS status;
-        if (status = NCryptExportKey(this->key->Get(), NULL, BCRYPT_RSAPUBLIC_BLOB, 0, NULL, 0, &dwPublicKeyLen, 0)) {
+        if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_RSAPUBLIC_BLOB, 0, NULL, 0, &dwPublicKeyLen, 0)) {
             THROW_NT_EXCEPTION(status);
         }
         pbPublicKey = (BYTE*)malloc(dwPublicKeyLen);
-        if (status = NCryptExportKey(this->key->Get(), NULL, BCRYPT_RSAPUBLIC_BLOB, 0, pbPublicKey, dwPublicKeyLen, &dwPublicKeyLen, 0)) {
+        if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_RSAPUBLIC_BLOB, 0, pbPublicKey, dwPublicKeyLen, &dwPublicKeyLen, 0)) {
             free(pbPublicKey);
             THROW_NT_EXCEPTION(status);
         }
@@ -144,11 +146,11 @@ DECLARE_GET_ATTRIBUTE(RsaPublicKey::GetPublicExponent)
         DWORD dwPublicKeyLen = 0;
         BYTE* pbPublicKey = NULL;
         NTSTATUS status;
-        if (status = NCryptExportKey(this->key->Get(), NULL, BCRYPT_RSAPUBLIC_BLOB, 0, NULL, 0, &dwPublicKeyLen, 0)) {
+        if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_RSAPUBLIC_BLOB, 0, NULL, 0, &dwPublicKeyLen, 0)) {
             THROW_NT_EXCEPTION(status);
         }
         pbPublicKey = (BYTE*)malloc(dwPublicKeyLen);
-        if (status = NCryptExportKey(this->key->Get(), NULL, BCRYPT_RSAPUBLIC_BLOB, 0, pbPublicKey, dwPublicKeyLen, &dwPublicKeyLen, 0)) {
+        if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_RSAPUBLIC_BLOB, 0, pbPublicKey, dwPublicKeyLen, &dwPublicKeyLen, 0)) {
             free(pbPublicKey);
             THROW_NT_EXCEPTION(status);
         }

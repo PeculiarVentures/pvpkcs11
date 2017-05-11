@@ -73,6 +73,7 @@
                 "src/mscapi/key.cpp",
                 "src/mscapi/rsa.cpp",
                 "src/mscapi/ec.cpp",
+                "src/mscapi/aes.cpp",
                 # mscapi/crypto
                 "src/mscapi/crypto_digest.cpp",
                 "src/mscapi/crypto_sign.cpp",

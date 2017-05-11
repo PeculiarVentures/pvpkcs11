@@ -1,10 +1,18 @@
 #include "key.h"
 
 using namespace mscapi;
+
 CryptoKey::CryptoKey(
 	Scoped<ncrypt::Key> key
 ) :
-	key(key)
+	nkey(key)
+{
+}
+
+CryptoKey::CryptoKey(
+    Scoped<bcrypt::Key> key
+) :
+    bkey(key)
 {
 }
 

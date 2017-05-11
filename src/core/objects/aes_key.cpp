@@ -47,5 +47,5 @@ DECLARE_GET_ATTRIBUTE(AesKey::GetValue)
 	if (!propExtractable) {
 		return CKR_ATTRIBUTE_SENSITIVE;
 	}
-	return CKR_ATTRIBUTE_TYPE_INVALID;
+    return GetBytes(pValue, pulValueLen, propValue.get());
 }

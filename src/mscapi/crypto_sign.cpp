@@ -96,7 +96,7 @@ CK_RV RsaPKCS1Sign::Final(
         ULONG ulSignatureLen;
         UCHAR hash[256] = { 0 };
         ULONG hashLen = 256;
-        status = NCryptSignHash(key->key->Get(), &paddingInfo, hash, hashLen, NULL, 0, &ulSignatureLen, BCRYPT_PAD_PKCS1);
+        status = NCryptSignHash(key->nkey->Get(), &paddingInfo, hash, hashLen, NULL, 0, &ulSignatureLen, BCRYPT_PAD_PKCS1);
         if (status) {
             THROW_NT_EXCEPTION(status);
         }
@@ -109,7 +109,7 @@ CK_RV RsaPKCS1Sign::Final(
         }
         else {
             digest->Final(hash, &hashLen);
-            status = NCryptSignHash(key->key->Get(), &paddingInfo, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, BCRYPT_PAD_PKCS1);
+            status = NCryptSignHash(key->nkey->Get(), &paddingInfo, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, BCRYPT_PAD_PKCS1);
             active = false;
             if (status) {
                 THROW_NT_EXCEPTION(status);
@@ -138,7 +138,7 @@ CK_RV RsaPKCS1Sign::Final(
         digest->Final(hash, &hashLen);
 
         status = NCryptVerifySignature(
-            key->key->Get(),
+            key->nkey->Get(),
             &paddingInfo,
             hash, hashLen,
             pSignature, ulSignatureLen,
@@ -260,7 +260,7 @@ CK_RV RsaPSSSign::Final(
         ULONG ulSignatureLen;
         UCHAR hash[256] = { 0 };
         ULONG hashLen = 256;
-        status = NCryptSignHash(key->key->Get(), &paddingInfo, hash, hashLen, NULL, 0, &ulSignatureLen, BCRYPT_PAD_PSS);
+        status = NCryptSignHash(key->nkey->Get(), &paddingInfo, hash, hashLen, NULL, 0, &ulSignatureLen, BCRYPT_PAD_PSS);
         if (status) {
             THROW_NT_EXCEPTION(status);
         }
@@ -273,7 +273,7 @@ CK_RV RsaPSSSign::Final(
         }
         else {
             digest->Final(hash, &hashLen);
-            status = NCryptSignHash(key->key->Get(), &paddingInfo, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, BCRYPT_PAD_PSS);
+            status = NCryptSignHash(key->nkey->Get(), &paddingInfo, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, BCRYPT_PAD_PSS);
             active = false;
             if (status) {
                 THROW_NT_EXCEPTION(status);
@@ -302,7 +302,7 @@ CK_RV RsaPSSSign::Final(
         digest->Final(hash, &hashLen);
 
         status = NCryptVerifySignature(
-            key->key->Get(),
+            key->nkey->Get(),
             &paddingInfo,
             hash, hashLen,
             pSignature, ulSignatureLen,
@@ -406,7 +406,7 @@ CK_RV EcDSASign::Final(
         ULONG ulSignatureLen;
         UCHAR hash[256] = { 0 };
         ULONG hashLen = 256;
-        status = NCryptSignHash(key->key->Get(), NULL, hash, hashLen, NULL, 0, &ulSignatureLen, 0);
+        status = NCryptSignHash(key->nkey->Get(), NULL, hash, hashLen, NULL, 0, &ulSignatureLen, 0);
         if (status) {
             THROW_NT_EXCEPTION(status);
         }
@@ -419,7 +419,7 @@ CK_RV EcDSASign::Final(
         }
         else {
             digest->Final(hash, &hashLen);
-            status = NCryptSignHash(key->key->Get(), NULL, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, 0);
+            status = NCryptSignHash(key->nkey->Get(), NULL, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, 0);
             active = false;
             if (status) {
                 THROW_NT_EXCEPTION(status);
@@ -447,7 +447,7 @@ CK_RV EcDSASign::Final(
         digest->Final(hash, &hashLen);
 
         status = NCryptVerifySignature(
-            key->key->Get(),
+            key->nkey->Get(),
             NULL,
             hash, hashLen,
             pSignature, ulSignatureLen,

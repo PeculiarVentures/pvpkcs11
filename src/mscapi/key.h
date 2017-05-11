@@ -6,6 +6,7 @@
 #include "../core/objects/public_key.h"
 
 #include "ncrypt.h"
+#include "bcrypt.h"
 
 namespace mscapi {
 
@@ -14,8 +15,12 @@ namespace mscapi {
 		CryptoKey(
 			Scoped<ncrypt::Key> key
 		);
+        CryptoKey(
+            Scoped<bcrypt::Key> key
+        );
 
-		Scoped<ncrypt::Key> key;
+		Scoped<ncrypt::Key> nkey;
+        Scoped<bcrypt::Key> bkey;
 	};
 
 	class CryptoKeyPair {

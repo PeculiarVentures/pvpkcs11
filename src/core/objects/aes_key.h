@@ -19,7 +19,8 @@ namespace core {
 		virtual DECLARE_GET_ATTRIBUTE(GetValueLen);
 
 	protected:
-		CK_ULONG propValueLen;
+		CK_ULONG            propValueLen;
+        Scoped<std::string> propValue;
 
 	};
 

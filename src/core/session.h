@@ -36,14 +36,13 @@ namespace core {
 		Scoped<CryptoDigest>  digest;
         Scoped<CryptoSign>    sign;
         Scoped<CryptoSign>    verify;
+        Scoped<CryptoEncrypt> encrypt;
+        Scoped<CryptoEncrypt> decrypt;
 
 		Collection<Scoped<Object>> objects;
 
 		// find
 		OBJECT_FIND           find;
-
-		bool encryptInitialized;
-		bool decryptInitialized;
 
 		Session();
 		~Session();
@@ -156,54 +155,10 @@ namespace core {
 			CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
 		);
 
-		virtual CK_RV Encrypt
-		(
-			CK_BYTE_PTR       pData,               /* the plaintext data */
-			CK_ULONG          ulDataLen,           /* bytes of plaintext */
-			CK_BYTE_PTR       pEncryptedData,      /* gets ciphertext */
-			CK_ULONG_PTR      pulEncryptedDataLen  /* gets c-text size */
-		);
-
-		virtual CK_RV EncryptUpdate
-		(
-			CK_BYTE_PTR       pPart,              /* the plaintext data */
-			CK_ULONG          ulPartLen,          /* plaintext data len */
-			CK_BYTE_PTR       pEncryptedPart,     /* gets ciphertext */
-			CK_ULONG_PTR      pulEncryptedPartLen /* gets c-text size */
-		);
-
-		virtual CK_RV EncryptFinal
-		(
-			CK_BYTE_PTR       pLastEncryptedPart,      /* last c-text */
-			CK_ULONG_PTR      pulLastEncryptedPartLen  /* gets last size */
-		);
-
 		virtual CK_RV DecryptInit
 		(
 			CK_MECHANISM_PTR  pMechanism,  /* the decryption mechanism */
 			CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
-		);
-
-		virtual CK_RV Decrypt
-		(
-			CK_BYTE_PTR       pEncryptedData,     /* ciphertext */
-			CK_ULONG          ulEncryptedDataLen, /* ciphertext length */
-			CK_BYTE_PTR       pData,              /* gets plaintext */
-			CK_ULONG_PTR      pulDataLen          /* gets p-text size */
-		);
-
-		virtual CK_RV DecryptUpdate
-		(
-			CK_BYTE_PTR       pEncryptedPart,      /* encrypted data */
-			CK_ULONG          ulEncryptedPartLen,  /* input length */
-			CK_BYTE_PTR       pPart,               /* gets plaintext */
-			CK_ULONG_PTR      pulPartLen           /* p-text size */
-		);
-
-		virtual CK_RV DecryptFinal
-		(
-			CK_BYTE_PTR       pLastPart,      /* gets plaintext */
-			CK_ULONG_PTR      pulLastPartLen  /* p-text size */
 		);
 
 		// Key generation

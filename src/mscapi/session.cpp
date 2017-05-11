@@ -6,6 +6,8 @@
 
 #include"rsa.h"
 #include"ec.h"
+#include"aes.h"
+
 /*
 #include "certificate.h"
 #include "rsa_public_key.h"
@@ -20,6 +22,8 @@ Session::Session() : core::Session()
 	digest = Scoped<CryptoDigest>(new CryptoDigest());
     sign = Scoped<CryptoSign>(new CryptoSign(CRYPTO_SIGN));
     verify = Scoped<CryptoSign>(new CryptoSign(CRYPTO_VERIFY));
+    encrypt = Scoped<CryptoEncrypt>(new CryptoEncrypt(CRYPTO_ENCRYPT));
+    decrypt = Scoped<CryptoEncrypt>(new CryptoEncrypt(CRYPTO_DECRYPT));
 }
 
 Session::~Session()
@@ -127,34 +131,34 @@ CK_RV Session::GenerateKey
 )
 {
 	try {
-		/*
-		CK_RV res = Session::GenerateKey(
-			pMechanism,
-			pTemplate,
-			ulCount,
-			phKey
-		);
-		if (res != CKR_FUNCTION_NOT_SUPPORTED) {
-			return res;
-		}
+        core::Session::GenerateKey(
+            pMechanism,
+            pTemplate,
+            ulCount,
+            phKey
+        );
 
-		// Select mechanism and call needed key generation
-		Scoped<Object> obj;
-		switch (pMechanism->mechanism) {
-		case CKM_AES_KEY_GEN: {
-			obj = MscapiAesKey::GenerateKey(pMechanism, pTemplate, ulCount);
-			break;
-		}
-		default:
-			THROW_PKCS11_EXCEPTION(CKR_MECHANISM_INVALID, "Mechanism is not implemented");
-		}
+        Scoped<core::Template> tmpl(new core::Template(pTemplate, ulCount));
 
-		// add key to session's objects
-		this->objects.add(obj);
+        Scoped<core::SecretKey> key;
+        switch (pMechanism->mechanism) {
+        case CKM_AES_KEY_GEN:
+            key = AesKey::Generate(
+                pMechanism,
+                tmpl
+            );
+            break;
+        default:
+            THROW_PKCS11_MECHANISM_INVALID();
+        }
 
-		*phKey = obj->handle;
-		*/
-		return CKR_OK;
+        // add key to session's objects
+        objects.add(key);
+
+        // set handles for keys
+        *phKey = key->handle;
+
+        return CKR_OK;
 	}
 	CATCH_EXCEPTION;
 }
@@ -171,6 +175,16 @@ CK_RV Session::GenerateKeyPair
 )
 {
 	try {
+        core::Session::GenerateKeyPair(
+            pMechanism,
+            pPublicKeyTemplate,
+            ulPublicKeyAttributeCount,
+            pPrivateKeyTemplate,
+            ulPrivateKeyAttributeCount,
+            phPublicKey,
+            phPrivateKey
+        );
+
 		Scoped<core::Template> publicTemplate(new core::Template(pPublicKeyTemplate, ulPublicKeyAttributeCount));
 		Scoped<core::Template> privateTemplate(new core::Template(pPrivateKeyTemplate, ulPrivateKeyAttributeCount));
 
@@ -303,4 +317,68 @@ CK_RV Session::SignInit(
         return sign->Init(pMechanism, GetObject(hKey));
     }
     CATCH_EXCEPTION
+}
+
+CK_RV Session::EncryptInit
+(
+    CK_MECHANISM_PTR  pMechanism,  /* the encryption mechanism */
+    CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
+)
+{
+    try {
+        core::Session::EncryptInit(
+            pMechanism,
+            hKey
+        );
+
+        if (encrypt->IsActive()) {
+            THROW_PKCS11_OPERATION_ACTIVE();
+        }
+
+        switch (pMechanism->mechanism) {
+        case CKM_RSA_PKCS_OAEP:
+            encrypt = Scoped<CryptoRsaOAEPEncrypt>(new CryptoRsaOAEPEncrypt(CRYPTO_ENCRYPT));
+            break;
+        default:
+            THROW_PKCS11_MECHANISM_INVALID();
+        }
+
+        return encrypt->Init(
+            pMechanism,
+            GetObject(hKey)
+        );
+    }
+    CATCH_EXCEPTION;
+}
+
+CK_RV Session::DecryptInit
+(
+    CK_MECHANISM_PTR  pMechanism,  /* the decryption mechanism */
+    CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
+)
+{
+    try {
+        core::Session::DecryptInit(
+            pMechanism,
+            hKey
+        );
+
+        if (decrypt->IsActive()) {
+            THROW_PKCS11_OPERATION_ACTIVE();
+        }
+
+        switch (pMechanism->mechanism) {
+        case CKM_RSA_PKCS_OAEP:
+            decrypt = Scoped<CryptoRsaOAEPEncrypt>(new CryptoRsaOAEPEncrypt(CRYPTO_DECRYPT));
+            break;
+        default:
+            THROW_PKCS11_MECHANISM_INVALID();
+        }
+
+        return decrypt->Init(
+            pMechanism,
+            GetObject(hKey)
+        );
+    }
+    CATCH_EXCEPTION;
 }

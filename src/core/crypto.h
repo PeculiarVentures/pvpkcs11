@@ -109,8 +109,8 @@ namespace core {
         CK_BBOOL type;
     };
 
-#define CRYPTO_ENCRYPT      0;
-#define CRYPTO_DECRYPT      1;
+#define CRYPTO_ENCRYPT      0
+#define CRYPTO_DECRYPT      1
 
     class CryptoEncrypt {
     public:
@@ -147,6 +147,8 @@ namespace core {
         bool IsActive();
 
     protected:
+        LPCWSTR     digestAlg;
+        std::string label;
         bool        active;
         CK_BBOOL    type;
     };

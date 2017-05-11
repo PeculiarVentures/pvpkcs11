@@ -37,8 +37,8 @@ NT_STATUS_MESSAGE NT_STATUS_MESSAGES[] = {
 	{ NTE_BAD_FLAGS, "Wrong flags value." },
 	{ NTE_INVALID_PARAMETER, "One or more parameters are not valid." },
 	{ NTE_NO_MEMORY, "A memory allocation failure occurred." },
-	{ NTE_NOT_SUPPORTED, "The specified property is not supported for the object." }
-	
+	{ NTE_NOT_SUPPORTED, "The specified property is not supported for the object." },
+    { NTE_PERM, "Access denied." }
 };
 
 std::string GetNTErrorAsString(NTSTATUS status)
