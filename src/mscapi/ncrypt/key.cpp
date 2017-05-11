@@ -3,26 +3,26 @@
 using namespace ncrypt;
 
 Key::Key(
-	NCRYPT_KEY_HANDLE handle
+    NCRYPT_KEY_HANDLE handle
 )
 {
-	this->handle = handle;
+    this->handle = handle;
 }
 
-Key::~Key() 
+Key::~Key()
 {
-	if (handle) {
-		NCryptFreeObject(handle);
-		handle = NULL;
-	}
+    if (handle) {
+        NCryptFreeObject(handle);
+        handle = NULL;
+    }
 }
 
 void Key::Finalize(
-	ULONG dwFlags
+    ULONG dwFlags
 )
 {
-	NTSTATUS status = NCryptFinalizeKey(handle, dwFlags);
-	if (status) {
-		THROW_NT_EXCEPTION(status);
-	}
+    NTSTATUS status = NCryptFinalizeKey(handle, dwFlags);
+    if (status) {
+        THROW_NT_EXCEPTION(status);
+    }
 }

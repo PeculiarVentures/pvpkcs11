@@ -4,43 +4,43 @@
 
 namespace core {
 
-	class Exception : public std::exception {
-	public:
-		std::string        name;
-		std::string        message;
-		std::string        function;
-		std::string        file;
-		int                line;
-		std::string        data;
-		Scoped<Exception>  stack;
+    class Exception : public std::exception {
+    public:
+        std::string        name;
+        std::string        message;
+        std::string        function;
+        std::string        file;
+        int                line;
+        std::string        data;
+        Scoped<Exception>  stack;
 
-		Exception(
-			const char*        name,
-			const char*        message,
-			const char*        function,
-			const char*        file,
-			int                line
-		);
+        Exception(
+            const char*        name,
+            const char*        message,
+            const char*        function,
+            const char*        file,
+            int                line
+        );
 
-		virtual char const* what();
-		void push(
-			Scoped<Exception> item
-		);
-	};
+        virtual char const* what();
+        void push(
+            Scoped<Exception> item
+        );
+    };
 
-	class Pkcs11Exception : public Exception {
-	public:
-		CK_RV code;
-		
-		Pkcs11Exception(
-			const char*        name,
-			int                code,
-			const char*        message,
-			const char*        function,
-			const char*        file,
-			int                line
-		);
-	};
+    class Pkcs11Exception : public Exception {
+    public:
+        CK_RV code;
+
+        Pkcs11Exception(
+            const char*        name,
+            int                code,
+            const char*        message,
+            const char*        function,
+            const char*        file,
+            int                line
+        );
+    };
 
 }
 

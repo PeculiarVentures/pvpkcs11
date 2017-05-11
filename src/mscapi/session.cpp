@@ -19,7 +19,7 @@ using namespace mscapi;
 
 Session::Session() : core::Session()
 {
-	digest = Scoped<CryptoDigest>(new CryptoDigest());
+    digest = Scoped<CryptoDigest>(new CryptoDigest());
     sign = Scoped<CryptoSign>(new CryptoSign(CRYPTO_SIGN));
     verify = Scoped<CryptoSign>(new CryptoSign(CRYPTO_VERIFY));
     encrypt = Scoped<CryptoEncrypt>(new CryptoEncrypt(CRYPTO_ENCRYPT));
@@ -32,105 +32,105 @@ Session::~Session()
 
 void Session::LoadMyStore()
 {
-	/*
-	try {
-		Scoped<crypt::CertStore> store(new crypt::CertStore());
-		this->certStores.add(store);
-		store->Open("My");
-		Scoped<Collection<Scoped<crypt::X509Certificate>>> certs = store->GetCertificates();
-		for (size_t i = 0; i < certs->count(); i++) {
-			Scoped<crypt::X509Certificate> x509 = certs->items(i);
-			Scoped<MscapiCertificate> x509Object(new MscapiCertificate(x509, true));
+    /*
+    try {
+        Scoped<crypt::CertStore> store(new crypt::CertStore());
+        this->certStores.add(store);
+        store->Open("My");
+        Scoped<Collection<Scoped<crypt::X509Certificate>>> certs = store->GetCertificates();
+        for (size_t i = 0; i < certs->count(); i++) {
+            Scoped<crypt::X509Certificate> x509 = certs->items(i);
+            Scoped<MscapiCertificate> x509Object(new MscapiCertificate(x509, true));
 
-			// Get public key for Certificate. Application supports RSA and EC algorithms
-			// In other case application throws error
-			Scoped<Object> publicKeyObject;
-			try {
-				Scoped<crypt::Key> publicKey = x509->GetPublicKey();
-				// fprintf(stdout, "Certificate '%s' has public key\n", x509->GetLabel()->c_str());
-				Scoped<MscapiRsaPublicKey> key(new MscapiRsaPublicKey(publicKey, true));
-				key->propId = *x509->GetHashPublicKey().get();
-				publicKeyObject = key;
-			}
-			catch (Scoped<core::Exception> e) {
-				continue;
-			}
+            // Get public key for Certificate. Application supports RSA and EC algorithms
+            // In other case application throws error
+            Scoped<Object> publicKeyObject;
+            try {
+                Scoped<crypt::Key> publicKey = x509->GetPublicKey();
+                // fprintf(stdout, "Certificate '%s' has public key\n", x509->GetLabel()->c_str());
+                Scoped<MscapiRsaPublicKey> key(new MscapiRsaPublicKey(publicKey, true));
+                key->propId = *x509->GetHashPublicKey().get();
+                publicKeyObject = key;
+            }
+            catch (Scoped<core::Exception> e) {
+                continue;
+            }
 
-			// Get private key for Certificate
-			Scoped<Object> privateKeyObject;
-			if (x509->HasPrivateKey()) {
-				// fprintf(stdout, "Certificate '%s' has private key\n", x509->GetLabel()->c_str());
-				try {
-					Scoped<crypt::Key> privateKey = x509->GetPrivateKey();
-					Scoped<MscapiRsaPrivateKey> key(new MscapiRsaPrivateKey(privateKey, true));
-					key->id = *x509->GetHashPublicKey().get();
-					privateKeyObject = key;
-				}
-				catch (Scoped<core::Exception> e) {
-					// If we cannot get private key for certificate, we don't have to show this certificate in list
-					continue;
-				}
-			}
+            // Get private key for Certificate
+            Scoped<Object> privateKeyObject;
+            if (x509->HasPrivateKey()) {
+                // fprintf(stdout, "Certificate '%s' has private key\n", x509->GetLabel()->c_str());
+                try {
+                    Scoped<crypt::Key> privateKey = x509->GetPrivateKey();
+                    Scoped<MscapiRsaPrivateKey> key(new MscapiRsaPrivateKey(privateKey, true));
+                    key->id = *x509->GetHashPublicKey().get();
+                    privateKeyObject = key;
+                }
+                catch (Scoped<core::Exception> e) {
+                    // If we cannot get private key for certificate, we don't have to show this certificate in list
+                    continue;
+                }
+            }
 
-			this->objects.add(x509Object);
-			this->objects.add(publicKeyObject);
-			this->objects.add(privateKeyObject);
-		}
-	}
-	CATCH_EXCEPTION;
-	*/
+            this->objects.add(x509Object);
+            this->objects.add(publicKeyObject);
+            this->objects.add(privateKeyObject);
+        }
+    }
+    CATCH_EXCEPTION;
+    */
 }
 
 CK_RV Session::Open
 (
-	CK_FLAGS              flags,         /* from CK_SESSION_INFO */
-	CK_VOID_PTR           pApplication,  /* passed to callback */
-	CK_NOTIFY             Notify,        /* callback function */
-	CK_SESSION_HANDLE_PTR phSession      /* gets session handle */
+    CK_FLAGS              flags,         /* from CK_SESSION_INFO */
+    CK_VOID_PTR           pApplication,  /* passed to callback */
+    CK_NOTIFY             Notify,        /* callback function */
+    CK_SESSION_HANDLE_PTR phSession      /* gets session handle */
 )
 {
-	try {
-		// TestPrintContainers(PROV_RSA_AES);
-		// TestCipher();
+    try {
+        // TestPrintContainers(PROV_RSA_AES);
+        // TestCipher();
 
-		CK_RV res = core::Session::Open(flags, pApplication, Notify, phSession);
+        CK_RV res = core::Session::Open(flags, pApplication, Notify, phSession);
 
-		if (res == CKR_OK) {
-			LoadMyStore();
-		}
-		return res;
-	}
-	CATCH_EXCEPTION;
+        if (res == CKR_OK) {
+            LoadMyStore();
+        }
+        return res;
+    }
+    CATCH_EXCEPTION;
 }
 
 CK_RV Session::Close()
 {
-	try {
-		CK_RV res = core::Session::Close();
+    try {
+        CK_RV res = core::Session::Close();
 
-		this->objects.clear();
+        this->objects.clear();
 
-		// close all opened stores
-		/*
-		for (size_t i = 0; i < this->certStores.count(); i++) {
-			this->certStores.items(i)->Close();
-		}
-		*/
+        // close all opened stores
+        /*
+        for (size_t i = 0; i < this->certStores.count(); i++) {
+            this->certStores.items(i)->Close();
+        }
+        */
 
-		return res;
-	}
-	CATCH_EXCEPTION;
+        return res;
+    }
+    CATCH_EXCEPTION;
 }
 
 CK_RV Session::GenerateKey
 (
-	CK_MECHANISM_PTR     pMechanism,  /* key generation mech. */
-	CK_ATTRIBUTE_PTR     pTemplate,   /* template for new key */
-	CK_ULONG             ulCount,     /* # of attrs in template */
-	CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
+    CK_MECHANISM_PTR     pMechanism,  /* key generation mech. */
+    CK_ATTRIBUTE_PTR     pTemplate,   /* template for new key */
+    CK_ULONG             ulCount,     /* # of attrs in template */
+    CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
 )
 {
-	try {
+    try {
         core::Session::GenerateKey(
             pMechanism,
             pTemplate,
@@ -159,22 +159,22 @@ CK_RV Session::GenerateKey
         *phKey = key->handle;
 
         return CKR_OK;
-	}
-	CATCH_EXCEPTION;
+    }
+    CATCH_EXCEPTION;
 }
 
 CK_RV Session::GenerateKeyPair
 (
-	CK_MECHANISM_PTR     pMechanism,                  /* key-gen mechanism */
-	CK_ATTRIBUTE_PTR     pPublicKeyTemplate,          /* template for pub. key */
-	CK_ULONG             ulPublicKeyAttributeCount,   /* # pub. attributes */
-	CK_ATTRIBUTE_PTR     pPrivateKeyTemplate,         /* template for private key */
-	CK_ULONG             ulPrivateKeyAttributeCount,  /* # private attributes */
-	CK_OBJECT_HANDLE_PTR phPublicKey,                 /* gets pub. key handle */
-	CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
+    CK_MECHANISM_PTR     pMechanism,                  /* key-gen mechanism */
+    CK_ATTRIBUTE_PTR     pPublicKeyTemplate,          /* template for pub. key */
+    CK_ULONG             ulPublicKeyAttributeCount,   /* # pub. attributes */
+    CK_ATTRIBUTE_PTR     pPrivateKeyTemplate,         /* template for private key */
+    CK_ULONG             ulPrivateKeyAttributeCount,  /* # private attributes */
+    CK_OBJECT_HANDLE_PTR phPublicKey,                 /* gets pub. key handle */
+    CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
 )
 {
-	try {
+    try {
         core::Session::GenerateKeyPair(
             pMechanism,
             pPublicKeyTemplate,
@@ -185,18 +185,18 @@ CK_RV Session::GenerateKeyPair
             phPrivateKey
         );
 
-		Scoped<core::Template> publicTemplate(new core::Template(pPublicKeyTemplate, ulPublicKeyAttributeCount));
-		Scoped<core::Template> privateTemplate(new core::Template(pPrivateKeyTemplate, ulPrivateKeyAttributeCount));
+        Scoped<core::Template> publicTemplate(new core::Template(pPublicKeyTemplate, ulPublicKeyAttributeCount));
+        Scoped<core::Template> privateTemplate(new core::Template(pPrivateKeyTemplate, ulPrivateKeyAttributeCount));
 
-		Scoped<CryptoKeyPair> keyPair;
-		switch (pMechanism->mechanism) {
-		case CKM_RSA_PKCS_KEY_PAIR_GEN:
-			keyPair = RsaKey::Generate(
-				pMechanism,
-				publicTemplate,
-				privateTemplate
-			);
-			break;
+        Scoped<CryptoKeyPair> keyPair;
+        switch (pMechanism->mechanism) {
+        case CKM_RSA_PKCS_KEY_PAIR_GEN:
+            keyPair = RsaKey::Generate(
+                pMechanism,
+                publicTemplate,
+                privateTemplate
+            );
+            break;
         case CKM_ECDSA_KEY_PAIR_GEN:
             keyPair = EcKey::Generate(
                 pMechanism,
@@ -204,39 +204,39 @@ CK_RV Session::GenerateKeyPair
                 privateTemplate
             );
             break;
-		default:
-			THROW_PKCS11_MECHANISM_INVALID();
-		}
-		
-		// add key to session's objects
-		objects.add(keyPair->publicKey);
-		objects.add(keyPair->privateKey);
-		
-		// set handles for keys
-		*phPublicKey = keyPair->publicKey->handle;
-		*phPrivateKey = keyPair->privateKey->handle;
+        default:
+            THROW_PKCS11_MECHANISM_INVALID();
+        }
 
-		return CKR_OK;
-	}
-	CATCH_EXCEPTION;
+        // add key to session's objects
+        objects.add(keyPair->publicKey);
+        objects.add(keyPair->privateKey);
+
+        // set handles for keys
+        *phPublicKey = keyPair->publicKey->handle;
+        *phPrivateKey = keyPair->privateKey->handle;
+
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION;
 }
 
 CK_RV mscapi::Session::GenerateRandom(
-	CK_BYTE_PTR       pRandomData, /* receives the random data */
-	CK_ULONG          ulRandomLen  /* # of bytes to generate */
+    CK_BYTE_PTR       pRandomData, /* receives the random data */
+    CK_ULONG          ulRandomLen  /* # of bytes to generate */
 )
 {
-	try {
-		core::Session::GenerateRandom(pRandomData, ulRandomLen);
+    try {
+        core::Session::GenerateRandom(pRandomData, ulRandomLen);
 
-		NTSTATUS status = BCryptGenRandom(NULL, pRandomData, ulRandomLen, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
-		if (status) {
-			THROW_NT_EXCEPTION(status);
-		}
-		
-		return CKR_OK;
-	}
-	CATCH_EXCEPTION;
+        NTSTATUS status = BCryptGenRandom(NULL, pRandomData, ulRandomLen, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+        if (status) {
+            THROW_NT_EXCEPTION(status);
+        }
+
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION;
 }
 
 CK_RV Session::VerifyInit(

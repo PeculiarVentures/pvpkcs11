@@ -4,22 +4,22 @@ using namespace bcrypt;
 
 Algorithm::~Algorithm()
 {
-	if (handle) {
-		BCryptCloseAlgorithmProvider(handle, 0);
-		handle = NULL;
-	}
+    if (handle) {
+        BCryptCloseAlgorithmProvider(handle, 0);
+        handle = NULL;
+    }
 }
 
 void Algorithm::Open(
-	_In_        LPCWSTR              pszAlgId,
-	_In_opt_    LPCWSTR              pszImplementation,
-	_In_        ULONG                dwFlags
+    _In_        LPCWSTR              pszAlgId,
+    _In_opt_    LPCWSTR              pszImplementation,
+    _In_        ULONG                dwFlags
 )
 {
-	NTSTATUS status = BCryptOpenAlgorithmProvider(&handle, pszAlgId, pszImplementation, dwFlags);
-	if (status) {
-		THROW_NT_EXCEPTION(status);
-	}
+    NTSTATUS status = BCryptOpenAlgorithmProvider(&handle, pszAlgId, pszImplementation, dwFlags);
+    if (status) {
+        THROW_NT_EXCEPTION(status);
+    }
 }
 
 Scoped<std::string> Algorithm::GenerateRandom(
@@ -42,7 +42,7 @@ Scoped<bcrypt::Key> Algorithm::GenerateKey(
     _In_reads_bytes_(cbSecret)              PUCHAR  pbSecret,
     _In_                                    ULONG   cbSecret,
     _In_                                    ULONG   dwFlags
-) 
+)
 {
     BCRYPT_KEY_HANDLE hKey;
 

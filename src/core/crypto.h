@@ -119,28 +119,28 @@ namespace core {
         virtual CK_RV Init
         (
             CK_MECHANISM_PTR  pMechanism,
-            Scoped<Object>    hKey       
+            Scoped<Object>    hKey
         );
 
         virtual CK_RV Once
         (
-            CK_BYTE_PTR       pData,               
-            CK_ULONG          ulDataLen,           
-            CK_BYTE_PTR       pEncryptedData,      
+            CK_BYTE_PTR       pData,
+            CK_ULONG          ulDataLen,
+            CK_BYTE_PTR       pEncryptedData,
             CK_ULONG_PTR      pulEncryptedDataLen
         );
 
         virtual CK_RV Update
         (
-            CK_BYTE_PTR       pPart,              
-            CK_ULONG          ulPartLen,          
-            CK_BYTE_PTR       pEncryptedPart,     
+            CK_BYTE_PTR       pPart,
+            CK_ULONG          ulPartLen,
+            CK_BYTE_PTR       pEncryptedPart,
             CK_ULONG_PTR      pulEncryptedPartLen
         );
 
         virtual CK_RV Final
         (
-            CK_BYTE_PTR       pLastEncryptedPart,    
+            CK_BYTE_PTR       pLastEncryptedPart,
             CK_ULONG_PTR      pulLastEncryptedPartLen
         );
 

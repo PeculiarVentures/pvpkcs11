@@ -3,9 +3,9 @@
 using namespace mscapi;
 
 CryptoKey::CryptoKey(
-	Scoped<ncrypt::Key> key
+    Scoped<ncrypt::Key> key
 ) :
-	nkey(key)
+    nkey(key)
 {
 }
 
@@ -17,10 +17,10 @@ CryptoKey::CryptoKey(
 }
 
 CryptoKeyPair::CryptoKeyPair(
-	Scoped<core::PrivateKey> privateKey, 
-	Scoped<core::PublicKey> publicKey
+    Scoped<core::PrivateKey> privateKey,
+    Scoped<core::PublicKey> publicKey
 ) :
-	privateKey(privateKey),
-	publicKey(publicKey)
+    privateKey(privateKey),
+    publicKey(publicKey)
 {
 }
