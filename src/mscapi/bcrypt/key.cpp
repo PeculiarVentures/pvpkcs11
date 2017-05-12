@@ -42,3 +42,22 @@ Scoped<Key> Key::Duplicate()
 
     return Scoped<Key>(new Key(hKeyCopy));
 }
+
+Scoped<Algorithm> Key::GetProvider()
+{
+	try {
+		BCRYPT_ALG_HANDLE hAlg;
+		ULONG ulHandleLen;
+		NTSTATUS status = BCryptGetProperty(handle, BCRYPT_PROVIDER_HANDLE, NULL, 0, &ulHandleLen, 0);
+		if (status) {
+			THROW_NT_EXCEPTION(status);
+		}
+		hAlg = (BCRYPT_ALG_HANDLE)malloc(ulHandleLen);
+		status = BCryptGetProperty(handle, BCRYPT_PROVIDER_HANDLE, (PUCHAR)hAlg, ulHandleLen, &ulHandleLen, 0);
+		if (status) {
+			THROW_NT_EXCEPTION(status);
+		}
+		return Scoped<Algorithm>(new Algorithm(hAlg));
+	}
+	CATCH_EXCEPTION
+}

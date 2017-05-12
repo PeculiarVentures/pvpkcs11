@@ -339,6 +339,13 @@ CK_RV Session::EncryptInit
         case CKM_RSA_PKCS_OAEP:
             encrypt = Scoped<CryptoRsaOAEPEncrypt>(new CryptoRsaOAEPEncrypt(CRYPTO_ENCRYPT));
             break;
+        case CKM_AES_ECB:
+        case CKM_AES_CBC_PAD:
+            encrypt = Scoped<CryptoAesEncrypt>(new CryptoAesEncrypt(CRYPTO_ENCRYPT));
+            break;
+        case CKM_AES_GCM:
+            encrypt = Scoped<CryptoAesGCMEncrypt>(new CryptoAesGCMEncrypt(CRYPTO_ENCRYPT));
+            break;
         default:
             THROW_PKCS11_MECHANISM_INVALID();
         }
@@ -370,6 +377,13 @@ CK_RV Session::DecryptInit
         switch (pMechanism->mechanism) {
         case CKM_RSA_PKCS_OAEP:
             decrypt = Scoped<CryptoRsaOAEPEncrypt>(new CryptoRsaOAEPEncrypt(CRYPTO_DECRYPT));
+            break;
+        case CKM_AES_ECB:
+        case CKM_AES_CBC_PAD:
+            decrypt = Scoped<CryptoAesEncrypt>(new CryptoAesEncrypt(CRYPTO_DECRYPT));
+            break;
+        case CKM_AES_GCM:
+            decrypt = Scoped<CryptoAesGCMEncrypt>(new CryptoAesGCMEncrypt(CRYPTO_DECRYPT));
             break;
         default:
             THROW_PKCS11_MECHANISM_INVALID();
