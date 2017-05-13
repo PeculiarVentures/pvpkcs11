@@ -17,14 +17,14 @@ let p11 = new p11_crypto.WebCrypto({
 let ossl = new ossl_crypto();
 
 const alg = {
-    name: "AES-GCM",
+    name: "AES-ECB",
     length: 128,
     iv: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2]),
     additionalData: new Buffer([1, 2, 3, 4, 5, 6]),
     tagLength: 128,
 };
 
-const data = new Buffer([1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0]);
+const data = new Buffer([1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6]);
 
 p11.subtle.generateKey(alg, true, ["encrypt", "decrypt"])
     .then((k) => {

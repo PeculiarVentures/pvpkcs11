@@ -340,6 +340,7 @@ CK_RV Session::EncryptInit
             encrypt = Scoped<CryptoRsaOAEPEncrypt>(new CryptoRsaOAEPEncrypt(CRYPTO_ENCRYPT));
             break;
         case CKM_AES_ECB:
+        case CKM_AES_CBC:
         case CKM_AES_CBC_PAD:
             encrypt = Scoped<CryptoAesEncrypt>(new CryptoAesEncrypt(CRYPTO_ENCRYPT));
             break;
@@ -379,6 +380,7 @@ CK_RV Session::DecryptInit
             decrypt = Scoped<CryptoRsaOAEPEncrypt>(new CryptoRsaOAEPEncrypt(CRYPTO_DECRYPT));
             break;
         case CKM_AES_ECB:
+        case CKM_AES_CBC:
         case CKM_AES_CBC_PAD:
             decrypt = Scoped<CryptoAesEncrypt>(new CryptoAesEncrypt(CRYPTO_DECRYPT));
             break;

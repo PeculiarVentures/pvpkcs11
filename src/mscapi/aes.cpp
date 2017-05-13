@@ -91,11 +91,14 @@ CK_RV CryptoAesEncrypt::Init
 
         switch (mechanism) {
         case CKM_AES_ECB: {
+            padding = false;
             this->key->SetParam(BCRYPT_CHAINING_MODE, (PUCHAR)BCRYPT_CHAIN_MODE_ECB, lstrlenW(BCRYPT_CHAIN_MODE_ECB));
 
             break;
         }
+        case CKM_AES_CBC:
         case CKM_AES_CBC_PAD: {
+            padding = mechanism == CKM_AES_CBC ? false : true;
             // IV
             if (pMechanism->pParameter == NULL_PTR) {
                 THROW_PKCS11_EXCEPTION(CKR_MECHANISM_PARAM_INVALID, "pMechanism->pParameter is NULL");
@@ -135,22 +138,31 @@ CK_RV CryptoAesEncrypt::Update
     try {
         std::string data("");
         std::string incomingData((char*)pPart, ulPartLen);
-        data = buffer + incomingData;
-        DWORD dwModulo = data.length() % blockLength;
-        if (dwModulo) {
-            buffer = data.substr(data.length() - dwModulo, dwModulo);
-            data.resize(data.length() - dwModulo);
-        }
-        else {
-            if (type == CRYPTO_DECRYPT) {
-                // leave last BLOCK for final operation
-                // it's needed for PADDING removing
-                buffer = data.substr(data.length() - blockLength, blockLength);
-                data.resize(data.length() - blockLength);
+
+        if (padding) {
+            data = buffer + incomingData;
+            DWORD dwModulo = data.length() % blockLength;
+            if (dwModulo) {
+                buffer = data.substr(data.length() - dwModulo, dwModulo);
+                data.resize(data.length() - dwModulo);
             }
             else {
-                buffer.erase();
+                if (type == CRYPTO_DECRYPT) {
+                    // leave last BLOCK for final operation
+                    // it's needed for PADDING removing
+                    buffer = data.substr(data.length() - blockLength, blockLength);
+                    data.resize(data.length() - blockLength);
+                }
+                else {
+                    buffer.erase();
+                }
             }
+        } 
+        else {
+            if (incomingData.length() % blockLength) {
+                THROW_PKCS11_EXCEPTION(CKR_DATA_LEN_RANGE, "Wrong incoming data");
+            }
+            data = incomingData;
         }
 
         if (data.length()) {
@@ -197,7 +209,7 @@ void CryptoAesEncrypt::Make(
     try {
         DWORD dwEncryptedLen;
         NTSTATUS status;
-        ULONG dwPaddingFlag = bFinal ? BCRYPT_BLOCK_PADDING : 0;
+        ULONG dwPaddingFlag = bFinal && padding ? BCRYPT_BLOCK_PADDING : 0;
 
         PUCHAR  pbIV;
         ULONG   ulIVLen;

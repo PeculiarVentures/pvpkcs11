@@ -49,6 +49,7 @@ namespace mscapi {
         );
     
     protected:
+        CK_BBOOL                    padding;
         CK_ULONG                    mechanism;
         Scoped<bcrypt::Key>         key;
         Scoped<std::string>         iv;
