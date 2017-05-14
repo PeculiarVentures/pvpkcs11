@@ -227,7 +227,6 @@ void CryptoAesEncrypt::Make(
             if (status = BCryptEncrypt(key->Get(), pbData, dwDataLen, NULL, pbIV, ulIVLen, NULL, 0, &dwEncryptedLen, dwPaddingFlag)) {
                 THROW_NT_EXCEPTION(status);
             }
-            fprintf(stdout, "dwEncryptedLen: %u\n", dwEncryptedLen);
             if (pbData == NULL_PTR) {
                 *pdwOutLen = dwEncryptedLen;
             }

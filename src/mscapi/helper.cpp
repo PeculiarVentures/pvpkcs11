@@ -44,13 +44,16 @@ NT_STATUS_MESSAGE NT_STATUS_MESSAGES[] = {
 
 std::string GetNTErrorAsString(NTSTATUS status)
 {
-    fprintf(stdout, "Status: %X\n", status);
+    std::string hexCode("");
+    hexCode.resize(sizeof(status) * 2);
+    sprintf((PCHAR)hexCode.c_str(), "%X", status);
     ULONG ulMessagesCount = sizeof(NT_STATUS_MESSAGES) / sizeof(NT_STATUS_MESSAGE);
+    std::string message("Unknown message");
     for (int i = 0; i < ulMessagesCount; i++) {
-        // fprintf(stdout, "%X:%s\n", NT_STATUS_MESSAGES[i].ulStatus, NT_STATUS_MESSAGES[i].pMessage);
         if (NT_STATUS_MESSAGES[i].ulStatus == status) {
-            return std::string(NT_STATUS_MESSAGES[i].pMessage);
+            message = std::string(NT_STATUS_MESSAGES[i].pMessage);
+            break;
         }
     }
-    return std::string("Unknown message");
+    return "(" + hexCode + ") " + message;
 }

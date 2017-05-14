@@ -56,6 +56,9 @@ DECLARE_GET_ATTRIBUTE(EcPrivateKey::GetValue)
         if (!propExtractable) {
             return CKR_ATTRIBUTE_SENSITIVE;
         }
+        
+        GetKeyStruct();
+
         return GetBytes(pValue, pulValueLen, propValue.get());
     }
     CATCH_EXCEPTION

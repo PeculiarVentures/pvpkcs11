@@ -24,6 +24,8 @@ namespace core {
         virtual DECLARE_GET_ATTRIBUTE(GetValue);
 
         DECLARE_GET_ATTRIBUTE(GetKeyType);
+
+        virtual void GetKeyStruct() = 0;
     
     protected:
         Scoped<std::string> propParams;

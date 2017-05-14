@@ -42,7 +42,9 @@ Scoped<CryptoKeyPair> EcKey::Generate(
             keyUsage |= NCRYPT_ALLOW_KEY_AGREEMENT_FLAG;
         }
         key->SetNumber(NCRYPT_KEY_USAGE_PROPERTY, keyUsage);
+
         // TODO: Extractable
+        key->SetNumber(NCRYPT_EXPORT_POLICY_PROPERTY, NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG, NCRYPT_PERSIST_FLAG);
 
         key->Finalize();
 
@@ -60,6 +62,52 @@ Scoped<CryptoKeyPair> EcKey::Generate(
         return Scoped<CryptoKeyPair>(new CryptoKeyPair(privateKey, publicKey));
     }
     CATCH_EXCEPTION;
+}
+
+void EcPrivateKey::GetKeyStruct()
+{
+    try {
+        DWORD dwKeyLen = 0;
+        BYTE* pbKey = NULL;
+        NTSTATUS status;
+        if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_ECCPRIVATE_BLOB, 0, NULL, 0, &dwKeyLen, 0)) {
+            THROW_NT_EXCEPTION(status);
+        }
+        pbKey = (BYTE*)malloc(dwKeyLen);
+        if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_ECCPRIVATE_BLOB, 0, pbKey, dwKeyLen, &dwKeyLen, 0)) {
+            free(pbKey);
+            THROW_NT_EXCEPTION(status);
+        }
+
+        BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)pbKey;
+        PCHAR pValue = (PCHAR)(pbKey + sizeof(BCRYPT_ECCKEY_BLOB) + (header->cbKey * 2));
+
+        // POINT
+        propValue = Scoped<std::string>(new std::string(""));
+
+        // PARAM
+        switch (header->dwMagic) {
+        case BCRYPT_ECDH_PRIVATE_P256_MAGIC:
+        case BCRYPT_ECDSA_PRIVATE_P256_MAGIC:
+            propParams = Scoped<std::string>(new std::string(core::EC_P256_BLOB));
+            break;
+        case BCRYPT_ECDH_PRIVATE_P384_MAGIC:
+        case BCRYPT_ECDSA_PRIVATE_P384_MAGIC:
+            propParams = Scoped<std::string>(new std::string(core::EC_P384_BLOB));
+            break;
+        case BCRYPT_ECDH_PRIVATE_P521_MAGIC:
+        case BCRYPT_ECDSA_PRIVATE_P521_MAGIC: {
+            propParams = Scoped<std::string>(new std::string(core::EC_P521_BLOB));
+            break;
+        }
+        default:
+            THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Unsupported named curve");
+        }
+        *propValue += std::string(pValue, header->cbKey);
+
+        free(pbKey);
+    }
+    CATCH_EXCEPTION
 }
 
 void EcPublicKey::GetKeyStruct()
