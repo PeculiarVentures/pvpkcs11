@@ -21,6 +21,7 @@
     "@types/mocha": "^2.2.41",
     "node-webcrypto-ossl": "^1.0.21",
     "node-webcrypto-p11": "^1.1.8",
-    "pkcs11js": "^1.0.8"
+    "pkcs11js": "^1.0.8",
+    "pvtsutils": "^1.0.2"
   }
 }

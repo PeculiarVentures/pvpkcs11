@@ -335,6 +335,20 @@ namespace core {
             CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
         );
 
+        /**
+         * C_DeriveKey derives a key from a base key, creating a new key
+         * object.
+         */
+        CK_RV DeriveKey
+        (
+            CK_SESSION_HANDLE    hSession,          /* session handle */
+            CK_MECHANISM_PTR     pMechanism,        /* key derivation mechanism */
+            CK_OBJECT_HANDLE     hBaseKey,          /* base key */
+            CK_ATTRIBUTE_PTR     pTemplate,         /* new key template */
+            CK_ULONG             ulAttributeCount,  /* template length */
+            CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
+        );
+
     protected:
         Scoped<Slot> getSlotBySession(CK_SESSION_HANDLE hSession);
         Scoped<Session> getSession(CK_SESSION_HANDLE hSession);

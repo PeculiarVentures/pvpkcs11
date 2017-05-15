@@ -73,6 +73,15 @@ namespace mscapi {
             CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
         );
 
+        CK_RV DeriveKey
+        (
+            CK_MECHANISM_PTR     pMechanism,        /* key derivation mechanism */
+            CK_OBJECT_HANDLE     hBaseKey,          /* base key */
+            CK_ATTRIBUTE_PTR     pTemplate,         /* new key template */
+            CK_ULONG             ulAttributeCount,  /* template length */
+            CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
+        );
+
 	protected:
 		void LoadMyStore();
 	};

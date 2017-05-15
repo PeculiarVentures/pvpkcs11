@@ -3,6 +3,7 @@
 // @ts-check
 
 const pkcs11 = require("pkcs11js");
+const helper = require("pvtsutils");
 const p11_crypto = require("node-webcrypto-p11");
 const ossl_crypto = require("node-webcrypto-ossl");
 const assert = require("assert");
@@ -17,31 +18,26 @@ let p11 = new p11_crypto.WebCrypto({
 let ossl = new ossl_crypto();
 
 const alg = {
-    name: "ECDSA",
-    namedCurve: "P-256",
+    name: "RSASSA-PKCS1-v1_5",
     hash: "SHA-256",
+    publicExponent: new Uint8Array([1, 0, 1]),
+    modulusLength: 2048,
 };
 
 const data = new Buffer([1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6]);
 
+function hex2b64url(hex) {
+    return helper.Convert.ToBase64Url(helper.Convert.FromHex(hex));
+}
+
 p11.subtle.generateKey(alg, true, ["sign", "verify"])
-    .then((k) => {
-        return p11.subtle.sign(alg, k.privateKey, data)
-            .then((signature) => {
-                return p11.subtle.exportKey("jwk", k.publicKey)
-                    .then((raw) => {
-                        console.log(raw);
-                        return ossl.subtle.importKey("jwk", raw, alg, true, ["verify"]);
-                    })
-                    .then((osslKey) => {
-                        return ossl.subtle.verify(alg, osslKey, signature, data)
-                            .then((ok) => {
-                                console.log("Signature:", ok);
-                            })
-                    })
+    .then((keys) => {
+        return p11.subtle.exportKey("jwk", keys.privateKey)
+            .then((jwk) => {
+                console.log(jwk);
             })
     })
     // @ts-ignore
     .catch((err) => {
         console.error(err);
-    })
+    });

@@ -49,7 +49,18 @@ CK_RV RsaPrivateKey::GetAttributeValue
 
 DECLARE_GET_ATTRIBUTE(RsaPrivateKey::GetModulus)
 {
-    return CKR_ATTRIBUTE_TYPE_INVALID;
+    try {
+        if (propExtractable && propSensitive) {
+            Scoped<RsaPrivateKeyStruct> key(new RsaPrivateKeyStruct);
+            CK_RV res = this->GetKeyStruct(key.get());
+            if (res != CKR_OK) {
+                return res;
+            }
+
+            return this->GetBytes(pValue, pulValueLen, &key->n);
+        }
+    }
+    CATCH_EXCEPTION
 }
 
 DECLARE_GET_ATTRIBUTE(RsaPrivateKey::GetPublicExponent)
@@ -60,134 +71,104 @@ DECLARE_GET_ATTRIBUTE(RsaPrivateKey::GetPublicExponent)
         return res;
     }
 
-    return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)key->qi.c_str(), key->qi.length());
+    return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)key->n.c_str(), key->n.length());
 }
 
 DECLARE_GET_ATTRIBUTE(RsaPrivateKey::GetPrivateExponent)
 {
-    // TODO: Move checking for Private functionality to Method
-    CK_BBOOL bbExtractable;
-    CK_ULONG ulExtractableLen = sizeof(CK_BBOOL);
-    CK_RV res = this->GetExtractable((CK_BYTE_PTR)&bbExtractable, &ulExtractableLen);
-    if (res != CKR_OK) {
-        return res;
-    }
-    if (bbExtractable) {
-        return CKR_ATTRIBUTE_SENSITIVE;
-    }
+    try {
+        // TODO: Move checking for Private functionality to Method
+        if (propExtractable && propSensitive) {
+            Scoped<RsaPrivateKeyStruct> key(new RsaPrivateKeyStruct);
+            CK_RV res = this->GetKeyStruct(key.get());
+            if (res != CKR_OK) {
+                return res;
+            }
 
-    Scoped<RsaPrivateKeyStruct> key(new RsaPrivateKeyStruct);
-    res = this->GetKeyStruct(key.get());
-    if (res != CKR_OK) {
-        return res;
+            return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)key->d.c_str(), key->d.length());
+        }
     }
-
-    return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)key->qi.c_str(), key->d.length());
+    CATCH_EXCEPTION
 }
 
 DECLARE_GET_ATTRIBUTE(RsaPrivateKey::GetPrime1)
 {
-    CK_BBOOL bbExtractable;
-    CK_ULONG ulExtractableLen = sizeof(CK_BBOOL);
-    CK_RV res = this->GetExtractable((CK_BYTE_PTR)&bbExtractable, &ulExtractableLen);
-    if (res != CKR_OK) {
-        return res;
-    }
-    if (bbExtractable) {
-        return CKR_ATTRIBUTE_SENSITIVE;
-    }
+    try {
+        if (propExtractable && propSensitive) {
+            Scoped<RsaPrivateKeyStruct> key(new RsaPrivateKeyStruct);
+            CK_RV res = this->GetKeyStruct(key.get());
+            if (res != CKR_OK) {
+                return res;
+            }
 
-    Scoped<RsaPrivateKeyStruct> key(new RsaPrivateKeyStruct);
-    res = this->GetKeyStruct(key.get());
-    if (res != CKR_OK) {
-        return res;
+            return this->GetBytes(pValue, pulValueLen, &key->p);
+        }
     }
-
-    return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)key->qi.c_str(), key->p.length());
+    CATCH_EXCEPTION
 }
 
 DECLARE_GET_ATTRIBUTE(RsaPrivateKey::GetPrime2)
 {
-    CK_BBOOL bbExtractable;
-    CK_ULONG ulExtractableLen = sizeof(CK_BBOOL);
-    CK_RV res = this->GetExtractable((CK_BYTE_PTR)&bbExtractable, &ulExtractableLen);
-    if (res != CKR_OK) {
-        return res;
-    }
-    if (bbExtractable) {
-        return CKR_ATTRIBUTE_SENSITIVE;
-    }
+    try {
+        if (propExtractable && propSensitive) {
+            Scoped<RsaPrivateKeyStruct> key(new RsaPrivateKeyStruct);
+            CK_RV res = this->GetKeyStruct(key.get());
+            if (res != CKR_OK) {
+                return res;
+            }
 
-    Scoped<RsaPrivateKeyStruct> key(new RsaPrivateKeyStruct);
-    res = this->GetKeyStruct(key.get());
-    if (res != CKR_OK) {
-        return res;
+            return this->GetBytes(pValue, pulValueLen, &key->q);
+        }
     }
-
-    return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)key->qi.c_str(), key->q.length());
+    CATCH_EXCEPTION
 }
 
 DECLARE_GET_ATTRIBUTE(RsaPrivateKey::GetExponent1)
 {
-    CK_BBOOL bbExtractable;
-    CK_ULONG ulExtractableLen = sizeof(CK_BBOOL);
-    CK_RV res = this->GetExtractable((CK_BYTE_PTR)&bbExtractable, &ulExtractableLen);
-    if (res != CKR_OK) {
-        return res;
-    }
-    if (bbExtractable) {
-        return CKR_ATTRIBUTE_SENSITIVE;
-    }
+    try {
+        if (propExtractable && propSensitive) {
+            Scoped<RsaPrivateKeyStruct> key(new RsaPrivateKeyStruct);
+            CK_RV res = this->GetKeyStruct(key.get());
+            if (res != CKR_OK) {
+                return res;
+            }
 
-    Scoped<RsaPrivateKeyStruct> key(new RsaPrivateKeyStruct);
-    res = this->GetKeyStruct(key.get());
-    if (res != CKR_OK) {
-        return res;
+            return this->GetBytes(pValue, pulValueLen, &key->dp);
+        }
     }
-
-    return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)key->qi.c_str(), key->dp.length());
+    CATCH_EXCEPTION
 }
 
 DECLARE_GET_ATTRIBUTE(RsaPrivateKey::GetExponent2)
 {
-    CK_BBOOL bbExtractable;
-    CK_ULONG ulExtractableLen = sizeof(CK_BBOOL);
-    CK_RV res = this->GetExtractable((CK_BYTE_PTR)&bbExtractable, &ulExtractableLen);
-    if (res != CKR_OK) {
-        return res;
-    }
-    if (bbExtractable) {
-        return CKR_ATTRIBUTE_SENSITIVE;
-    }
+    try {
+        if (propExtractable && propSensitive) {
+            Scoped<RsaPrivateKeyStruct> key(new RsaPrivateKeyStruct);
+            CK_RV res = this->GetKeyStruct(key.get());
+            if (res != CKR_OK) {
+                return res;
+            }
 
-    Scoped<RsaPrivateKeyStruct> key(new RsaPrivateKeyStruct);
-    res = this->GetKeyStruct(key.get());
-    if (res != CKR_OK) {
-        return res;
+            return this->GetBytes(pValue, pulValueLen, &key->dq);
+        }
     }
-
-    return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)key->qi.c_str(), key->dq.length());
+    CATCH_EXCEPTION
 }
 
 DECLARE_GET_ATTRIBUTE(RsaPrivateKey::GetCoefficient)
 {
-    CK_BBOOL bbExtractable;
-    CK_ULONG ulExtractableLen = sizeof(CK_BBOOL);
-    CK_RV res = this->GetExtractable((CK_BYTE_PTR)&bbExtractable, &ulExtractableLen);
-    if (res != CKR_OK) {
-        return res;
-    }
-    if (bbExtractable) {
-        return CKR_ATTRIBUTE_SENSITIVE;
-    }
+    try {
+        if (propExtractable && propSensitive) {
+            Scoped<RsaPrivateKeyStruct> key(new RsaPrivateKeyStruct);
+            CK_RV res = this->GetKeyStruct(key.get());
+            if (res != CKR_OK) {
+                return res;
+            }
 
-    Scoped<RsaPrivateKeyStruct> key(new RsaPrivateKeyStruct);
-    res = this->GetKeyStruct(key.get());
-    if (res != CKR_OK) {
-        return res;
+            return this->GetBytes(pValue, pulValueLen, &key->qi);
+        }
     }
-
-    return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)key->qi.c_str(), key->qi.length());
+    CATCH_EXCEPTION
 }
 
 CK_RV RsaPrivateKey::GetKeyStruct(RsaPrivateKeyStruct* rsaKey)

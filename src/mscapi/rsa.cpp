@@ -39,7 +39,9 @@ Scoped<CryptoKeyPair> RsaKey::Generate(
             keyUsage |= NCRYPT_ALLOW_DECRYPT_FLAG;
         }
         key->SetNumber(NCRYPT_KEY_USAGE_PROPERTY, keyUsage);
+        
         // TODO: Extractable
+        key->SetNumber(NCRYPT_EXPORT_POLICY_PROPERTY, NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG, NCRYPT_PERSIST_FLAG);
 
         key->Finalize();
 
@@ -77,8 +79,32 @@ CK_RV RsaPrivateKey::GetKeyStruct(
         THROW_NT_EXCEPTION(status);
     }
 
+    // BCRYPT_RSAKEY_BLOB
     BCRYPT_RSAKEY_BLOB* header = (BCRYPT_RSAKEY_BLOB*)pbKey;
-    BYTE* modulus = (BYTE*)(pbKey + sizeof(BCRYPT_RSAKEY_BLOB) + header->cbPublicExp);
+    // PublicExponent[cbPublicExp]  // Big-endian.
+    PBYTE pbPublicExponent = (PBYTE)(pbKey + sizeof(BCRYPT_RSAKEY_BLOB));
+    rsaKey->e = std::string((PCHAR)pbPublicExponent, header->cbPublicExp);
+    // Modulus[cbModulus]           // Big-endian.
+    PBYTE pbModulus = (PBYTE)(pbPublicExponent + header->cbPublicExp);
+    rsaKey->n = std::string((PCHAR)pbModulus, header->cbModulus);
+    // Prime1[cbPrime1]             // Big-endian.
+    PBYTE pbPrime1 = (PBYTE)(pbModulus + header->cbModulus);
+    rsaKey->p = std::string((PCHAR)pbPrime1, header->cbPrime1);
+    // Prime2[cbPrime2]             // Big-endian.
+    PBYTE pbPrime2 = (PBYTE)(pbPrime1 + header->cbPrime1);
+    rsaKey->q = std::string((PCHAR)pbPrime2, header->cbPrime2);
+    // Exponent1[cbPrime1]          // Big-endian.
+    PBYTE pbExponent1 = (PBYTE)(pbPrime2 + header->cbPrime2);
+    rsaKey->dp = std::string((PCHAR)pbExponent1, header->cbPrime1);
+    // Exponent2[cbPrime2]          // Big-endian.
+    PBYTE pbExponent2 = (PBYTE)(pbExponent1 + header->cbPrime1);
+    rsaKey->dq = std::string((PCHAR)pbExponent2, header->cbPrime2);
+    // Coefficient[cbPrime1]        // Big-endian.
+    PBYTE pbCoefficient = (PBYTE)(pbExponent2 + header->cbPrime2);
+    rsaKey->qi = std::string((PCHAR)pbCoefficient, header->cbPrime1);
+    // PrivateExponent[cbModulus]   // Big-endian.
+    PBYTE pbPrivateExponent = (PBYTE)(pbCoefficient + header->cbPrime1);
+    rsaKey->d = std::string((PCHAR)pbPrivateExponent, header->cbModulus);
 
     free(pbKey);
 

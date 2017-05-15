@@ -505,3 +505,32 @@ CK_RV core::Session::GenerateRandom(
     }
     CATCH_EXCEPTION;
 }
+
+CK_RV Session::DeriveKey
+(
+    CK_MECHANISM_PTR     pMechanism,        /* key derivation mechanism */
+    CK_OBJECT_HANDLE     hBaseKey,          /* base key */
+    CK_ATTRIBUTE_PTR     pTemplate,         /* new key template */
+    CK_ULONG             ulAttributeCount,  /* template length */
+    CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
+)
+{
+    try {
+        if (pMechanism == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
+        }
+        CheckMechanismType(pMechanism->mechanism, CKF_DERIVE);
+        if (hBaseKey == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "hBaseKey is NULL");
+        }
+        if (pTemplate == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pTemplate is NULL");
+        }
+        if (phKey == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "phKey is NULL");
+        }
+
+        return CKR_FUNCTION_NOT_SUPPORTED;
+    }
+    CATCH_EXCEPTION;
+}

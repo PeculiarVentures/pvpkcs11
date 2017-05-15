@@ -159,3 +159,34 @@ void EcPublicKey::GetKeyStruct()
     }
     CATCH_EXCEPTION;
 }
+
+Scoped<core::Object> EcKey::DeriveKey(
+    CK_MECHANISM_PTR        pMechanism,
+    Scoped<core::Object>    baseKey,
+    Scoped<core::Template>  tmpl
+)
+{
+    try {
+        EcPrivateKey* ecPrivateKey = dynamic_cast<EcPrivateKey*>(baseKey.get());
+        if (!ecPrivateKey) {
+            THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "baseKey is not EC key");
+        }
+
+        if (pMechanism == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
+        }
+        if (pMechanism->mechanism != CKM_ECDH1_DERIVE) {
+            THROW_PKCS11_EXCEPTION(CKR_MECHANISM_INVALID, "pMechanism->mechanism is not CKM_ECDH1_DERIVE");
+        }
+        if (pMechanism->pParameter == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_MECHANISM_PARAM_INVALID, "pMechanism->pParameter is NULL");
+        }
+        CK_ECDH1_DERIVE_PARAMS_PTR params = static_cast<CK_ECDH1_DERIVE_PARAMS_PTR>(pMechanism->pParameter);
+        if (!params) {
+            THROW_PKCS11_EXCEPTION(CKR_MECHANISM_PARAM_INVALID, "pMechanism->pParameter is not CK_ECDH1_DERIVE_PARAMS");
+        }
+
+        THROW_PKCS11_FUNCTION_NOT_SUPPORTED();
+    }
+    CATCH_EXCEPTION
+}

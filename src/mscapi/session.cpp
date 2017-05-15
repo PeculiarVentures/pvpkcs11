@@ -398,3 +398,48 @@ CK_RV Session::DecryptInit
     }
     CATCH_EXCEPTION;
 }
+
+CK_RV Session::DeriveKey
+(
+    CK_MECHANISM_PTR     pMechanism,        /* key derivation mechanism */
+    CK_OBJECT_HANDLE     hBaseKey,          /* base key */
+    CK_ATTRIBUTE_PTR     pTemplate,         /* new key template */
+    CK_ULONG             ulAttributeCount,  /* template length */
+    CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
+)
+{
+    try {
+        core::Session::DeriveKey(
+            pMechanism,
+            hBaseKey,
+            pTemplate,
+            ulAttributeCount,
+            phKey
+        );
+
+        auto baseKey = GetObject(hBaseKey);
+        Scoped<core::Template> tmpl(new core::Template(pTemplate, ulAttributeCount));
+
+        Scoped<core::Object> derivedKey;
+        switch (pMechanism->mechanism) {
+        case CKM_ECDH1_DERIVE: {
+            derivedKey = EcKey::DeriveKey(
+                pMechanism,
+                baseKey,
+                tmpl
+            );
+        }
+        default:
+            THROW_PKCS11_MECHANISM_INVALID();
+        }
+
+        // add key to session's objects
+        objects.add(baseKey);
+
+        // set handle for key
+        *phKey= derivedKey->handle;
+
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}

@@ -1189,7 +1189,17 @@ CK_DEFINE_FUNCTION(CK_RV, C_DeriveKey)
     CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
     )
 {
-    return CKR_FUNCTION_NOT_SUPPORTED;
+    try {
+        return pkcs11.DeriveKey(
+            hSession,
+            pMechanism,
+            hBaseKey,
+            pTemplate,
+            ulAttributeCount,
+            phKey
+        );
+    }
+    CATCH(__FUNCTION__);
 }
 
 
