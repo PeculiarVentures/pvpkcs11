@@ -17,7 +17,7 @@ Scoped<CryptoKeyPair> EcKey::Generate(
         }
 
         NTSTATUS status;
-        auto point = publicTemplate->GetBytes(CKA_EC_PARAMS, true, "");
+        Scoped<std::string> point = publicTemplate->GetBytes(CKA_EC_PARAMS, true, "");
 
         Scoped<EcPrivateKey> privateKey(new EcPrivateKey());
         privateKey->GenerateValues(privateTemplate->Get(), privateTemplate->Size());
@@ -26,23 +26,18 @@ Scoped<CryptoKeyPair> EcKey::Generate(
         publicKey->GenerateValues(publicTemplate->Get(), publicTemplate->Size());
 
         LPCWSTR pszAlgorithm;
-
-#define POINT_COMPARE(curve) memcmp(core::EC_##curve##_BLOB, point->data(), strlen(core::EC_##curve##_BLOB)) == 0
-
-        if (POINT_COMPARE(P256)) {
+        if (strcmp(core::EC_P256_BLOB, point->c_str()) == 0) {
             pszAlgorithm = NCRYPT_ECDSA_P256_ALGORITHM;
         }
-        else if (POINT_COMPARE(P384)) {
+        else if (strcmp(core::EC_P384_BLOB, point->c_str()) == 0) {
             pszAlgorithm = NCRYPT_ECDSA_P384_ALGORITHM;
         }
-        else if (POINT_COMPARE(P521)) {
+        else if (strcmp(core::EC_P384_BLOB, point->c_str()) == 0) {
             pszAlgorithm = NCRYPT_ECDSA_P521_ALGORITHM;
         }
         else {
             THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, "Wrong POINT for EC key");
         }
-
-#undef POINT_COMPARE
 
         // NCRYPT
         Scoped<ncrypt::Provider> provider(new ncrypt::Provider());
@@ -286,7 +281,6 @@ CK_RV EcPublicKey::CreateValues
 )
 {
     try {
-        core::Template tmpl(pTemplate, ulCount);
         core::EcPublicKey::CreateValues(pTemplate, ulCount);
 
         NTSTATUS status;
@@ -296,39 +290,24 @@ CK_RV EcPublicKey::CreateValues
         // Named curve
         auto params = ItemByType(CKA_EC_PARAMS)->To<core::AttributeBytes>()->ToValue();
 
-        ULONG dwMagic;
-        ULONG keySize;
         if (!memcmp(core::EC_P256_BLOB, &params[0], strlen(core::EC_P256_BLOB))) {
-            dwMagic = BCRYPT_ECDSA_PUBLIC_P256_MAGIC;
-            keySize = 32;
+            header->dwMagic = BCRYPT_ECDSA_PRIVATE_P256_MAGIC;
         }
         else if (!memcmp(core::EC_P384_BLOB, &params[0], strlen(core::EC_P384_BLOB))) {
-            dwMagic = BCRYPT_ECDSA_PUBLIC_P384_MAGIC;
-            keySize = 48;
+            header->dwMagic = BCRYPT_ECDSA_PRIVATE_P384_MAGIC;
         }
         else if (!memcmp(core::EC_P521_BLOB, &params[0], strlen(core::EC_P521_BLOB))) {
-            dwMagic = BCRYPT_ECDSA_PUBLIC_P521_MAGIC;
-            keySize = 66;
+            header->dwMagic = BCRYPT_ECDSA_PRIVATE_P521_MAGIC;
         }
         else {
             THROW_PKCS11_EXCEPTION(CKR_ATTRIBUTE_VALUE_INVALID, "Wrong NamedCorve value");
         }
 
-        auto tmplPoint = tmpl.GetBytes(CKA_EC_POINT, true, "");
-        auto decodedPoint = core::EcUtils::DecodePoint(*tmplPoint.get(), keySize);
-
-        buffer.resize(sizeof(BCRYPT_ECCKEY_BLOB));
+        buffer.resize(sizeof(BCRYPT_ECCKEY_BLOB) + );
         BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)&buffer[0];
-        header->dwMagic = dwMagic;
-        header->cbKey = keySize;
-        buffer.insert(buffer.end(), decodedPoint->X.begin(), decodedPoint->X.end());
-        buffer.insert(buffer.end(), decodedPoint->Y.begin(), decodedPoint->Y.end());
 
-        ncrypt::Provider provider;
-        provider.Open(NULL, 0);
-
-        auto key = provider.ImportKey(BCRYPT_ECCPUBLIC_BLOB, buffer.data(), buffer.size(), 0);
-        Assign(key);
+        core::Template tmpl(pTemplate, ulCount);
+        BCRYPT_ECCKEY_BLOB blob;
 
     }
     CATCH_EXCEPTION

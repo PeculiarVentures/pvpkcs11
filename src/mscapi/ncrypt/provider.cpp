@@ -87,3 +87,21 @@ Scoped<Key> Provider::GenerateKeyPair(
 
     return Scoped<Key>(new Key(hKey));
 }
+
+Scoped<Key> Provider::ImportKey(
+    _In_        LPCWSTR             pszBlobType,
+    _In_reads_bytes_(cbData) PBYTE  pbData,
+    _In_        DWORD               cbData,
+    _In_        DWORD               dwFlags
+)
+{
+    try {
+        NCRYPT_KEY_HANDLE hKey;
+        NTSTATUS status = NCryptImportKey(handle, NULL, pszBlobType, NULL, &hKey, pbData, cbData, dwFlags);
+        if (status) {
+            THROW_NT_EXCEPTION(status);
+        }
+        return Scoped<Key>(new Key(hKey));
+    }
+    CATCH_EXCEPTION
+}

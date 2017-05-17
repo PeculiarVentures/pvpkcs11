@@ -22,4 +22,38 @@ namespace core {
         EcPublicKey();
     };
 
+    struct EcPoint {
+        std::vector<CK_BYTE> X;
+        std::vector<CK_BYTE> Y;
+    };
+
+    class EcUtils {
+    public:
+        static Scoped<EcPoint> DecodePoint(
+            std::vector<CK_BYTE>    data,
+            CK_ULONG                size
+        );
+
+    protected:
+        static std::vector<CK_BYTE> EcUtils::getData(
+            std::vector<CK_BYTE>    data
+        );
+
+        static std::vector<CK_BYTE> EncodePoint(
+            std::vector<CK_BYTE>    x,
+            std::vector<CK_BYTE>    y,
+            CK_ULONG                size
+        );
+
+        static std::vector<CK_BYTE> PadZeroes(
+            std::vector<CK_BYTE>    buffer,
+            CK_ULONG                size
+        );
+
+        static std::vector<CK_BYTE> EncodeAsn1Length(
+            CK_ULONG                length
+        );
+
+    };
+
 }

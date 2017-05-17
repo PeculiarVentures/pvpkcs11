@@ -195,6 +195,12 @@ namespace core {
             CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
         );
 
+        virtual Scoped<Object> CreateObject
+        (
+            CK_ATTRIBUTE_PTR        pTemplate,   /* the object's template */
+            CK_ULONG                ulCount      /* attributes in template */
+        ) = 0;
+
         void CheckMechanismType(CK_MECHANISM_TYPE mechanism, CK_ULONG usage);
         virtual Scoped<Object> GetObject(CK_OBJECT_HANDLE hObject);
 

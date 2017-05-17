@@ -207,8 +207,3 @@ CK_RV Slot::CloseAllSessions()
 
     return CKR_OK;
 }
-
-Scoped<Session> Slot::CreateSession()
-{
-    return Scoped<Session>(new Session());
-}

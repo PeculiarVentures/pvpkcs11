@@ -396,7 +396,15 @@ CK_DEFINE_FUNCTION(CK_RV, C_CreateObject)
     CK_OBJECT_HANDLE_PTR phObject  /* gets new object's handle. */
     )
 {
-    return CKR_FUNCTION_NOT_SUPPORTED;
+    try {
+        return pkcs11.CreateObject(
+            hSession,
+            pTemplate,
+            ulCount,
+            phObject
+        );
+    }
+    CATCH(__FUNCTION__)
 }
 
 

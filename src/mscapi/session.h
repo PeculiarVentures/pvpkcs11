@@ -82,6 +82,12 @@ namespace mscapi {
             CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
         );
 
+        Scoped<core::Object> CreateObject
+        (
+            CK_ATTRIBUTE_PTR        pTemplate,   /* the object's template */
+            CK_ULONG                ulCount      /* attributes in template */
+        );
+
 	protected:
 		void LoadMyStore();
 	};

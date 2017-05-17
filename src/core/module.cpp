@@ -854,3 +854,42 @@ CK_RV Module::DeriveKey
     }
     CATCH_EXCEPTION;
 }
+
+CK_RV Module::CreateObject
+(
+    CK_SESSION_HANDLE       hSession,    /* the session's handle */
+    CK_ATTRIBUTE_PTR        pTemplate,   /* the object's template */
+    CK_ULONG                ulCount,     /* attributes in template */
+    CK_OBJECT_HANDLE_PTR    phObject     /* gets new object's handle. */
+)
+{
+    try {
+        CHECK_INITIALIZED();
+
+        auto session = getSession(hSession);
+
+        if (pTemplate == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pTemplate is NULL");
+        }
+
+        if (phObject == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "phObject is NULL");
+        }
+
+        auto object = session->CreateObject(
+            pTemplate,
+            ulCount
+        );
+
+        if (!object) {
+            THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Object wasn't created");
+        }
+
+        session->objects.add(object);
+
+        *phObject = object->handle;
+
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}

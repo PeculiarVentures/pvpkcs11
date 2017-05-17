@@ -437,9 +437,39 @@ CK_RV Session::DeriveKey
         objects.add(baseKey);
 
         // set handle for key
-        *phKey= derivedKey->handle;
+        *phKey = derivedKey->handle;
 
         return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<core::Object> Session::CreateObject
+(
+    CK_ATTRIBUTE_PTR        pTemplate,   /* the object's template */
+    CK_ULONG                ulCount      /* attributes in template */
+)
+{
+    try {
+        core::Template tmpl(pTemplate, ulCount);
+        Scoped<core::Object> object;
+        switch (tmpl.GetNumber(CKA_CLASS, true)) {
+        case CKO_PUBLIC_KEY:
+            switch (tmpl.GetNumber(CKA_KEY_TYPE, true)) {
+            case CKK_EC:
+                object = Scoped<EcPublicKey>(new EcPublicKey());
+                break;
+            default:
+                THROW_PKCS11_TEMPLATE_INCOMPLETE();
+            }
+            break;
+        default:
+            THROW_PKCS11_TEMPLATE_INCOMPLETE();
+        }
+
+        object->CreateValues(pTemplate, ulCount);
+
+        return object;
     }
     CATCH_EXCEPTION
 }

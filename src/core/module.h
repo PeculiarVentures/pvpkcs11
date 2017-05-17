@@ -349,6 +349,14 @@ namespace core {
             CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
         );
 
+        CK_RV CreateObject
+        (
+            CK_SESSION_HANDLE hSession,    /* the session's handle */
+            CK_ATTRIBUTE_PTR  pTemplate,   /* the object's template */
+            CK_ULONG          ulCount,     /* attributes in template */
+            CK_OBJECT_HANDLE_PTR phObject  /* gets new object's handle. */
+        );
+
     protected:
         Scoped<Slot> getSlotBySession(CK_SESSION_HANDLE hSession);
         Scoped<Session> getSession(CK_SESSION_HANDLE hSession);
