@@ -2,101 +2,273 @@
 
 using namespace core;
 
-Object::Object()
+Object::Object() :
+    Attributes()
 {
+    Add(AttributeNumber::New(CKA_CLASS, 0, PVF_1));
+
+    handle = reinterpret_cast<CK_OBJECT_HANDLE>(this);
 }
 
 Object::~Object()
 {
 }
 
-CK_RV Object::GetAttributeValue
+CK_RV Object::GetValues
 (
-    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes; gets values */
+    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
     CK_ULONG          ulCount     /* attributes in template */
 )
 {
-    CHECK_ARGUMENT_NULL(pTemplate);
+    try {
+        for (size_t i = 0; i < ulCount; i++) {
+            CK_ATTRIBUTE_PTR pAttribute = &pTemplate[i];
 
-    CK_RV res = CKR_OK;
+            // Check for SENSITIVE
+            auto attribute = ItemByType(pAttribute->type);
+            if (attribute->flags & PVF_7 &&
+                ItemByType(CKA_SENSITIVE)->To<AttributeBool>()->ToValue() &&
+                !ItemByType(CKA_EXTRACTABLE)->To<AttributeBool>()->ToValue()
+                ) {
+                THROW_PKCS11_ATTRIBUTE_SENSITIVE();
+            }
 
-    for (size_t i = 0; i < ulCount && res == CKR_OK; i++) {
-        CK_ATTRIBUTE_PTR attr = &pTemplate[i];
+            GetValue(pAttribute);
+            ItemByType(pAttribute->type)->GetValue(pAttribute->pValue, &pAttribute->ulValueLen);
+        }
 
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV Object::GetValue
+(
+    CK_ATTRIBUTE_PTR  attr
+)
+{
+    try {
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV Object::SetValues
+(
+    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+    CK_ULONG          ulCount     /* attributes in template */
+)
+{
+    try {
+        // Check data
+        for (size_t i = 0; i < ulCount; i++) {
+            CK_ATTRIBUTE_PTR pAttribute = &pTemplate[i];
+            // Check for EDITABLE
+            auto attribute = ItemByType(pAttribute->type);
+            if (!(attribute->flags & PVF_8)) {
+                THROW_PKCS11_ATTRIBUTE_READ_ONLY();
+            }
+        }
+
+        for (size_t i = 0; i < ulCount; i++) {
+            CK_ATTRIBUTE_PTR attr = &pTemplate[i];
+            SetValue(attr);
+        }
+
+        // Set data
+        for (size_t i = 0; i < ulCount; i++) {
+            CK_ATTRIBUTE_PTR attr = &pTemplate[i];
+            ItemByType(attr->type)->SetValue(attr->pValue, attr->ulValueLen);
+        }
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV Object::SetValue
+(
+    CK_ATTRIBUTE_PTR  attr
+)
+{
+    try {
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV Object::CreateValues
+(
+    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+    CK_ULONG          ulCount     /* attributes in template */
+)
+{
+    try {
+        Template tmpl(pTemplate, ulCount);
+
+        for (CK_ULONG i = 0; i < Size(); i++) {
+            auto attribute = ItemByIndex(i);
+            if (attribute->flags & PVF_1 &&
+                !tmpl.HasAttribute(attribute->type)) {
+                THROW_PKCS11_TEMPLATE_INCOMPLETE();
+            }
+            if (attribute->flags & PVF_2 &&
+                tmpl.HasAttribute(attribute->type)) {
+                THROW_PKCS11_TEMPLATE_INCONSISTENT();
+            }
+        }
+
+        for (size_t i = 0; i < ulCount; i++) {
+            CK_ATTRIBUTE_PTR attr = &pTemplate[i];
+            CreateValue(attr);
+        }
+
+        // Set values
+        for (size_t i = 0; i < ulCount; i++) {
+            CK_ATTRIBUTE_PTR attr = &pTemplate[i];
+            ItemByType(attr->type)->SetValue(attr->pValue, attr->ulValueLen);
+        }
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV Object::CreateValue
+(
+    CK_ATTRIBUTE_PTR  attr
+)
+{
+    try {
         switch (attr->type) {
-        case CKA_CLASS:
-            res = GetClass((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
+        case CKA_CLASS: {
+            // Must be equal to initialized value
+            AttributeNumber attrClass(0, 0, 0);
+            attrClass.SetValue(attr->pValue, attr->ulValueLen);
+            if (ItemByType(CKA_CLASS)->To<AttributeNumber>()->ToValue() != attrClass.ToValue()) {
+                THROW_PKCS11_ATTRIBUTE_VALUE_INVALID();
+            }
             break;
-        default:
-            res = CKR_ATTRIBUTE_TYPE_INVALID;
+        }
         }
     }
-
-    return res;
+    CATCH_EXCEPTION
 }
 
-CK_RV Object::SetAttributeValue
+CK_RV Object::GenerateValues
 (
-    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes and values */
+    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
     CK_ULONG          ulCount     /* attributes in template */
 )
 {
-    CHECK_ARGUMENT_NULL(pTemplate);
-    if (ulCount < 1) {
-        return CKR_ARGUMENTS_BAD;
-    }
+    try {
+        Template tmpl(pTemplate, ulCount);
 
-    return CKR_FUNCTION_NOT_SUPPORTED;
-}
-
-CK_RV Object::GetBool(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, CK_BBOOL bValue)
-{
-    CK_ULONG valueLen = 1 * sizeof(CK_BBOOL);
-    if (pValue) {
-        if (valueLen > *pulValueLen) {
-            return CKR_BUFFER_TOO_SMALL;
+        for (CK_ULONG i = 0; i < Size(); i++) {
+            auto attribute = ItemByIndex(i);
+            if (attribute->flags & PVF_3 &&
+                !tmpl.HasAttribute(attribute->type)) {
+                THROW_PKCS11_TEMPLATE_INCOMPLETE();
+            }
+            if (attribute->flags & PVF_4 &&
+                tmpl.HasAttribute(attribute->type)) {
+                THROW_PKCS11_TEMPLATE_INCONSISTENT();
+            }
         }
-        memcpy(pValue, &bValue, valueLen);
-    }
-    *pulValueLen = valueLen;
 
-    return CKR_OK;
-}
-
-CK_RV Object::GetNumber(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, CK_ULONG ulValue)
-{
-    CK_ULONG valueLen = 1 * sizeof(CK_ULONG);
-    if (pValue) {
-        if (valueLen > *pulValueLen) {
-            return CKR_BUFFER_TOO_SMALL;
+        for (size_t i = 0; i < ulCount; i++) {
+            CK_ATTRIBUTE_PTR attr = &pTemplate[i];
+            GenerateValue(attr);
         }
-        memcpy(pValue, &ulValue, valueLen);
-    }
-    *pulValueLen = valueLen;
 
-    return CKR_OK;
-}
-
-CK_RV Object::GetUtf8String(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, CK_UTF8CHAR_PTR pData, CK_ULONG ulDataLen)
-{
-    return this->GetBytes(pValue, pulValueLen, pData, ulDataLen);
-}
-
-CK_RV Object::GetBytes(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, CK_BYTE_PTR pData, CK_ULONG ulDataLen)
-{
-    CK_ULONG valueLen = ulDataLen * sizeof(CK_BYTE);
-    if (pValue) {
-        if (valueLen > *pulValueLen) {
-            return CKR_BUFFER_TOO_SMALL;
+        // Set values
+        for (size_t i = 0; i < ulCount; i++) {
+            CK_ATTRIBUTE_PTR attr = &pTemplate[i];
+            ItemByType(attr->type)->SetValue(attr->pValue, attr->ulValueLen);
         }
-        memcpy(pValue, pData, ulDataLen);
+        return CKR_OK;
     }
-    *pulValueLen = valueLen;
-
-    return CKR_OK;
+    CATCH_EXCEPTION
 }
 
-CK_RV Object::GetBytes(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, std::string* strBuffer)
+CK_RV Object::GenerateValue
+(
+    CK_ATTRIBUTE_PTR  attr
+)
 {
-    return GetBytes(pValue, pulValueLen, (BYTE*)strBuffer->c_str(), strBuffer->length());
+    try {
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV Object::UnwrapValues(
+    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+    CK_ULONG          ulCount     /* attributes in template */
+)
+{
+    try {
+        Template tmpl(pTemplate, ulCount);
+
+        for (CK_ULONG i = 0; i < Size(); i++) {
+            auto attribute = ItemByIndex(i);
+            if (attribute->flags & PVF_5 &&
+                !tmpl.HasAttribute(attribute->type)) {
+                THROW_PKCS11_TEMPLATE_INCOMPLETE();
+            }
+            if (attribute->flags & PVF_6 &&
+                tmpl.HasAttribute(attribute->type)) {
+                THROW_PKCS11_TEMPLATE_INCONSISTENT();
+            }
+        }
+
+        for (size_t i = 0; i < ulCount; i++) {
+            CK_ATTRIBUTE_PTR attr = &pTemplate[i];
+            UnwrapValue(attr);
+        }
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV Object::UnwrapValue(
+    CK_ATTRIBUTE_PTR  attr
+)
+{
+    try {
+
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV Object::CopyValues
+(
+    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+    CK_ULONG          ulCount     /* attributes in template */
+)
+{
+    try {
+        // Check data
+        for (size_t i = 0; i < ulCount; i++) {
+            CK_ATTRIBUTE_PTR pAttribute = &pTemplate[i];
+            // Check for EDITABLE
+            auto attribute = ItemByType(pAttribute->type);
+            if (!(attribute->flags & PVF_8)) {
+                THROW_PKCS11_TEMPLATE_INCOMPLETE();
+            }
+        }
+        // Set data
+        THROW_EXCEPTION("Function is not implemented");
+        for (size_t i = 0; i < ulCount; i++) {
+            CK_ATTRIBUTE_PTR attr = &pTemplate[i];
+            // ...  
+        }
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV Object::CopyValue
+(
+    CK_ATTRIBUTE_PTR  attr
+)
+{
+    try {
+    }
+    CATCH_EXCEPTION
 }

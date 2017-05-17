@@ -3,48 +3,82 @@
 #include "../stdafx.h"
 #include "excep.h"
 #include "template.h"
+#include "attribute.h"
 
 namespace core {
 
-    /**
-     * Get function for C_GetAttributeValue
-     * template:
-     * CK_RV <name>(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen)
-     * pValue - value to be filled
-     * pulValueLen - size of returned data
-     */
-#define DECLARE_GET_ATTRIBUTE(name)						\
-	CK_RV name(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen)
-
-    class Object
+    class Object : public Attributes
     {
     public:
 
-        CK_OBJECT_HANDLE handle;
+        CK_OBJECT_HANDLE    handle;
 
         Object();
         ~Object();
 
-        virtual CK_RV GetAttributeValue
+        virtual CK_RV GetValues
         (
-            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes; gets values */
+            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
             CK_ULONG          ulCount     /* attributes in template */
         );
 
-        virtual CK_RV SetAttributeValue
+        virtual CK_RV SetValues
         (
-            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes and values */
+            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
             CK_ULONG          ulCount     /* attributes in template */
         );
 
-        virtual DECLARE_GET_ATTRIBUTE(GetClass) = NULL;
+        virtual CK_RV CreateValues(
+            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+            CK_ULONG          ulCount     /* attributes in template */
+        );
+
+        virtual CK_RV GenerateValues(
+            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+            CK_ULONG          ulCount     /* attributes in template */
+        );
+
+        virtual CK_RV CopyValues(
+            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+            CK_ULONG          ulCount     /* attributes in template */
+        );
+
+        virtual CK_RV UnwrapValues(
+            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+            CK_ULONG          ulCount     /* attributes in template */
+        );
 
     protected:
-        CK_RV GetBool(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, CK_BBOOL bValue);
-        CK_RV GetNumber(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, CK_ULONG ulValue);
-        CK_RV GetUtf8String(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, CK_UTF8CHAR_PTR pData, CK_ULONG ulDataLen);
-        CK_RV GetBytes(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, CK_BYTE_PTR pData, CK_ULONG ulDataLen);
-        CK_RV GetBytes(CK_BYTE_PTR pValue, CK_ULONG_PTR pulValueLen, std::string* strBuffer);
+        virtual CK_RV CreateValue
+        (
+            CK_ATTRIBUTE_PTR  attr
+        );
+
+        virtual CK_RV GenerateValue
+        (
+            CK_ATTRIBUTE_PTR  attr
+        );
+
+        virtual CK_RV GetValue
+        (
+            CK_ATTRIBUTE_PTR  attr
+        );
+
+        virtual CK_RV SetValue
+        (
+            CK_ATTRIBUTE_PTR  attr
+        );
+
+        virtual CK_RV CopyValue
+        (
+            CK_ATTRIBUTE_PTR  attr
+        );
+
+        virtual CK_RV UnwrapValue
+        (
+            CK_ATTRIBUTE_PTR  attr
+        );
+
     };
 
 }

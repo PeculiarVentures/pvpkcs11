@@ -4,95 +4,15 @@ using namespace core;
 
 Certificate::Certificate()
 {
-}
+    try {
+        ItemByType(CKA_CLASS)->To<AttributeNumber>()->Set(CKO_CERTIFICATE);
 
-
-Certificate::~Certificate()
-{
-}
-
-CK_RV Certificate::GetAttributeValue
-(
-    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes; gets values */
-    CK_ULONG          ulCount     /* attributes in template */
-)
-{
-    CHECK_ARGUMENT_NULL(pTemplate);
-    CK_RV res = CKR_OK;
-
-    for (size_t i = 0; i < ulCount && res == CKR_OK; i++) {
-        CK_ATTRIBUTE_PTR attr = &pTemplate[i];
-
-        switch (attr->type) {
-        case CKA_CLASS:
-            res = GetClass((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-            break;
-        case CKA_CERTIFICATE_TYPE:
-            res = GetCertificateType((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-            break;
-        case CKA_TRUSTED:
-            res = GetTrusted((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-            break;
-        case CKA_CERTIFICATE_CATEGORY:
-            res = GetCertificateCategory((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-            break;
-        case CKA_CHECK_VALUE:
-            res = GetCheckValue((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-            break;
-        case CKA_START_DATE:
-            res = GetStartDate((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-            break;
-        case CKA_END_DATE:
-            res = GetEndDate((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-            break;
-        default:
-            res = Storage::GetAttributeValue(attr, 1);
-        }
+        Add(AttributeNumber::New(CKA_CERTIFICATE_TYPE, 0, PVF_1));
+        Add(AttributeBool::New(CKA_TRUSTED, 0, PVF_10));
+        Add(AttributeNumber::New(CKA_CERTIFICATE_CATEGORY, 0, 0));
+        Add(AttributeBytes::New(CKA_CHECK_VALUE, NULL, 0, 0));
+        Add(AttributeBytes::New(CKA_START_DATE, NULL, 0, 0));
+        Add(AttributeBytes::New(CKA_END_DATE, NULL, 0, 0));
     }
-
-    return res;
-}
-
-CK_RV Certificate::SetAttributeValue
-(
-    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes and values */
-    CK_ULONG          ulCount     /* attributes in template */
-)
-{
-    return Storage::SetAttributeValue(pTemplate, ulCount);
-}
-
-DECLARE_GET_ATTRIBUTE(Certificate::GetClass)
-{
-    return this->GetNumber(pValue, pulValueLen, CKO_CERTIFICATE);
-}
-
-DECLARE_GET_ATTRIBUTE(Certificate::GetCertificateType)
-{
-    return CKR_ATTRIBUTE_TYPE_INVALID;
-}
-
-DECLARE_GET_ATTRIBUTE(Certificate::GetTrusted)
-{
-    return this->GetBool(pValue, pulValueLen, CK_FALSE);
-}
-
-DECLARE_GET_ATTRIBUTE(Certificate::GetCertificateCategory)
-{
-    return this->GetNumber(pValue, pulValueLen, 0); // unspecified
-}
-
-DECLARE_GET_ATTRIBUTE(Certificate::GetCheckValue)
-{
-    return CKR_ATTRIBUTE_TYPE_INVALID;
-}
-
-DECLARE_GET_ATTRIBUTE(Certificate::GetStartDate)
-{
-    return CKR_ATTRIBUTE_TYPE_INVALID;
-}
-
-DECLARE_GET_ATTRIBUTE(Certificate::GetEndDate)
-{
-    return CKR_ATTRIBUTE_TYPE_INVALID;
+    CATCH_EXCEPTION;
 }

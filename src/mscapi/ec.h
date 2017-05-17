@@ -22,22 +22,31 @@ namespace mscapi {
 
     class EcPrivateKey : public core::EcPrivateKey, public CryptoKey {
     public:
-        EcPrivateKey(
-            Scoped<ncrypt::Key> key
-        ) : core::EcPrivateKey(), CryptoKey(key)
+        EcPrivateKey() : 
+            core::EcPrivateKey(), 
+            CryptoKey()
         {}
 
-        void GetKeyStruct();
+    protected:
+        void FillKeyStruct();
+
+        CK_RV GetValue(
+            CK_ATTRIBUTE_PTR attr
+        );
     };
 
     class EcPublicKey : public core::EcPublicKey, public CryptoKey {
     public:
         EcPublicKey(
-            Scoped<ncrypt::Key> key
-        ) : core::EcPublicKey(), CryptoKey(key)
+        ) : core::EcPublicKey(), CryptoKey()
         {}
 
-        void GetKeyStruct();
+    protected:
+        void FillKeyStruct();
+        
+        CK_RV GetValue(
+            CK_ATTRIBUTE_PTR attr
+        );
     };
 
 }

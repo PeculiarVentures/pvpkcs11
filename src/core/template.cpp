@@ -4,16 +4,15 @@
 using namespace core;
 
 Template::Template(
-    CK_ATTRIBUTE* pTemplate,
+    CK_ATTRIBUTE_PTR pTemplate,
     CK_ULONG      ulTemplateLen
 ) :
     pTemplate(pTemplate),
     ulTemplateLen(ulTemplateLen)
 {
-
 }
 
-CK_ULONG Template::length()
+CK_ULONG Template::Size()
 {
     return ulTemplateLen;
 }
@@ -112,4 +111,16 @@ Scoped<std::string> Template::GetBytes(CK_ULONG ulType, CK_BBOOL bRequired, cons
         }
     }
     CATCH_EXCEPTION;
+}
+
+bool Template::HasAttribute(
+    CK_ATTRIBUTE_TYPE type
+)
+{
+    return GetAttributeByType(type) != NULL;
+}
+
+CK_ATTRIBUTE_PTR Template::Get()
+{
+    return pTemplate;
 }

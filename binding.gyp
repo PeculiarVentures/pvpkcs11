@@ -53,6 +53,7 @@
                 "src/core/session.cpp",
                 "src/core/slot.h",
                 "src/core/slot.cpp",
+                "src/core/attribute.cpp",
                 "src/core/template.cpp",
                 "src/core/objects/mechanism.cpp",
                 "src/core/objects/storage.cpp",

@@ -12,10 +12,12 @@ namespace mscapi {
 
 	class CryptoKey {
 	public:
-		CryptoKey(
+        CryptoKey() {};
+
+		void Assign(
 			Scoped<ncrypt::Key> key
 		);
-        CryptoKey(
+        void Assign(
             Scoped<bcrypt::Key> key
         );
 

@@ -4,122 +4,27 @@ using namespace core;
 
 // Private Key
 
-CK_RV EcPrivateKey::GetAttributeValue
-(
-    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes; gets values */
-    CK_ULONG          ulCount     /* attributes in template */
-)
+EcPrivateKey::EcPrivateKey() :
+    PrivateKey()
 {
     try {
-        CHECK_ARGUMENT_NULL(pTemplate);
-        CK_RV res = CKR_OK;
+        ItemByType(CKA_KEY_TYPE)->To<AttributeNumber>()->Set(CKK_EC);
+        ItemByType(CKA_KEY_GEN_MECHANISM)->To<AttributeNumber>()->Set(CKM_ECDSA_KEY_PAIR_GEN);
 
-        for (size_t i = 0; i < ulCount && res == CKR_OK; i++) {
-            CK_ATTRIBUTE_PTR attr = &pTemplate[i];
-
-            switch (attr->type) {
-            case CKA_ECDSA_PARAMS:
-                res = GetParams((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-                break;
-            case CKA_VALUE:
-                res = GetValue((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-                break;
-            default:
-                res = PrivateKey::GetAttributeValue(attr, 1);
-            }
-        }
-
-        return res;
-    }
-    CATCH_EXCEPTION
-}
-
-DECLARE_GET_ATTRIBUTE(EcPrivateKey::GetKeyType)
-{
-    try {
-        return GetNumber(pValue, pulValueLen, CKK_ECDSA);
-    }
-    CATCH_EXCEPTION
-}
-
-DECLARE_GET_ATTRIBUTE(EcPrivateKey::GetParams)
-{
-    try {
-        return GetBytes(pValue, pulValueLen, propParams.get());
-    }
-    CATCH_EXCEPTION
-}
-
-DECLARE_GET_ATTRIBUTE(EcPrivateKey::GetValue)
-{
-    try {
-        if (!propExtractable) {
-            return CKR_ATTRIBUTE_SENSITIVE;
-        }
-        
-        GetKeyStruct();
-
-        return GetBytes(pValue, pulValueLen, propValue.get());
+        Add(AttributeBytes::New(CKA_ECDSA_PARAMS, NULL, 0, PVF_1 | PVF_4 | PVF_6));
+        Add(AttributeBytes::New(CKA_VALUE, NULL, 0, PVF_1 | PVF_4 | PVF_6 | PVF_7));
     }
     CATCH_EXCEPTION
 }
 
 // Public Key
 
-CK_RV EcPublicKey::GetAttributeValue
-(
-    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes; gets values */
-    CK_ULONG          ulCount     /* attributes in template */
-)
+EcPublicKey::EcPublicKey() :
+    PublicKey()
 {
-    try {
-        CHECK_ARGUMENT_NULL(pTemplate);
-        CK_RV res = CKR_OK;
+    ItemByType(CKA_KEY_TYPE)->To<AttributeNumber>()->Set(CKK_EC);
+    ItemByType(CKA_KEY_GEN_MECHANISM)->To<AttributeNumber>()->Set(CKM_ECDSA_KEY_PAIR_GEN);
 
-        for (size_t i = 0; i < ulCount && res == CKR_OK; i++) {
-            CK_ATTRIBUTE_PTR attr = &pTemplate[i];
-
-            switch (attr->type) {
-            case CKA_ECDSA_PARAMS:
-                res = GetParams((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-                break;
-            case CKA_EC_POINT:
-                res = GetPoint((CK_BYTE_PTR)attr->pValue, &attr->ulValueLen);
-                break;
-            default:
-                res = PublicKey::GetAttributeValue(attr, 1);
-            }
-        }
-
-        return res;
-    }
-    CATCH_EXCEPTION
-}
-
-DECLARE_GET_ATTRIBUTE(EcPublicKey::GetParams)
-{
-    try {
-        GetKeyStruct();
-
-        return GetBytes(pValue, pulValueLen, propParams.get());
-    }
-    CATCH_EXCEPTION
-}
-
-DECLARE_GET_ATTRIBUTE(EcPublicKey::GetPoint)
-{
-    try {
-        GetKeyStruct();
-
-        return GetBytes(pValue, pulValueLen, propPoint.get());
-    }
-    CATCH_EXCEPTION
-}
-
-DECLARE_GET_ATTRIBUTE(EcPublicKey::GetKeyType)
-{
-    try {
-        return GetNumber(pValue, pulValueLen, CKK_ECDSA);
-    }
-    CATCH_EXCEPTION
+    Add(AttributeBytes::New(CKA_ECDSA_PARAMS, NULL, 0, PVF_1 | PVF_3));
+    Add(AttributeBytes::New(CKA_EC_POINT, NULL, 0, PVF_1 | PVF_4));
 }

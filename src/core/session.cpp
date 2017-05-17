@@ -145,13 +145,19 @@ CK_RV Session::GetAttributeValue
     CK_ULONG          ulCount     /* attributes in template */
 )
 {
-    Scoped<Object> object = this->GetObject(hObject);
+    try {
+        Scoped<Object> object = this->GetObject(hObject);
 
-    if (!object) {
-        return CKR_OBJECT_HANDLE_INVALID;
+        if (!object) {
+            return CKR_OBJECT_HANDLE_INVALID;
+        }
+        if (pTemplate != NULL_PTR) {
+            object->GetValues(pTemplate, ulCount);
+        }
+
+        return CKR_OK;
     }
-
-    return object->GetAttributeValue(pTemplate, ulCount);
+    CATCH_EXCEPTION
 }
 
 CK_RV Session::SetAttributeValue
@@ -161,13 +167,22 @@ CK_RV Session::SetAttributeValue
     CK_ULONG          ulCount     /* attributes in template */
 )
 {
-    Scoped<Object> object = this->GetObject(hObject);
+    try {
+        Scoped<Object> object = this->GetObject(hObject);
 
-    if (!object) {
-        return CKR_OBJECT_HANDLE_INVALID;
+        if (!object) {
+            return CKR_OBJECT_HANDLE_INVALID;
+        }
+
+        if (pTemplate == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pTemplate is NULL");
+        }
+
+        object->SetValues(pTemplate, ulCount);
+
+        return CKR_OK;
     }
-
-    return object->SetAttributeValue(pTemplate, ulCount);
+    CATCH_EXCEPTION
 }
 
 Scoped<Object> GetObject(CK_OBJECT_HANDLE hObject) {
@@ -226,7 +241,7 @@ CK_RV Session::FindObjects
                 CK_ATTRIBUTE_PTR findAttr = &this->find.pTemplate[i];
                 CK_BYTE_PTR pbAttrValue = NULL;
                 CK_ATTRIBUTE attr = { findAttr->type , NULL_PTR, 0 };
-                res = obj->GetAttributeValue(&attr, 1);
+                res = obj->GetValues(&attr, 1);
                 if (res != CKR_OK) {
                     break;
                 }
@@ -235,7 +250,7 @@ CK_RV Session::FindObjects
                 }
                 pbAttrValue = (CK_BYTE_PTR)malloc(attr.ulValueLen);
                 attr.pValue = pbAttrValue;
-                res = obj->GetAttributeValue(&attr, 1);
+                res = obj->GetValues(&attr, 1);
                 if (res != CKR_OK) {
                     free(pbAttrValue);
                     break;

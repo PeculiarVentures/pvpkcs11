@@ -18,6 +18,9 @@ Scoped<core::SecretKey> AesKey::Generate(
             THROW_PKCS11_MECHANISM_INVALID();
         }
 
+        Scoped<AesKey> aesKey(new AesKey());
+        aesKey->GenerateValues(tmpl->Get(), tmpl->Size());
+
         ULONG ulKeyLength = tmpl->GetNumber(CKA_VALUE_LEN, true, 0);
 
         switch (ulKeyLength) {
@@ -36,18 +39,12 @@ Scoped<core::SecretKey> AesKey::Generate(
 
         auto key = provider->GenerateKey(NULL, 0, (PUCHAR)secretKey->c_str(), secretKey->length(), 0);
 
-        Scoped<AesKey> aesKey(new AesKey(key));
-
         // Set properties
-        aesKey->propId = *tmpl->GetBytes(CKA_ID, false, "");
-        aesKey->propExtractable = tmpl->GetBool(CKA_EXTRACTABLE, false, false);
-        aesKey->propSign = tmpl->GetBool(CKA_SIGN, false, false);
-        aesKey->propVerify = tmpl->GetBool(CKA_VERIFY, false, false);
-        aesKey->propEncrypt = tmpl->GetBool(CKA_ENCRYPT, false, false);
-        aesKey->propDecrypt = tmpl->GetBool(CKA_DECRYPT, false, false);
 
-        aesKey->propValueLen = tmpl->GetNumber(CKA_VALUE_LEN, true, 0);
-        aesKey->propValue = secretKey;
+        aesKey->ItemByType(CKA_VALUE_LEN)->To<core::AttributeNumber>()->Set(ulKeyLength);
+        aesKey->ItemByType(CKA_VALUE)->SetValue((CK_BYTE_PTR)secretKey->c_str(), secretKey->length());
+
+        aesKey->Assign(key);
 
         return aesKey;
     }
@@ -84,10 +81,6 @@ CK_RV CryptoAesEncrypt::Init
         this->key = castKey->bkey->Duplicate();
 
         mechanism = pMechanism->mechanism;
-
-        // provider = Scoped<bcrypt::Algorithm>(new bcrypt::Algorithm());
-        // provider->Open(BCRYPT_AES_ALGORITHM, MS_PRIMITIVE_PROVIDER, 0);
-
 
         switch (mechanism) {
         case CKM_AES_ECB: {

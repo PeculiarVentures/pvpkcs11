@@ -19,25 +19,34 @@ namespace mscapi {
 
     class RsaPrivateKey : public core::RsaPrivateKey, public CryptoKey {
     public:
-        RsaPrivateKey(Scoped<ncrypt::Key> key) :
+        RsaPrivateKey() :
             core::RsaPrivateKey(),
-            CryptoKey(key)
+            CryptoKey()
         {};
 
-        CK_RV GetKeyStruct(core::RsaPrivateKeyStruct* rsaKey);
+    protected:
+        void FillKeyStruct();
+
+        CK_RV GetValue(
+            CK_ATTRIBUTE_PTR attr
+        );
     };
 
     class RsaPublicKey : public core::RsaPublicKey, public CryptoKey {
     public:
-        RsaPublicKey(Scoped<ncrypt::Key> key) :
+        RsaPublicKey() :
             core::RsaPublicKey(),
-            CryptoKey(key)
+            CryptoKey()
         {};
 
-        // RSA
-        DECLARE_GET_ATTRIBUTE(GetModulus);
-        DECLARE_GET_ATTRIBUTE(GetModulusBits);
-        DECLARE_GET_ATTRIBUTE(GetPublicExponent);
+
+    protected:
+        void FillKeyStruct();
+
+        CK_RV GetValue
+        (
+            CK_ATTRIBUTE_PTR  attr
+        );
     };
 
 }

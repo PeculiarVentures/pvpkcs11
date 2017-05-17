@@ -11,9 +11,9 @@ namespace mscapi {
 
     class AesKey : public core::AesKey, public CryptoKey {
     public:
-        AesKey(Scoped<bcrypt::Key> key) :
+        AesKey() :
             core::AesKey(),
-            CryptoKey(key)
+            CryptoKey()
         {}
 
         static Scoped<core::SecretKey> Generate(

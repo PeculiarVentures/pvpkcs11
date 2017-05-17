@@ -14,42 +14,12 @@ namespace core {
 
     class EcPrivateKey : public PrivateKey {
     public:
-        CK_RV GetAttributeValue
-        (
-            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes; gets values */
-            CK_ULONG          ulCount     /* attributes in template */
-        );
-
-        virtual DECLARE_GET_ATTRIBUTE(GetParams);
-        virtual DECLARE_GET_ATTRIBUTE(GetValue);
-
-        DECLARE_GET_ATTRIBUTE(GetKeyType);
-
-        virtual void GetKeyStruct() = 0;
-    
-    protected:
-        Scoped<std::string> propParams;
-        Scoped<std::string> propValue;
+        EcPrivateKey();
     };
 
     class EcPublicKey : public PublicKey {
     public:
-        CK_RV GetAttributeValue
-        (
-            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes; gets values */
-            CK_ULONG          ulCount     /* attributes in template */
-        );
-
-        DECLARE_GET_ATTRIBUTE(GetKeyType);
-
-        virtual DECLARE_GET_ATTRIBUTE(GetParams);
-        virtual DECLARE_GET_ATTRIBUTE(GetPoint);
-
-        virtual void GetKeyStruct() = 0;
-
-    protected:
-        Scoped<std::string> propParams;
-        Scoped<std::string> propPoint;
+        EcPublicKey();
     };
 
 }

@@ -77,7 +77,7 @@ namespace core {
         CK_TOKEN_INFO tokenInfo;
 
     protected:
-        virtual Scoped<Session> CreateSession() = 0;
+        virtual Scoped<Session> CreateSession();
         bool hasMechanism(CK_MECHANISM_TYPE type);
 
     };

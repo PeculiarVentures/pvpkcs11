@@ -9,8 +9,21 @@ Scoped<CryptoKeyPair> EcKey::Generate(
 )
 {
     try {
+        if (pMechanism == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
+        }
+        if (pMechanism->mechanism != CKM_EC_KEY_PAIR_GEN) {
+            THROW_PKCS11_MECHANISM_INVALID();
+        }
+
         NTSTATUS status;
         Scoped<std::string> point = publicTemplate->GetBytes(CKA_EC_PARAMS, true, "");
+
+        Scoped<EcPrivateKey> privateKey(new EcPrivateKey());
+        privateKey->GenerateValues(privateTemplate->Get(), privateTemplate->Size());
+
+        Scoped<EcPublicKey> publicKey(new EcPublicKey());
+        publicKey->GenerateValues(publicTemplate->Get(), publicTemplate->Size());
 
         LPCWSTR pszAlgorithm;
         if (strcmp(core::EC_P256_BLOB, point->c_str()) == 0) {
@@ -48,23 +61,15 @@ Scoped<CryptoKeyPair> EcKey::Generate(
 
         key->Finalize();
 
-        Scoped<core::PrivateKey> privateKey(new EcPrivateKey(key));
-        privateKey->propId = *privateTemplate->GetBytes(CKA_ID, false, "");
-        privateKey->propExtractable = privateTemplate->GetBool(CKA_EXTRACTABLE, false, false);
-        privateKey->propSign = privateTemplate->GetBool(CKA_SIGN, false, false);
-        privateKey->propDerive = privateTemplate->GetBool(CKA_DERIVE, false, false);
-
-        Scoped<core::PublicKey> publicKey(new EcPublicKey(key));
-        publicKey->propId = *publicTemplate->GetBytes(CKA_ID, false, "");
-        publicKey->propVerify = privateTemplate->GetBool(CKA_VERIFY, false, false);
-        publicKey->propDerive = privateTemplate->GetBool(CKA_DERIVE, false, false);
+        privateKey->Assign(key);
+        publicKey->Assign(key);
 
         return Scoped<CryptoKeyPair>(new CryptoKeyPair(privateKey, publicKey));
     }
     CATCH_EXCEPTION;
 }
 
-void EcPrivateKey::GetKeyStruct()
+void EcPrivateKey::FillKeyStruct()
 {
     try {
         DWORD dwKeyLen = 0;
@@ -82,35 +87,55 @@ void EcPrivateKey::GetKeyStruct()
         BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)pbKey;
         PCHAR pValue = (PCHAR)(pbKey + sizeof(BCRYPT_ECCKEY_BLOB) + (header->cbKey * 2));
 
-        // POINT
-        propValue = Scoped<std::string>(new std::string(""));
 
         // PARAM
         switch (header->dwMagic) {
         case BCRYPT_ECDH_PRIVATE_P256_MAGIC:
         case BCRYPT_ECDSA_PRIVATE_P256_MAGIC:
-            propParams = Scoped<std::string>(new std::string(core::EC_P256_BLOB));
+            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)&core::EC_P256_BLOB, strlen(core::EC_P256_BLOB));
             break;
         case BCRYPT_ECDH_PRIVATE_P384_MAGIC:
         case BCRYPT_ECDSA_PRIVATE_P384_MAGIC:
-            propParams = Scoped<std::string>(new std::string(core::EC_P384_BLOB));
+            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)&core::EC_P384_BLOB, strlen(core::EC_P384_BLOB));
             break;
         case BCRYPT_ECDH_PRIVATE_P521_MAGIC:
         case BCRYPT_ECDSA_PRIVATE_P521_MAGIC: {
-            propParams = Scoped<std::string>(new std::string(core::EC_P521_BLOB));
+            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)&core::EC_P521_BLOB, strlen(core::EC_P521_BLOB));
             break;
         }
         default:
             THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Unsupported named curve");
         }
-        *propValue += std::string(pValue, header->cbKey);
+        // POINT
+        ItemByType(CKA_VALUE)->SetValue(pValue, header->cbKey);
 
         free(pbKey);
     }
     CATCH_EXCEPTION
 }
 
-void EcPublicKey::GetKeyStruct()
+CK_RV EcPrivateKey::GetValue(
+    CK_ATTRIBUTE_PTR attr
+)
+{
+    try {
+        core::EcPrivateKey::GetValue(attr);
+
+        switch (attr->type) {
+        case CKA_EC_PARAMS:
+        case CKA_VALUE:
+            if (ItemByType(attr->type)->IsEmpty()) {
+                FillKeyStruct();
+            }
+            break;
+        }
+    }
+    CATCH_EXCEPTION
+}
+
+// Public key
+
+void EcPublicKey::FillKeyStruct()
 {
     try {
         DWORD dwKeyLen = 0;
@@ -129,23 +154,23 @@ void EcPublicKey::GetKeyStruct()
         PCHAR pPoint = (PCHAR)(pbKey + sizeof(BCRYPT_ECCKEY_BLOB));
 
         // POINT
-        propPoint = Scoped<std::string>(new std::string(""));
+        auto propPoint = Scoped<std::string>(new std::string(""));
 
         // PARAM
         switch (header->dwMagic) {
         case BCRYPT_ECDH_PUBLIC_P256_MAGIC:
         case BCRYPT_ECDSA_PUBLIC_P256_MAGIC:
-            propParams = Scoped<std::string>(new std::string(core::EC_P256_BLOB));
+            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P256_BLOB, strlen(core::EC_P256_BLOB));
             *propPoint += std::string({ 0x04, 0x41, 0x04 });
             break;
         case BCRYPT_ECDH_PUBLIC_P384_MAGIC:
         case BCRYPT_ECDSA_PUBLIC_P384_MAGIC:
-            propParams = Scoped<std::string>(new std::string(core::EC_P384_BLOB));
+            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P384_BLOB, strlen(core::EC_P384_BLOB));
             *propPoint += std::string({ 0x04, 0x61, 0x04 });
             break;
         case BCRYPT_ECDH_PUBLIC_P521_MAGIC:
         case BCRYPT_ECDSA_PUBLIC_P521_MAGIC: {
-            propParams = Scoped<std::string>(new std::string(core::EC_P521_BLOB));
+            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P521_BLOB, strlen(core::EC_P521_BLOB));
             char padding[] = { 0x04, 0x81, 0x85, 0x04 };
             *propPoint += std::string(padding);
             break;
@@ -154,10 +179,30 @@ void EcPublicKey::GetKeyStruct()
             THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Unsupported named curve");
         }
         *propPoint += std::string(pPoint, header->cbKey * 2);
+        ItemByType(CKA_EC_POINT)->SetValue((CK_VOID_PTR)propPoint->c_str(), propPoint->length());
 
         free(pbKey);
     }
     CATCH_EXCEPTION;
+}
+
+CK_RV EcPublicKey::GetValue(
+    CK_ATTRIBUTE_PTR attr
+)
+{
+    try {
+        core::EcPublicKey::GetValue(attr);
+
+        switch (attr->type) {
+        case CKA_EC_PARAMS:
+        case CKA_EC_POINT:
+            if (ItemByType(attr->type)->IsEmpty()) {
+                FillKeyStruct();
+            }
+            break;
+        }
+    }
+    CATCH_EXCEPTION
 }
 
 Scoped<core::Object> EcKey::DeriveKey(
