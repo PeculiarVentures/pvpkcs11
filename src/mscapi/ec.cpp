@@ -145,33 +145,49 @@ CK_RV EcPrivateKey::CreateValues
 )
 {
     try {
+        core::Template tmpl(pTemplate, ulCount);
         core::EcPrivateKey::CreateValues(pTemplate, ulCount);
 
         NTSTATUS status;
-        std::vector<CK_BYTE> buffer;
+        Scoped<Buffer> buffer(new Buffer);
 
-        buffer.resize(sizeof(BCRYPT_ECCKEY_BLOB));
-        BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)&buffer[0];
 
         // Named curve
         auto params = ItemByType(CKA_EC_PARAMS)->To<core::AttributeBytes>()->ToValue();
 
+        ULONG dwMagic;
+        ULONG keySize;
         if (!memcmp(core::EC_P256_BLOB, params->data(), strlen(core::EC_P256_BLOB))) {
-            header->dwMagic = BCRYPT_ECDSA_PRIVATE_P256_MAGIC;
+            dwMagic = BCRYPT_ECDSA_PRIVATE_P256_MAGIC;
+            keySize = 32;
         }
         else if (!memcmp(core::EC_P384_BLOB, params->data(), strlen(core::EC_P384_BLOB))) {
-            header->dwMagic = BCRYPT_ECDSA_PRIVATE_P384_MAGIC;
+            dwMagic = BCRYPT_ECDSA_PRIVATE_P384_MAGIC;
+            keySize = 48;
         }
         else if (!memcmp(core::EC_P521_BLOB, params->data(), strlen(core::EC_P521_BLOB))) {
-            header->dwMagic = BCRYPT_ECDSA_PRIVATE_P521_MAGIC;
+            dwMagic = BCRYPT_ECDSA_PRIVATE_P521_MAGIC;
+            keySize = 66;
         }
         else {
             THROW_PKCS11_EXCEPTION(CKR_ATTRIBUTE_VALUE_INVALID, "Wrong NamedCorve value");
         }
 
-        core::Template tmpl(pTemplate, ulCount);
-        BCRYPT_ECCKEY_BLOB blob;
+        auto tmplPoint = tmpl.GetBytes(CKA_EC_POINT, true, "");
+        auto decodedPoint = core::EcUtils::DecodePoint(tmplPoint, keySize);
 
+        buffer->resize(sizeof(BCRYPT_ECCKEY_BLOB));
+        BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)buffer->data();
+        header->dwMagic = dwMagic;
+        header->cbKey = keySize;
+        buffer->insert(buffer->end(), decodedPoint->X->begin(), decodedPoint->X->end());
+        buffer->insert(buffer->end(), decodedPoint->Y->begin(), decodedPoint->Y->end());
+
+        ncrypt::Provider provider;
+        provider.Open(NULL, 0);
+
+        auto key = provider.ImportKey(BCRYPT_ECCPUBLIC_BLOB, buffer->data(), buffer->size(), 0);
+        Assign(key);
     }
     CATCH_EXCEPTION
 }

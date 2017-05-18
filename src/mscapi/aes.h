@@ -20,6 +20,11 @@ namespace mscapi {
             CK_MECHANISM_PTR       pMechanism,                  /* key-gen mechanism */
             Scoped<core::Template> tmpl
         );
+
+        CK_RV CreateValues(
+            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+            CK_ULONG          ulCount     /* attributes in template */
+        );
     };
 
     class CryptoAesEncrypt : public CryptoEncrypt {
@@ -47,7 +52,7 @@ namespace mscapi {
             CK_BYTE_PTR       pLastEncryptedPart,
             CK_ULONG_PTR      pulLastEncryptedPartLen
         );
-    
+
     protected:
         CK_BBOOL                    padding;
         CK_ULONG                    mechanism;

@@ -454,6 +454,15 @@ Scoped<core::Object> Session::CreateObject
         core::Template tmpl(pTemplate, ulCount);
         Scoped<core::Object> object;
         switch (tmpl.GetNumber(CKA_CLASS, true)) {
+        case CKO_SECRET_KEY:
+            switch (tmpl.GetNumber(CKA_KEY_TYPE, true)) {
+            case CKK_AES:
+                object = Scoped<AesKey>(new AesKey());
+                break;
+            default:
+                THROW_PKCS11_TEMPLATE_INCOMPLETE();
+            }
+            break;
         case CKO_PUBLIC_KEY:
             switch (tmpl.GetNumber(CKA_KEY_TYPE, true)) {
             case CKK_RSA:

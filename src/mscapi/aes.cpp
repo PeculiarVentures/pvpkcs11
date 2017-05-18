@@ -51,6 +51,40 @@ Scoped<core::SecretKey> AesKey::Generate(
     CATCH_EXCEPTION
 }
 
+CK_RV AesKey::CreateValues(
+    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+    CK_ULONG          ulCount     /* attributes in template */
+)
+{
+    try {
+        core::Template tmpl(pTemplate, ulCount);
+        core::AesKey::CreateValues(pTemplate, ulCount);
+
+        NTSTATUS status;
+        Scoped<Buffer> buffer(new Buffer);
+
+
+        // Named curve
+        auto value = tmpl.GetBytes(CKA_VALUE, true, "");
+
+        buffer->resize(sizeof(BCRYPT_KEY_DATA_BLOB_HEADER));
+        BCRYPT_KEY_DATA_BLOB_HEADER* header = (BCRYPT_KEY_DATA_BLOB_HEADER*)buffer->data();
+        header->dwMagic = BCRYPT_KEY_DATA_BLOB_MAGIC;
+        header->dwVersion = BCRYPT_KEY_DATA_BLOB_VERSION1;
+        header->cbKeyData = value->size();
+
+        buffer->insert(buffer->end(), value->begin(), value->end());
+
+        bcrypt::Algorithm provider;
+        provider.Open(BCRYPT_AES_ALGORITHM, MS_PRIMITIVE_PROVIDER, 0);
+
+        auto key = provider.ImportKey(BCRYPT_KEY_DATA_BLOB, buffer->data(), buffer->size(), 0);
+        Assign(key);
+
+    }
+    CATCH_EXCEPTION
+}
+
 // AES-CBC
 
 CryptoAesEncrypt::CryptoAesEncrypt(
@@ -150,7 +184,7 @@ CK_RV CryptoAesEncrypt::Update
                     buffer.erase();
                 }
             }
-        } 
+        }
         else {
             if (incomingData.length() % blockLength) {
                 THROW_PKCS11_EXCEPTION(CKR_DATA_LEN_RANGE, "Wrong incoming data");

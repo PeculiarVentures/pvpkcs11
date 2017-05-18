@@ -61,3 +61,21 @@ Scoped<bcrypt::Key> Algorithm::GenerateKey(
 
     return Scoped<Key>(new Key(hKey));
 }
+
+Scoped<Key> Algorithm::ImportKey(
+    _In_        LPCWSTR             pszBlobType,
+    _In_reads_bytes_(cbData) PBYTE  pbData,
+    _In_        DWORD               cbData,
+    _In_        DWORD               dwFlags
+)
+{
+    try {
+        BCRYPT_KEY_HANDLE hKey;
+        NTSTATUS status = BCryptImportKey(handle, NULL, pszBlobType, &hKey, NULL, 0, pbData, cbData, dwFlags);
+        if (status) {
+            THROW_NT_EXCEPTION(status);
+        }
+        return Scoped<Key>(new Key(hKey));
+    }
+    CATCH_EXCEPTION
+}

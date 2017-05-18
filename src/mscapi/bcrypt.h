@@ -186,6 +186,13 @@ namespace bcrypt {
 			_In_                                    ULONG   dwFlags
 		);
 
+        Scoped<Key> ImportKey(
+            _In_        LPCWSTR             pszBlobType,
+            _In_reads_bytes_(cbData) PBYTE  pbData,
+            _In_        DWORD               cbData,
+            _In_        DWORD               dwFlags
+        );
+
 	};
 
 }
