@@ -135,6 +135,14 @@ std::string GetAttributeName(
     return std::string("UNKNOWN");
 }
 
+std::string Attribute::Name()
+{
+    try {
+        return GetAttributeName(type);
+    }
+    CATCH_EXCEPTION
+}
+
 CK_BBOOL Attribute::IsEmpty()
 {
     try {
@@ -149,7 +157,7 @@ CK_BBOOL Attribute::IsEmpty()
 CK_BBOOL Attribute::ToBool()
 {
     try {
-        To<AttributeBool>()->ToValue();
+        return To<AttributeBool>()->ToValue();
     }
     CATCH_EXCEPTION;
 }
@@ -157,7 +165,7 @@ CK_BBOOL Attribute::ToBool()
 CK_ULONG Attribute::ToNumber()
 {
     try {
-        To<AttributeNumber>()->ToValue();
+        return To<AttributeNumber>()->ToValue();
     }
     CATCH_EXCEPTION;
 }
@@ -165,7 +173,7 @@ CK_ULONG Attribute::ToNumber()
 Scoped<Buffer> Attribute::ToBytes()
 {
     try {
-        To<AttributeBytes>()->ToValue();
+        return To<AttributeBytes>()->ToValue();
     }
     CATCH_EXCEPTION;
 }

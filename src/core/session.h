@@ -201,6 +201,13 @@ namespace core {
             CK_ULONG                ulCount      /* attributes in template */
         ) = 0;
 
+        virtual Scoped<Object> CopyObject
+        (
+            Scoped<Object>       object,      /* the object for copying */
+            CK_ATTRIBUTE_PTR     pTemplate,   /* template for new object */
+            CK_ULONG             ulCount      /* attributes in template */
+        ) = 0;
+
         void CheckMechanismType(CK_MECHANISM_TYPE mechanism, CK_ULONG usage);
         virtual Scoped<Object> GetObject(CK_OBJECT_HANDLE hObject);
 

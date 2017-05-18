@@ -45,6 +45,10 @@ namespace core {
     // 12	
     // Attribute cannot be changed once set to CK_FALSE.It becomes a read only attribute.
 #define PVF_12      0x00000800
+    // Custom flags
+    // 13
+    // Attribute value can be changed on C_CopyObject
+#define PVF_13      0x00001000
 
     class Attribute {
     public:
@@ -59,10 +63,13 @@ namespace core {
             flags(flags)
         {}
 
+        virtual CK_VOID_PTR Get() = 0;
         virtual CK_ULONG Size() = 0;
         virtual void GetValue(CK_VOID_PTR pData, CK_ULONG_PTR pulDataLen) = 0;
         virtual void SetValue(CK_VOID_PTR pData, CK_ULONG ulDataLen) = 0;
         virtual CK_BBOOL IsEmpty();
+
+        std::string Name();
 
         CK_BBOOL ToBool();
         CK_ULONG ToNumber();
@@ -101,6 +108,10 @@ namespace core {
                 SetValue(pData, ulDataLen);
             }
             CATCH_EXCEPTION
+        }
+
+        CK_VOID_PTR Get() {
+            return value->data();
         }
 
         CK_ULONG Size()

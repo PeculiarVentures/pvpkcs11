@@ -419,7 +419,16 @@ CK_DEFINE_FUNCTION(CK_RV, C_CopyObject)
     CK_OBJECT_HANDLE_PTR phNewObject  /* receives handle of copy */
     )
 {
-    return CKR_FUNCTION_NOT_SUPPORTED;
+    try {
+        return pkcs11.CopyObject(
+            hSession,
+            hObject,
+            pTemplate,
+            ulCount,
+            phNewObject
+        );
+    }
+    CATCH(__FUNCTION__)
 }
 
 

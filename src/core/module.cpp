@@ -893,3 +893,43 @@ CK_RV Module::CreateObject
     }
     CATCH_EXCEPTION
 }
+
+CK_RV Module::CopyObject
+(
+    CK_SESSION_HANDLE    hSession,    /* the session's handle */
+    CK_OBJECT_HANDLE     hObject,     /* the object's handle */
+    CK_ATTRIBUTE_PTR     pTemplate,   /* template for new object */
+    CK_ULONG             ulCount,     /* attributes in template */
+    CK_OBJECT_HANDLE_PTR phNewObject  /* receives handle of copy */
+)
+{
+    CHECK_INITIALIZED();
+
+    auto session = getSession(hSession);
+
+    if (pTemplate == NULL_PTR) {
+        THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pTemplate is NULL");
+    }
+
+    if (phNewObject == NULL_PTR) {
+        THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "phObject is NULL");
+    }
+
+    auto object = session->GetObject(hObject);
+
+    auto newObject = session->CopyObject(
+        object,
+        pTemplate,
+        ulCount
+    );
+
+    if (!newObject) {
+        THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Object wasn't created");
+    }
+
+    session->objects.add(newObject);
+
+    *phNewObject = newObject->handle;
+
+    return CKR_OK;
+}

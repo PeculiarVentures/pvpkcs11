@@ -88,6 +88,13 @@ namespace mscapi {
             CK_ULONG                ulCount      /* attributes in template */
         );
 
+        Scoped<core::Object> CopyObject
+        (
+            Scoped<core::Object> object,      /* the object for copying */
+            CK_ATTRIBUTE_PTR     pTemplate,   /* template for new object */
+            CK_ULONG             ulCount      /* attributes in template */
+        );
+
 	protected:
 		void LoadMyStore();
 	};

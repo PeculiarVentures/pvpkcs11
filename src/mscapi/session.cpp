@@ -485,3 +485,25 @@ Scoped<core::Object> Session::CreateObject
     }
     CATCH_EXCEPTION
 }
+
+Scoped<core::Object> Session::CopyObject
+(
+    Scoped<core::Object> object,      /* the object for copying */
+    CK_ATTRIBUTE_PTR     pTemplate,   /* template for new object */
+    CK_ULONG             ulCount      /* attributes in template */
+)
+{
+    try {
+        Scoped<core::Object> copy;
+
+        if (dynamic_cast<AesKey*>(object.get())) {
+            copy = Scoped<AesKey>(new AesKey());
+        }
+        else {
+            THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Object is not copyable");
+        }
+        copy->CopyValues(object, pTemplate, ulCount);
+        return copy;
+    }
+    CATCH_EXCEPTION
+}

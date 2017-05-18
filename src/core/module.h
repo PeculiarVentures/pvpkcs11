@@ -357,6 +357,19 @@ namespace core {
             CK_OBJECT_HANDLE_PTR phObject  /* gets new object's handle. */
         );
 
+        /**
+         * C_CopyObject copies an object, creating a new object for the
+         * copy. 
+         */
+        CK_RV CopyObject
+        (
+            CK_SESSION_HANDLE    hSession,    /* the session's handle */
+            CK_OBJECT_HANDLE     hObject,     /* the object's handle */
+            CK_ATTRIBUTE_PTR     pTemplate,   /* template for new object */
+            CK_ULONG             ulCount,     /* attributes in template */
+            CK_OBJECT_HANDLE_PTR phNewObject  /* receives handle of copy */
+        );
+
     protected:
         Scoped<Slot> getSlotBySession(CK_SESSION_HANDLE hSession);
         Scoped<Session> getSession(CK_SESSION_HANDLE hSession);

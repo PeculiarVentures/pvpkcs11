@@ -39,6 +39,7 @@ namespace core {
         );
 
         virtual CK_RV CopyValues(
+            Scoped<Object>    object,     /* the object which must be copied */
             CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
             CK_ULONG          ulCount     /* attributes in template */
         );

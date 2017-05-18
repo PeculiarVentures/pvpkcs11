@@ -67,11 +67,7 @@ CK_RV Object::SetValues
             if (!(attribute->flags & PVF_8)) {
                 THROW_PKCS11_ATTRIBUTE_READ_ONLY();
             }
-        }
-
-        for (size_t i = 0; i < ulCount; i++) {
-            CK_ATTRIBUTE_PTR attr = &pTemplate[i];
-            SetValue(attr);
+            SetValue(pAttribute);
         }
 
         // Set data
@@ -174,7 +170,6 @@ CK_RV Object::GenerateValues
 
         for (size_t i = 0; i < ulCount; i++) {
             CK_ATTRIBUTE_PTR attr = &pTemplate[i];
-            GenerateValue(attr);
         }
 
         // Set values
@@ -238,25 +233,35 @@ CK_RV Object::UnwrapValue(
 
 CK_RV Object::CopyValues
 (
+    Scoped<Object>    object,     /* the object which must be copied */
     CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
     CK_ULONG          ulCount     /* attributes in template */
 )
 {
     try {
         // Check data
+        if (!object->ItemByType(CKA_COPYABLE)->To<AttributeBool>()->ToValue()) {
+            THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Object is not copyable");
+        }
         for (size_t i = 0; i < ulCount; i++) {
             CK_ATTRIBUTE_PTR pAttribute = &pTemplate[i];
-            // Check for EDITABLE
+            // Check for properties which can be changed during copying
             auto attribute = ItemByType(pAttribute->type);
-            if (!(attribute->flags & PVF_8)) {
+            if (!(attribute->flags & PVF_8 || attribute->flags & PVF_13)) {
+                puts(attribute->Name().c_str());
                 THROW_PKCS11_TEMPLATE_INCOMPLETE();
             }
+            CopyValue(pAttribute);
+        }
+        // Copy data from incoming object to current
+        for (CK_ULONG i = 0; i < object->Size(); i++) {
+            auto attr = object->ItemByIndex(i);
+            ItemByType(attr->type)->SetValue(attr->Get(), attr->Size());
         }
         // Set data
-        THROW_EXCEPTION("Function is not implemented");
         for (size_t i = 0; i < ulCount; i++) {
             CK_ATTRIBUTE_PTR attr = &pTemplate[i];
-            // ...  
+            ItemByType(attr->type)->SetValue(attr->pValue, attr->ulValueLen);
         }
         return CKR_OK;
     }

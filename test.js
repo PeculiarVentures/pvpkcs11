@@ -51,31 +51,15 @@ for (var i = 0; i < iterations; i++) {
             let msg = `Iteration #${iter}`;
             console.log(msg);
             return p11.subtle.generateKey(alg, true, ["encrypt", "decrypt"])
-                .then((keys) => {
-                    return p11.subtle.exportKey("jwk", keys)
-                        .then((jwk) => {
-                            console.log(jwk);
-                            // Import
-                            return p11.subtle.importKey("jwk", jwk, alg, true, ["encrypt"])
-                                .then((importedKey) => {
-                                    console.log("Success");
-                                    // console.log(importedKey);
-                                    return p11.subtle.exportKey("jwk", importedKey);
-                                })
-                                .then((jwk) => {
-                                    console.log(jwk);
-                                })
-                        })
-                        // Sign
-                        // .then(() => {
-                        //     return p11.subtle.sign(alg, keys.privateKey, data)
-                        // })
-                        // .then((signature) => {
-                        //     return p11.subtle.verify(alg, keys.publicKey, signature, data)
-                        // })
-                        // .then((ok) => {
-                        //     console.log(ok);
-                        // })
+                .then((key) => {
+                    return p11.keyStorage.setItem(key);
+                })
+                .then((index) => {
+                    console.log(index);
+                    return p11.keyStorage.getItem(index);
+                })
+                .then((key) => {
+                    console.log(key)
                 })
 
         })
