@@ -24,7 +24,7 @@ namespace core {
 
         CK_ULONG GetNumber(CK_ULONG ulType, CK_BBOOL bRequired, CK_ULONG ulDefaulValue = 0);
         CK_BBOOL GetBool(CK_ULONG ulType, CK_BBOOL bRequired, CK_BBOOL bDefaulValue = false);
-        Scoped<std::vector<CK_BYTE>> GetBytes(CK_ULONG ulType, CK_BBOOL bRequired, const char* cDefaultValue = "");
+        Scoped<Buffer> GetBytes(CK_ULONG ulType, CK_BBOOL bRequired, const char* cDefaultValue = "");
 
     protected:
         CK_ATTRIBUTE_PTR pTemplate;

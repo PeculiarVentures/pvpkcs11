@@ -90,7 +90,7 @@ CK_BBOOL Template::GetBool(CK_ULONG ulType, CK_BBOOL bRequired, CK_BBOOL bDefaul
     CATCH_EXCEPTION;
 }
 
-Scoped<std::vector<CK_BYTE>> Template::GetBytes(CK_ULONG ulType, CK_BBOOL bRequired, const char* cDefaultValue)
+Scoped<Buffer> Template::GetBytes(CK_ULONG ulType, CK_BBOOL bRequired, const char* cDefaultValue)
 {
     try {
         auto attr = GetAttributeByType(ulType);
@@ -100,16 +100,16 @@ Scoped<std::vector<CK_BYTE>> Template::GetBytes(CK_ULONG ulType, CK_BBOOL bRequi
                 THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, message.c_str());
             }
         }
-        Scoped<std::vector<CK_BYTE>> result(new std::vector<CK_BYTE>);
+        Scoped<Buffer> result(new Buffer);
+        if (attr->ulValueLen) {
             result->resize(attr->ulValueLen);
             memcpy(result->data(), attr->pValue, attr->ulValueLen);
-        if (attr->ulValueLen) {
         }
         else {
             result->resize(strlen(cDefaultValue));
             memcpy(result->data(), cDefaultValue, strlen(cDefaultValue));
         }
-            return result;
+        return result;
     }
     CATCH_EXCEPTION;
 }

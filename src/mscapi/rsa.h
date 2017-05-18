@@ -39,6 +39,11 @@ namespace mscapi {
             CryptoKey()
         {};
 
+        CK_RV CreateValues(
+            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+            CK_ULONG          ulCount     /* attributes in template */
+        );
+
 
     protected:
         void FillKeyStruct();

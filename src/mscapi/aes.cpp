@@ -342,11 +342,6 @@ CK_RV CryptoAesGCMEncrypt::Once
         authInfo.cbAuthData = aad->length();
         authInfo.pbTag = tag.size() ? &tag[0] : NULL;
         authInfo.cbTag = tag.size();
-        // authInfo.pbMacContext = NULL;
-        // authInfo.cbMacContext = 0;
-        // authInfo.cbAAD = 0;
-        // authInfo.cbData = 0;
-        // authInfo.dwFlags = 0;
 
         if (type == CRYPTO_ENCRYPT) {
             ULONG ulOutLen;

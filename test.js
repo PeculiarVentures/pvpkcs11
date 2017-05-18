@@ -17,17 +17,17 @@ let p11 = new p11_crypto.WebCrypto({
 });
 let ossl = new ossl_crypto();
 
-// const alg = {
-//     name: "RSASSA-PKCS1-v1_5",
-//     hash: "SHA-256",
-//     publicExponent: new Uint8Array([1, 0, 1]),
-//     modulusLength: 1024,
-// };
 const alg = {
-    name: "ECDSA",
-    namedCurve: "P-256",
+    name: "RSASSA-PKCS1-v1_5",
     hash: "SHA-256",
+    publicExponent: new Uint8Array([1, 0, 1]),
+    modulusLength: 1024,
 };
+// const alg = {
+//     name: "ECDSA",
+//     namedCurve: "P-384",
+//     hash: "SHA-256",
+// };
 // const alg = {
 //     name: "AES-CBC",
 //     length: 256
@@ -39,33 +39,53 @@ function hex2b64url(hex) {
     return helper.Convert.ToBase64Url(helper.Convert.FromHex(hex));
 }
 
-p11.subtle.generateKey(alg, true, ["sign", "verify"])
-    .then((keys) => {
-        return p11.subtle.exportKey("jwk", keys.publicKey)
-            .then((jwk) => {
-                console.log(jwk);
-                return p11.subtle.importKey("jwk", jwk, alg, true, ["verify"])
-            })
-            .then((importedKey) => {
-                console.log("Success");
-                // console.log(importedKey);
-                return p11.subtle.exportKey("jwk", importedKey);
-            })
-            .then((jwk) => {
-                console.log(jwk);
-            })
-        // Sign
-        // .then(() => {
-        //     return p11.subtle.sign(alg, keys.privateKey, data)
-        // })
-        // .then((signature) => {
-        //     return p11.subtle.verify(alg, keys.publicKey, signature, data)
-        // })
-        // .then((ok) => {
-        //     console.log(ok);
-        // })
-    })
+let promise = Promise.resolve()
+
+// Iterations
+const iterations = 1
+
+for (var i = 0; i < iterations; i++) {
+    let iter = i;
+    promise = promise
+        .then(() => {
+            let msg = `Iteration #${iter}`;
+            console.log(msg);
+            return p11.subtle.generateKey(alg, true, ["sign", "verify"])
+                .then((keys) => {
+                    return p11.subtle.exportKey("jwk", keys.publicKey)
+                        .then((jwk) => {
+                            console.log(jwk);
+                            // Import
+                            return p11.subtle.importKey("jwk", jwk, alg, true, ["verify"])
+                                .then((importedKey) => {
+                                    console.log("Success");
+                                    // console.log(importedKey);
+                                    return p11.subtle.exportKey("jwk", importedKey);
+                                })
+                                .then((jwk) => {
+                                    console.log(jwk);
+                                })
+                        })
+                        // Sign
+                        .then(() => {
+                            return p11.subtle.sign(alg, keys.privateKey, data)
+                        })
+                        .then((signature) => {
+                            return p11.subtle.verify(alg, keys.publicKey, signature, data)
+                        })
+                        .then((ok) => {
+                            console.log(ok);
+                        })
+                })
+
+        })
+
+}
+
+promise
     // @ts-ignore
     .catch((err) => {
         console.error(err);
     });
+
+

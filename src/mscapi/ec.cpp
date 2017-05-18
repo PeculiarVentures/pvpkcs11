@@ -156,13 +156,13 @@ CK_RV EcPrivateKey::CreateValues
         // Named curve
         auto params = ItemByType(CKA_EC_PARAMS)->To<core::AttributeBytes>()->ToValue();
 
-        if (!memcmp(core::EC_P256_BLOB, &params[0], strlen(core::EC_P256_BLOB))) {
+        if (!memcmp(core::EC_P256_BLOB, params->data(), strlen(core::EC_P256_BLOB))) {
             header->dwMagic = BCRYPT_ECDSA_PRIVATE_P256_MAGIC;
         }
-        else if (!memcmp(core::EC_P384_BLOB, &params[0], strlen(core::EC_P384_BLOB))) {
+        else if (!memcmp(core::EC_P384_BLOB, params->data(), strlen(core::EC_P384_BLOB))) {
             header->dwMagic = BCRYPT_ECDSA_PRIVATE_P384_MAGIC;
         }
-        else if (!memcmp(core::EC_P521_BLOB, &params[0], strlen(core::EC_P521_BLOB))) {
+        else if (!memcmp(core::EC_P521_BLOB, params->data(), strlen(core::EC_P521_BLOB))) {
             header->dwMagic = BCRYPT_ECDSA_PRIVATE_P521_MAGIC;
         }
         else {
@@ -290,7 +290,7 @@ CK_RV EcPublicKey::CreateValues
         core::EcPublicKey::CreateValues(pTemplate, ulCount);
 
         NTSTATUS status;
-        std::vector<CK_BYTE> buffer;
+        Scoped<Buffer> buffer(new Buffer);
 
 
         // Named curve
@@ -298,15 +298,15 @@ CK_RV EcPublicKey::CreateValues
 
         ULONG dwMagic;
         ULONG keySize;
-        if (!memcmp(core::EC_P256_BLOB, &params[0], strlen(core::EC_P256_BLOB))) {
+        if (!memcmp(core::EC_P256_BLOB, params->data(), strlen(core::EC_P256_BLOB))) {
             dwMagic = BCRYPT_ECDSA_PUBLIC_P256_MAGIC;
             keySize = 32;
         }
-        else if (!memcmp(core::EC_P384_BLOB, &params[0], strlen(core::EC_P384_BLOB))) {
+        else if (!memcmp(core::EC_P384_BLOB, params->data(), strlen(core::EC_P384_BLOB))) {
             dwMagic = BCRYPT_ECDSA_PUBLIC_P384_MAGIC;
             keySize = 48;
         }
-        else if (!memcmp(core::EC_P521_BLOB, &params[0], strlen(core::EC_P521_BLOB))) {
+        else if (!memcmp(core::EC_P521_BLOB, params->data(), strlen(core::EC_P521_BLOB))) {
             dwMagic = BCRYPT_ECDSA_PUBLIC_P521_MAGIC;
             keySize = 66;
         }
@@ -315,19 +315,19 @@ CK_RV EcPublicKey::CreateValues
         }
 
         auto tmplPoint = tmpl.GetBytes(CKA_EC_POINT, true, "");
-        auto decodedPoint = core::EcUtils::DecodePoint(*tmplPoint.get(), keySize);
+        auto decodedPoint = core::EcUtils::DecodePoint(tmplPoint, keySize);
 
-        buffer.resize(sizeof(BCRYPT_ECCKEY_BLOB));
-        BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)&buffer[0];
+        buffer->resize(sizeof(BCRYPT_ECCKEY_BLOB));
+        BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)buffer->data();
         header->dwMagic = dwMagic;
         header->cbKey = keySize;
-        buffer.insert(buffer.end(), decodedPoint->X.begin(), decodedPoint->X.end());
-        buffer.insert(buffer.end(), decodedPoint->Y.begin(), decodedPoint->Y.end());
+        buffer->insert(buffer->end(), decodedPoint->X->begin(), decodedPoint->X->end());
+        buffer->insert(buffer->end(), decodedPoint->Y->begin(), decodedPoint->Y->end());
 
         ncrypt::Provider provider;
         provider.Open(NULL, 0);
 
-        auto key = provider.ImportKey(BCRYPT_ECCPUBLIC_BLOB, buffer.data(), buffer.size(), 0);
+        auto key = provider.ImportKey(BCRYPT_ECCPUBLIC_BLOB, buffer->data(), buffer->size(), 0);
         Assign(key);
 
     }

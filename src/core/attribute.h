@@ -66,7 +66,7 @@ namespace core {
 
         CK_BBOOL ToBool();
         CK_ULONG ToNumber();
-        std::vector<CK_BYTE> ToBytes();
+        Scoped<Buffer> ToBytes();
         std::string ToString();
 
         template<typename T>
@@ -94,7 +94,8 @@ namespace core {
             CK_ULONG            ulDataLen,
             CK_ULONG            flags
         ) :
-            Attribute(type, flags)
+            Attribute(type, flags),
+            value(Scoped<std::vector<T>>(new std::vector<T>))
         {
             try {
                 SetValue(pData, ulDataLen);
@@ -104,7 +105,7 @@ namespace core {
 
         CK_ULONG Size()
         {
-            return value.size();
+            return value->size();
         }
 
         void GetValue(CK_VOID_PTR pData, CK_ULONG_PTR pulDataLen)
@@ -117,7 +118,7 @@ namespace core {
                     THROW_PKCS11_BUFFER_TOO_SMALL();
                 }
                 else {
-                    memcpy(pData, &value[0], Size());
+                    memcpy(pData, value->data(), Size());
                     *pulDataLen = Size();
                 }
             }
@@ -128,18 +129,18 @@ namespace core {
         {
             try {
                 Check(pData, ulDataLen);
-                value.resize(ulDataLen);
-                memcpy(&value[0], pData, ulDataLen);
+                value->resize(ulDataLen);
+                memcpy(value->data(), pData, ulDataLen);
             }
             CATCH_EXCEPTION
         }
 
         CK_BBOOL IsEmpty()
         {
-            return value.empty();
+            return value->empty();
         }
     protected:
-        std::vector<T> value;
+        Scoped<std::vector<T>> value;
     };
 
     class AttributeBytes : public AttributeTemplate<CK_BYTE> {
@@ -164,11 +165,11 @@ namespace core {
         );
 
         void  Set(
-            CK_BYTE_PTR pData, 
+            CK_BYTE_PTR pData,
             CK_ULONG    ulDataLen
         );
 
-        std::vector<CK_BYTE> ToValue();
+        Scoped<Buffer> ToValue();
     };
 
     class AttributeBool : public AttributeBytes {

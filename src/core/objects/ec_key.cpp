@@ -31,16 +31,16 @@ EcPublicKey::EcPublicKey() :
 
 // EC utils
 
-std::vector<CK_BYTE> EcUtils::getData(
-    std::vector<CK_BYTE> data
+Scoped<Buffer> EcUtils::getData(
+    Scoped<Buffer>          data
 )
 {
     CK_BBOOL octet = false;
-    for (CK_ULONG i = 0; i < data.size(); i++) {
-        if (data[i] == 4) {
+    for (CK_ULONG i = 0; i < data->size(); i++) {
+        if (data->at(i) == 4) {
             if (octet) {
-                std::vector<CK_BYTE> res(data.size() - i);
-                memcpy(&res[0], &data[i], res.size());
+                Scoped<Buffer> res(new Buffer(data->size() - i));
+                memcpy(res->data(), &data->at(i), res->size());
                 return res;
             }
             else {
@@ -53,85 +53,85 @@ std::vector<CK_BYTE> EcUtils::getData(
 
 // Used by SunPKCS11 and SunJSSE.
 Scoped<EcPoint> EcUtils::DecodePoint(
-    std::vector<CK_BYTE>    data,
+    Scoped<Buffer>          data,
     CK_ULONG                size
 )
 {
     try {
         data = getData(data);
 
-        if ((data.size() == 0) || (data[0] != 4)) {
+        if ((data->size() == 0) || (data->at(0) != 4)) {
             THROW_EXCEPTION("Only uncompressed point format supported");
         }
         // Per ANSI X9.62, an encoded point is a 1 byte type followed by
         // ceiling(log base 2 field-size / 8) bytes of x and the same of y.
-        if (size * 2 != data.size() - 1) {
+        if (size * 2 != data->size() - 1) {
             THROW_EXCEPTION("Point does not match field size");
         }
 
         Scoped<EcPoint> point(new EcPoint());
-        point->X.resize(size);
-        memcpy(&point->X[0], &data[1], size);
+        point->X->resize(size);
+        memcpy(point->X->data(), &data->at(1), size);
 
-        point->Y.resize(size);
-        memcpy(&point->Y[0], &data[size + 1], 2 * size + 1);
+        point->Y->resize(size);
+        memcpy(point->Y->data(), &data->at(size + 1), size);
 
         return point;
     }
     CATCH_EXCEPTION;
 }
 
-std::vector<CK_BYTE> EcUtils::EncodePoint(
-    std::vector<CK_BYTE>    x,
-    std::vector<CK_BYTE>    y,
+Scoped<Buffer> EcUtils::EncodePoint(
+    Scoped<Buffer>          x,
+    Scoped<Buffer>          y,
     CK_ULONG                size
 )
 {
     try {
         auto xb = PadZeroes(x, size);
         auto yb = PadZeroes(y, size);
-        if ((xb.size() > size) || (yb.size() > size)) {
+        if ((xb->size() > size) || (yb->size() > size)) {
             THROW_EXCEPTION("Point coordinates do not match field size");
         }
 
         // ASN1 encode OCTET_STRING
-        std::vector<CK_BYTE> asn1Length = EncodeAsn1Length(1 + 2 * size);
-        std::vector<CK_BYTE> res;
-        res.push_back(0x04);
-        res.insert(res.end(), asn1Length.begin(), asn1Length.end());
-        res.push_back(0x04);
-        res.insert(res.end(), xb.begin(), xb.end());
-        res.insert(res.end(), yb.begin(), yb.end());
+        Scoped<Buffer> asn1Length = EncodeAsn1Length(1 + 2 * size);
+        Scoped<Buffer> res(new Buffer);
+        res->push_back(0x04);
+        res->insert(res->end(), asn1Length->begin(), asn1Length->end());
+        res->push_back(0x04);
+        res->insert(res->end(), xb->begin(), xb->end());
+        res->insert(res->end(), yb->begin(), yb->end());
 
         return res;
     }
     CATCH_EXCEPTION
 }
 
-std::vector<CK_BYTE> EcUtils::PadZeroes(
-    std::vector<CK_BYTE>    buffer,
+Scoped<Buffer> EcUtils::PadZeroes(
+    Scoped<Buffer>          buffer,
     CK_ULONG                size
 )
 {
     try {
-        std::vector<CK_BYTE> pad(size - buffer.size(), 0);
-        memcpy(&pad[size], &buffer[0], buffer.size());
+        Scoped<Buffer> pad(new Buffer(size - buffer->size(), 0));
+        memcpy(&pad->at(size), &buffer->at(0), buffer->size());
         return pad;
     }
     CATCH_EXCEPTION
 }
 
-std::vector<CK_BYTE> EcUtils::EncodeAsn1Length(
+Scoped<Buffer> EcUtils::EncodeAsn1Length(
     CK_ULONG        length
 )
 {
     try {
-        std::vector<CK_BYTE> enc;
+        Scoped<Buffer> enc(new Buffer);
         if (length != (length & 0x7F)) {
             THROW_EXCEPTION("Too big length for ASN1 encoding");
         }
         else {
-            enc.push_back(length);
+            enc->push_back(length);
         }
         return enc;
     }

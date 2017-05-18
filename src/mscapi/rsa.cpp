@@ -192,3 +192,41 @@ CK_RV RsaPublicKey::GetValue
     }
     CATCH_EXCEPTION
 }
+
+CK_RV RsaPublicKey::CreateValues
+(
+    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+    CK_ULONG          ulCount     /* attributes in template */
+)
+{
+    try {
+        core::Template tmpl(pTemplate, ulCount);
+        core::RsaPublicKey::CreateValues(pTemplate, ulCount);
+
+        NTSTATUS status;
+        Scoped<Buffer> buffer(new Buffer);
+
+
+        // Named curve
+        auto publicExponent = tmpl.GetBytes(CKA_PUBLIC_EXPONENT, true, "");
+        auto modulus = tmpl.GetBytes(CKA_MODULUS, true, "");
+
+        buffer->resize(sizeof(BCRYPT_RSAKEY_BLOB));
+        BCRYPT_RSAKEY_BLOB* header = (BCRYPT_RSAKEY_BLOB*)buffer->data();
+        header->Magic = BCRYPT_RSAPUBLIC_MAGIC;
+        header->BitLength = modulus->size() << 3;
+        header->cbModulus = modulus->size();
+        header->cbPublicExp = publicExponent->size();
+
+        buffer->insert(buffer->end(), publicExponent->begin(), publicExponent->end());
+        buffer->insert(buffer->end(), modulus->begin(), modulus->end());
+
+        ncrypt::Provider provider;
+        provider.Open(NULL, 0);
+
+        auto key = provider.ImportKey(BCRYPT_RSAPUBLIC_BLOB, buffer->data(), buffer->size(), 0);
+        Assign(key);
+
+    }
+    CATCH_EXCEPTION
+}

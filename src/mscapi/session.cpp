@@ -456,6 +456,9 @@ Scoped<core::Object> Session::CreateObject
         switch (tmpl.GetNumber(CKA_CLASS, true)) {
         case CKO_PUBLIC_KEY:
             switch (tmpl.GetNumber(CKA_KEY_TYPE, true)) {
+            case CKK_RSA:
+                object = Scoped<RsaPublicKey>(new RsaPublicKey());
+                break;
             case CKK_EC:
                 object = Scoped<EcPublicKey>(new EcPublicKey());
                 break;

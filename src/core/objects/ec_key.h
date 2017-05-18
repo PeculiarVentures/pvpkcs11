@@ -23,34 +23,39 @@ namespace core {
     };
 
     struct EcPoint {
-        std::vector<CK_BYTE> X;
-        std::vector<CK_BYTE> Y;
+        EcPoint() : 
+            X(Scoped<Buffer>(new Buffer)), 
+            Y(Scoped<Buffer>(new Buffer)) 
+        {}
+
+        Scoped<Buffer> X;
+        Scoped<Buffer> Y;
     };
 
     class EcUtils {
     public:
         static Scoped<EcPoint> DecodePoint(
-            std::vector<CK_BYTE>    data,
+            Scoped<Buffer>          data,
             CK_ULONG                size
         );
 
     protected:
-        static std::vector<CK_BYTE> EcUtils::getData(
-            std::vector<CK_BYTE>    data
+        static Scoped<Buffer> EcUtils::getData(
+            Scoped<Buffer>          data
         );
 
-        static std::vector<CK_BYTE> EncodePoint(
-            std::vector<CK_BYTE>    x,
-            std::vector<CK_BYTE>    y,
+        static Scoped<Buffer> EncodePoint(
+            Scoped<Buffer>          x,
+            Scoped<Buffer>          y,
             CK_ULONG                size
         );
 
-        static std::vector<CK_BYTE> PadZeroes(
-            std::vector<CK_BYTE>    buffer,
+        static Scoped<Buffer> PadZeroes(
+            Scoped<Buffer>          buffer,
             CK_ULONG                size
         );
 
-        static std::vector<CK_BYTE> EncodeAsn1Length(
+        static Scoped<Buffer> EncodeAsn1Length(
             CK_ULONG                length
         );
 

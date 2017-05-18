@@ -162,7 +162,7 @@ CK_ULONG Attribute::ToNumber()
     CATCH_EXCEPTION;
 }
 
-std::vector<CK_BYTE> Attribute::ToBytes()
+Scoped<Buffer> Attribute::ToBytes()
 {
     try {
         To<AttributeBytes>()->ToValue();
@@ -174,7 +174,7 @@ std::string Attribute::ToString()
 {
     try {
         auto bytes = To<AttributeBytes>()->ToValue();
-        return std::string((char*)&bytes[0], bytes.size());
+        return std::string((char*)bytes->data(), bytes->size());
     }
     CATCH_EXCEPTION;
 }
@@ -225,7 +225,7 @@ void AttributeBytes::Set(
     CATCH_EXCEPTION
 }
 
-std::vector<CK_BYTE> AttributeBytes::ToValue()
+Scoped<Buffer> AttributeBytes::ToValue()
 {
     return value;
 }
@@ -278,7 +278,7 @@ CK_BBOOL AttributeBool::ToValue()
     if (Size() != sizeof(CK_BBOOL)) {
         THROW_PKCS11_EXCEPTION(CKR_GENERAL_ERROR, "Wrong size of stored data");
     }
-    memcpy(&res, value.data(), Size());
+    memcpy(&res, value->data(), Size());
     return res;
 }
 
@@ -320,7 +320,7 @@ CK_ULONG AttributeNumber::ToValue()
     if (Size() != sizeof(CK_ULONG)) {
         THROW_PKCS11_EXCEPTION(CKR_GENERAL_ERROR, "Wrong size of stored data");
     }
-    memcpy(&res, value.data(), Size());
+    memcpy(&res, value->data(), Size());
     return res;
 }
 
