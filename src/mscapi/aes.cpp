@@ -366,7 +366,7 @@ CK_RV CryptoAesGCMEncrypt::Once
 {
     try {
         NTSTATUS status;
-        std::vector<UCHAR> tag(tagLength);
+        Buffer tag(tagLength);
 
         BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO authInfo;
         BCRYPT_INIT_AUTH_MODE_INFO(authInfo);

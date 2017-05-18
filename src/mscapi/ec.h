@@ -22,16 +22,10 @@ namespace mscapi {
 
     class EcPrivateKey : public core::EcPrivateKey, public CryptoKey {
     public:
-        EcPrivateKey() : 
-            core::EcPrivateKey(), 
+        EcPrivateKey() :
+            core::EcPrivateKey(),
             CryptoKey()
         {}
-
-        CK_RV CreateValues
-        (
-            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
-            CK_ULONG          ulCount     /* attributes in template */
-        );
 
     protected:
         void FillKeyStruct();
@@ -55,7 +49,7 @@ namespace mscapi {
 
     protected:
         void FillKeyStruct();
-        
+
         CK_RV GetValue(
             CK_ATTRIBUTE_PTR attr
         );
