@@ -2,7 +2,8 @@
 
 using namespace core;
 
-X509Certificate::X509Certificate()
+X509Certificate::X509Certificate():
+    Certificate()
 {
     ItemByType(CKA_CERTIFICATE_TYPE)->To<AttributeNumber>()->Set(CKC_X_509);
 
@@ -10,7 +11,7 @@ X509Certificate::X509Certificate()
     Add(AttributeBytes::New(CKA_ID, NULL, 0, 0));
     Add(AttributeBytes::New(CKA_ISSUER, NULL, 0, 0));
     Add(AttributeBytes::New(CKA_SERIAL_NUMBER, NULL, 0, 0));
-    Add(AttributeBytes::New(CKA_ID, NULL, 0, 0));
+    Add(AttributeBytes::New(CKA_VALUE, NULL, 0, 0));
     Add(AttributeBytes::New(CKA_URL, NULL, 0, 0));
     Add(AttributeBytes::New(CKA_HASH_OF_SUBJECT_PUBLIC_KEY, NULL, 0, 0));
     Add(AttributeBytes::New(CKA_HASH_OF_ISSUER_PUBLIC_KEY, NULL, 0, 0));

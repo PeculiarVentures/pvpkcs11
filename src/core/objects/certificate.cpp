@@ -2,7 +2,8 @@
 
 using namespace core;
 
-Certificate::Certificate()
+Certificate::Certificate():
+    Storage()
 {
     try {
         ItemByType(CKA_CLASS)->To<AttributeNumber>()->Set(CKO_CERTIFICATE);

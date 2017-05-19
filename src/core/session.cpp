@@ -203,6 +203,7 @@ CK_RV Session::FindObjectsInit
     this->find.pTemplate = (CK_ATTRIBUTE_PTR)malloc(sizeof(CK_ATTRIBUTE) * ulCount);
     for (int i = 0; i < ulCount; i++) {
         this->find.pTemplate[i];
+        // TODO: Maybe it would be better to use pointers without copying data
         ATTRIBUTE_copy(&this->find.pTemplate[i], &pTemplate[i]);
     }
     this->find.ulTemplateSize = ulCount;
@@ -239,7 +240,7 @@ CK_RV Session::FindObjects
             size_t i = 0;
             for (i; i < this->find.ulTemplateSize; i++) {
                 CK_ATTRIBUTE_PTR findAttr = &this->find.pTemplate[i];
-                CK_BYTE_PTR pbAttrValue = NULL;
+                Buffer attrValue;
                 CK_ATTRIBUTE attr = { findAttr->type , NULL_PTR, 0 };
                 res = obj->GetValues(&attr, 1);
                 if (res != CKR_OK) {
@@ -248,18 +249,15 @@ CK_RV Session::FindObjects
                 if (attr.ulValueLen != findAttr->ulValueLen) {
                     break;
                 }
-                pbAttrValue = (CK_BYTE_PTR)malloc(attr.ulValueLen);
-                attr.pValue = pbAttrValue;
+                attrValue.resize(attr.ulValueLen);
+                attr.pValue = attrValue.data();
                 res = obj->GetValues(&attr, 1);
                 if (res != CKR_OK) {
-                    free(pbAttrValue);
                     break;
                 }
                 if (memcmp(findAttr->pValue, attr.pValue, findAttr->ulValueLen)) {
-                    free(pbAttrValue);
                     break;
                 }
-                free(pbAttrValue);
             }
             if (i != this->find.ulTemplateSize) {
                 continue;

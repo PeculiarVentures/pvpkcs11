@@ -46,7 +46,9 @@ bool X509Certificate::HasPrivateKey()
 Scoped<std::string> X509Certificate::GetHashPublicKey() {
 	try {
 		if (!PUBLIC_KEY_HASH.get()) {
-			PUBLIC_KEY_HASH = DIGEST_SHA1(
+
+			PUBLIC_KEY_HASH = 
+                (
 				this->handle->pCertInfo->SubjectPublicKeyInfo.PublicKey.pbData,
 				this->handle->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData
 			);

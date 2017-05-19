@@ -2,40 +2,26 @@
 
 #include "../stdafx.h"
 #include "../core/objects/x509_certificate.h"
-#include "crypt/crypt.h"
+// #include "crypt/crypt.h"
 
-class MscapiCertificate : public X509Certificate
-{
-public:
+namespace mscapi {
 
-	CK_BBOOL trusted;
+    class X509Certificate : public core::X509Certificate {
+    public:
+        ~X509Certificate();
 
-	Scoped<crypt::X509Certificate> value;
+        void Assign(
+            PCCERT_CONTEXT context
+        );
 
-	MscapiCertificate(Scoped<crypt::X509Certificate> value, CK_BBOOL token);
-	~MscapiCertificate();
+        Scoped<Buffer> GetPublicKeyHash(
+            CK_MECHANISM_PTR             pMechanism
+        );
 
-	// storage
-	// DECLARE_GET_ATTRIBUTE(GetPrivate);
-	DECLARE_GET_ATTRIBUTE(GetLabel);
-	// DECLARE_GET_ATTRIBUTE(GetCopyable);
-	// cert
-	DECLARE_GET_ATTRIBUTE(GetTrusted);
-	DECLARE_GET_ATTRIBUTE(GetCertificateCategory);
-	DECLARE_GET_ATTRIBUTE(GetCheckValue);
-	// DECLARE_GET_ATTRIBUTE(GetStartDate);
-	// DECLARE_GET_ATTRIBUTE(GetEndDate);
-	// x509
-	DECLARE_GET_ATTRIBUTE(GetSubject);
-	DECLARE_GET_ATTRIBUTE(GetID);
-	DECLARE_GET_ATTRIBUTE(GetIssuer);
-	DECLARE_GET_ATTRIBUTE(GetSerialNumber);
-	DECLARE_GET_ATTRIBUTE(GetValue);
-	// DECLARE_GET_ATTRIBUTE(GetURL);
-	DECLARE_GET_ATTRIBUTE(GetHashOfSubjectPublicKey);
-	DECLARE_GET_ATTRIBUTE(GetHashOfIssuerPublicKey);
-	// DECLARE_GET_ATTRIBUTE(GetJavaMidpSecurityDomain);
-	// DECLARE_GET_ATTRIBUTE(GetNameHashAlgorithm);
+        void Destroy();
+    protected:
+        PCCERT_CONTEXT context;
+    };
 
-};
 
+}

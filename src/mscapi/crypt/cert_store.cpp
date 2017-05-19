@@ -42,8 +42,8 @@ void CertStore::Close()
 	CATCH_EXCEPTION;
 }
 
-Scoped<Collection<Scoped<X509Certificate>>> CertStore::GetCertificates() {
-	Scoped<Collection<Scoped<X509Certificate>>> certs(new Collection<Scoped<X509Certificate>>());
+std::vector<Scoped<mscapi::X509Certificate>> CertStore::GetCertificates() {
+    std::vector<Scoped<mscapi::X509Certificate>> certs;
 	// get certificates
 	PCCERT_CONTEXT hCert = NULL;
 	while (true)
@@ -57,8 +57,10 @@ Scoped<Collection<Scoped<X509Certificate>>> CertStore::GetCertificates() {
 		}
 		else {
 			PCCERT_CONTEXT hCopy = CertDuplicateCertificateContext(hCert);
-			Scoped<crypt::X509Certificate> x509(new crypt::X509Certificate(hCopy));
-			certs->add(x509);
+			Scoped<mscapi::X509Certificate> x509(new mscapi::X509Certificate());
+            x509->Assign(hCopy);
+            x509->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+			certs.push_back(x509);
 		}
 	}
 	return certs;

@@ -51,18 +51,14 @@ for (var i = 0; i < iterations; i++) {
     promise = promise
         .then(() => {
             let msg = `Iteration #${iter}`;
-            console.log(msg);
-            return p11.subtle.generateKey(alg, false, ["sign", "verify"])
-                .then((keys) => {
-                    return p11.keyStorage.setItem(keys.privateKey);
+
+            return p11.certStorage.keys()
+                .then((indexes) => {
+                    console.log(indexes);
+                    return p11.certStorage.getItem(indexes[0]);
                 })
-                .then((index) => {
-                    console.log(index);
-                    return p11.keyStorage.getItem(index);
-                })
-                .then((key) => {
-                    console.log(key._key.handle)
-                    return p11.keyStorage.keys();
+                .then((cert) => {
+                    console.log(cert);
                 })
         })
 

@@ -27,6 +27,7 @@
             "target_name": "pvpkcs11",
             "libraries": [
                 "Crypt32.lib",
+                "Advapi32.lib",
                 "Bcrypt.lib",
                 "Ncrypt.lib",
             ],
@@ -39,22 +40,17 @@
                 # core
                 "src/stdafx.cpp",
                 "src/pkcs11.cpp",
-                "src/core/crypto.h",
                 "src/core/crypto_digest.cpp",
                 "src/core/crypto_sign.cpp",
                 "src/core/crypto_encrypt.cpp",
-                "src/core/excep.h",
                 "src/core/excep.cpp",
-                "src/core/module.h",
                 "src/core/module.cpp",
-                "src/core/object.h",
                 "src/core/object.cpp",
-                "src/core/session.h",
                 "src/core/session.cpp",
-                "src/core/slot.h",
                 "src/core/slot.cpp",
                 "src/core/attribute.cpp",
                 "src/core/template.cpp",
+                # core/objects
                 "src/core/objects/mechanism.cpp",
                 "src/core/objects/storage.cpp",
                 "src/core/objects/key.cpp",
@@ -67,14 +63,17 @@
                 "src/core/objects/ec_key.cpp",
                 "src/core/objects/certificate.cpp",
                 "src/core/objects/x509_certificate.cpp",
+                "src/core/objects/data.cpp",
                 # mscapi
                 "src/mscapi/helper.cpp",
                 "src/mscapi/session.cpp",
                 "src/mscapi/slot.cpp",
+                "src/mscapi/data.cpp",
                 "src/mscapi/key.cpp",
                 "src/mscapi/rsa.cpp",
                 "src/mscapi/ec.cpp",
                 "src/mscapi/aes.cpp",
+                "src/mscapi/certificate.cpp",
                 # mscapi/crypto
                 "src/mscapi/crypto_digest.cpp",
                 "src/mscapi/crypto_sign.cpp",
@@ -84,7 +83,13 @@
                 "src/mscapi/bcrypt/key.cpp",
                 # mscapi/ncrypt
                 "src/mscapi/ncrypt/provider.cpp",
-                "src/mscapi/ncrypt/key.cpp"
+                "src/mscapi/ncrypt/key.cpp",
+                # mscapi/crypt
+                "src/mscapi/crypt/excep.cpp",
+                "src/mscapi/crypt/prov.cpp",
+                # "src/mscapi/crypt/key.cpp",
+                "src/mscapi/crypt/cert_store.cpp"
+                # "src/mscapi/crypt/x509_cert.cpp"
             ]
         }
     ]

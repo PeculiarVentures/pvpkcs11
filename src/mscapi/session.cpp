@@ -8,12 +8,7 @@
 #include"ec.h"
 #include"aes.h"
 
-/*
 #include "certificate.h"
-#include "rsa_public_key.h"
-#include "rsa_private_key.h"
-#include "aes_key.h"
-*/
 
 using namespace mscapi;
 
@@ -32,16 +27,14 @@ Session::~Session()
 
 void Session::LoadMyStore()
 {
-    /*
     try {
         Scoped<crypt::CertStore> store(new crypt::CertStore());
-        this->certStores.add(store);
+        this->certStores.push_back(store);
         store->Open("My");
-        Scoped<Collection<Scoped<crypt::X509Certificate>>> certs = store->GetCertificates();
-        for (size_t i = 0; i < certs->count(); i++) {
-            Scoped<crypt::X509Certificate> x509 = certs->items(i);
-            Scoped<MscapiCertificate> x509Object(new MscapiCertificate(x509, true));
-
+        auto certs = store->GetCertificates();
+        for (size_t i = 0; i < certs.size(); i++) {
+            auto x509 = certs.at(i);
+            /*
             // Get public key for Certificate. Application supports RSA and EC algorithms
             // In other case application throws error
             Scoped<Object> publicKeyObject;
@@ -71,14 +64,14 @@ void Session::LoadMyStore()
                     continue;
                 }
             }
+            */
 
-            this->objects.add(x509Object);
-            this->objects.add(publicKeyObject);
-            this->objects.add(privateKeyObject);
+            this->objects.add(x509);
+            // this->objects.add(publicKeyObject);
+            // this->objects.add(privateKeyObject);
         }
     }
-    CATCH_EXCEPTION;
-    */
+    CATCH_EXCEPTION
 }
 
 CK_RV Session::Open

@@ -1,139 +1,82 @@
 #include "certificate.h"
 
-MscapiCertificate::MscapiCertificate(Scoped<crypt::X509Certificate> value, CK_BBOOL token)
-{
-	this->handle = reinterpret_cast<CK_OBJECT_HANDLE>(this);
-	this->value = value;
-	this->propToken = token;
+#include "crypto.h"
+
+using namespace mscapi;
+
+X509Certificate::~X509Certificate() {
+    Destroy();
 }
 
-MscapiCertificate::~MscapiCertificate()
+void X509Certificate::Destroy()
 {
+    if (context) {
+        CertFreeCertificateContext(context);
+        context = NULL;
+    }
 }
 
-DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetLabel)
+void X509Certificate::Assign(
+    PCCERT_CONTEXT context
+)
 {
-	try {
-		Scoped<std::string> buf = this->value->GetLabel();
-		return this->GetBytes(pValue, pulValueLen, (CK_BYTE_PTR)buf->c_str(), buf->length());
-	}
-	CATCH_EXCEPTION;
+    try {
+        Destroy();
+        this->context = context;
+
+        // CKA_SUBJECT
+        ItemByType(CKA_SUBJECT)->To<core::AttributeBytes>()->Set(
+            context->pCertInfo->Subject.pbData,
+            context->pCertInfo->Subject.cbData
+        );
+        // CKA_ISSUER
+        ItemByType(CKA_ISSUER)->To<core::AttributeBytes>()->Set(
+            context->pCertInfo->Issuer.pbData,
+            context->pCertInfo->Issuer.cbData
+        );
+        // CKA_ID
+        CK_MECHANISM digestMechanism = { CKM_SHA_1, NULL };
+        auto hash = GetPublicKeyHash(&digestMechanism);
+        ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set(
+            hash->data(),
+            hash->size()
+        );
+        // CKA_CHECK_VALUE
+        ItemByType(CKA_CHECK_VALUE)->To<core::AttributeBytes>()->Set(
+            hash->data(),
+            3
+        );
+        // CKA_SERIAL_NUMBER
+        ItemByType(CKA_SERIAL_NUMBER)->To<core::AttributeBytes>()->Set(
+            context->pCertInfo->SerialNumber.pbData,
+            context->pCertInfo->SerialNumber.cbData
+        );
+        // CKA_VALUE
+        ItemByType(CKA_VALUE)->To<core::AttributeBytes>()->Set(
+            context->pbCertEncoded,
+            context->cbCertEncoded
+        );
+    }
+    CATCH_EXCEPTION
 }
 
-DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetSerialNumber)
+Scoped<Buffer> X509Certificate::GetPublicKeyHash(
+    CK_MECHANISM_PTR             pMechanism
+)
 {
-	try {
-		return this->GetBytes(
-			pValue, pulValueLen,
-			this->value->Get()->pCertInfo->SerialNumber.pbData,
-			this->value->Get()->pCertInfo->SerialNumber.cbData
-		);
-	}
-	CATCH_EXCEPTION;
+    try {
+        Scoped<Buffer> buffer(new Buffer(256));
+        CK_ULONG digestLength;
+        CryptoDigest digest;
+        digest.Init(pMechanism);
+        digest.Once(
+            context->pCertInfo->SubjectPublicKeyInfo.PublicKey.pbData,
+            context->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData,
+            buffer->data(),
+            &digestLength
+        );
+        buffer->resize(digestLength);
+        return buffer;
+    }
+    CATCH_EXCEPTION
 }
-
-DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetValue)
-{
-	try {
-		return this->GetBytes(
-			pValue, pulValueLen,
-			this->value->Get()->pbCertEncoded,
-			this->value->Get()->cbCertEncoded
-		);
-	}
-	CATCH_EXCEPTION;
-}
-
-DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetSubject)
-{
-	try {
-		return this->GetBytes(
-			pValue, pulValueLen,
-			this->value->Get()->pCertInfo->Subject.pbData,
-			this->value->Get()->pCertInfo->Subject.cbData
-		);
-	}
-	CATCH_EXCEPTION;
-}
-
-DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetIssuer)
-{
-	try {
-		return this->GetBytes(
-			pValue, pulValueLen,
-			this->value->Get()->pCertInfo->Issuer.pbData,
-			this->value->Get()->pCertInfo->Issuer.cbData
-		);
-	}
-	CATCH_EXCEPTION;
-}
-
-DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetTrusted)
-{
-	try {
-		return this->GetBool(pValue, pulValueLen, this->trusted);
-	}
-	CATCH_EXCEPTION;
-}
-
-DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetCertificateCategory)
-{
-	try {
-		// Categorization of the certificate : 0 = unspecified(default value), 1 = token user, 2 = authority, 3 = other entity.
-		return this->GetNumber(pValue, pulValueLen, 0);
-	}
-	CATCH_EXCEPTION;
-}
-
-DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetCheckValue)
-{
-	try {
-		CK_BYTE buf[64];
-		CK_ULONG bufLen;
-		if (!CertGetCertificateContextProperty(this->value->Get(), CERT_HASH_PROP_ID, buf, &bufLen)) {
-			return CKR_FUNCTION_FAILED;
-		}
-		if (pValue) {
-			return this->GetBytes(pValue, pulValueLen, buf, CERTIFICATE_CHECK_VALUE_LENGTH);
-		}
-		*pulValueLen = CERTIFICATE_CHECK_VALUE_LENGTH;
-		return CKR_OK;
-	}
-	CATCH_EXCEPTION;
-}
-
-DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetID)
-{
-	try {
-		Scoped<std::string> hash = this->value->GetHashPublicKey();
-		return this->GetBytes(
-			pValue, pulValueLen,
-			(BYTE*)hash->c_str(),
-			hash->length()
-		);
-	}
-	CATCH_EXCEPTION;
-}
-
-DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetHashOfSubjectPublicKey)
-{
-	try {
-		Scoped<std::string> hash = this->value->GetHashPublicKey();
-		return this->GetBytes(
-			pValue, pulValueLen,
-			(BYTE*)hash->c_str(),
-			CERTIFICATE_CHECK_VALUE_LENGTH
-		);
-	}
-	CATCH_EXCEPTION;
-}
-
-DECLARE_GET_ATTRIBUTE(MscapiCertificate::GetHashOfIssuerPublicKey)
-{
-	try {
-		return this->GetBytes(pValue, pulValueLen, NULL, 0);
-	}
-	CATCH_EXCEPTION;
-}
-
-

@@ -4,6 +4,8 @@
 #include "../../core/collection.h"
 #include "../../core/excep.h"
 
+#include "../certificate.h"
+
 namespace crypt {
 
 	/**
@@ -133,13 +135,9 @@ namespace crypt {
 	protected:
 		HCRYPTKEY         handle;
 		Scoped<Provider>  prov;
-
-		void GetParam(DWORD dwPropId, BYTE* pbData, DWORD* pdwDataLen, DWORD dwFlags = 0) throw(Exception);
-		DWORD GetNumber(DWORD dwPropId) throw(Exception);
-		void SetParam(DWORD dwPropId, BYTE* pbData, DWORD dwFlags = 0) throw(Exception);
-		void SetNumber(DWORD dwPropId, DWORD dwData) throw(Exception);
 	};
 
+    /*
 	class X509Certificate {
 
 	public:
@@ -173,13 +171,14 @@ namespace crypt {
 		Scoped<std::string> PUBLIC_KEY_HASH;
 		Scoped<std::string> LABEL;
 	};
+    */
 
 	class CertStore {
 	public:
 		CertStore();
 		~CertStore();
 
-		Scoped<Collection<Scoped<X509Certificate>>> GetCertificates();
+		std::vector<Scoped<mscapi::X509Certificate>> GetCertificates();
 
 		void Open(LPCSTR storeName);
 		void Close();
@@ -187,152 +186,6 @@ namespace crypt {
 		bool opened;
 		HCERTSTORE hStore;
 		LPCSTR name;
-	};
-
-	class Hash {
-	public:
-		static Scoped<Hash> Create(
-			Scoped<Provider>  prov,
-			ALG_ID            algId,
-			Scoped<Key>       key,
-			DWORD             dwFlag
-		);
-
-		static Scoped<std::string> Once(
-			DWORD    provType,
-			ALG_ID   algId, 
-			BYTE*    pbData, 
-			DWORD    dwDataLen
-		);
-
-		Hash(
-			Scoped<Provider>  prov,
-			ALG_ID            algId,
-			Scoped<Key>       key,
-			DWORD             dwFlag
-		);
-
-		void Update(
-			BYTE* pbData,
-			DWORD dwDataLen
-		);
-
-		HCRYPTHASH Get();
-
-		DWORD GetSize();
-		DWORD GetAlgId();
-		Scoped<std::string> GetValue();
-
-	protected:
-		Scoped<Provider>  prov;
-		Scoped<Key>       key;
-		HCRYPTHASH        handle;
-
-		void GetParam(DWORD dwPropId, BYTE* pvData, DWORD* pdwDataLen);
-		DWORD GetNumber(DWORD dwPropId);
-	};
-
-	class Sign {
-	public:
-		static Scoped<Sign> Create(
-			ALG_ID            algId,
-			Scoped<Key>       key
-		);
-
-		static Scoped<std::string> Once(
-			ALG_ID        algId,
-			Scoped<Key>   key,
-			BYTE*         pbData,
-			DWORD         dwDataLen
-		);
-
-		Sign(
-			ALG_ID            algId,
-			Scoped<Key>       key
-		);
-
-		void Update(
-			CK_BYTE_PTR       pPart,     /* signed data */
-			CK_ULONG          ulPartLen  /* length of signed data */
-		);
-
-		Scoped<std::string> Final();
-
-	protected:
-		Scoped<Key>       key;
-		Scoped<Hash>      hash;
-
-	};
-
-	class Verify {
-	public:
-		static Scoped<Verify> Create(
-			ALG_ID            algId,
-			Scoped<Key>       key
-		);
-
-		static bool Once(
-			ALG_ID        algId,
-			Scoped<Key>   key,
-			BYTE*         pbData,
-			DWORD         dwDataLen,
-			BYTE*         pbSignature,
-			DWORD         dwSignatureLen
-		);
-
-		Verify(
-			ALG_ID            algId,
-			Scoped<Key>       key
-		);
-
-		void Update(
-			CK_BYTE_PTR       pPart,     /* signed data */
-			CK_ULONG          ulPartLen  /* length of signed data */
-		);
-
-		bool Final(
-			BYTE*  pbSignature,
-			DWORD  dwSignatureLen
-		);
-
-	protected:
-		Scoped<Key>       key;
-		Scoped<Hash>      hash;
-
-	};
-
-	class Cipher {
-
-	public:
-		static Scoped<Cipher> Create(
-			bool        encrypt,
-			Scoped<Key> key
-		);
-
-		Cipher(
-			bool encrypt,
-			Scoped<Key> key
-		);
-
-		Scoped<std::string> Update(
-			BYTE*  pbData,
-			DWORD  dwDataLen
-		);
-
-		Scoped<std::string> Final();
-
-	protected:
-		Scoped<Key> key;
-		bool        encrypt;
-		DWORD       blockLen;
-		std::string buffer;
-
-		Scoped<std::string> Make(
-			bool   bFinal,
-			BYTE*  pbData,
-			DWORD  dwDataLen
-		);
-
 	};
 
 }
@@ -347,12 +200,3 @@ namespace crypt {
 		DWORD dwErrorCode = GetLastError();							\
 		THROW_MSCAPI_CODE_ERROR(dwErrorCode); \
 	}
-
-#define DIGEST_SHA1(pbData, dwDataLen)                              \
-	crypt::Hash::Once(PROV_RSA_AES, CALG_SHA1, pbData, dwDataLen)
-#define DIGEST_SHA256(pbData, dwDataLen)                            \
-	crypt::Hash::Once(PROV_RSA_AES, CALG_SHA_256, pbData, dwDataLen)
-#define DIGEST_SHA384(pbData, dwDataLen)                            \
-	crypt::Hash::Once(PROV_RSA_AES, CALG_SHA_384, pbData, dwDataLen)
-#define DIGEST_SHA512(pbData, dwDataLen)                            \
-	crypt::Hash::Once(PROV_RSA_AES, CALG_SHA_512, pbData, dwDataLen)

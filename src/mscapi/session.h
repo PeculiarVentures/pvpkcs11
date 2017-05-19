@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/session.h"
+#include "crypt/crypt.h"
 
 namespace mscapi {
 
@@ -96,6 +97,8 @@ namespace mscapi {
         );
 
 	protected:
+        std::vector<Scoped<crypt::CertStore>> certStores;
+
 		void LoadMyStore();
 	};
 
