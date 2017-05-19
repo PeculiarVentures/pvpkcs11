@@ -44,6 +44,9 @@ Scoped<core::SecretKey> AesKey::Generate(
         aesKey->ItemByType(CKA_VALUE_LEN)->To<core::AttributeNumber>()->Set(ulKeyLength);
         aesKey->ItemByType(CKA_VALUE)->SetValue((CK_BYTE_PTR)secretKey->c_str(), secretKey->length());
 
+        // AES keys are not copyable
+        aesKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(CK_FALSE);
+
         aesKey->Assign(key);
 
         return aesKey;

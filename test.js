@@ -17,21 +17,23 @@ let p11 = new p11_crypto.WebCrypto({
 });
 let ossl = new ossl_crypto();
 
-// const alg = {
-//     name: "RSASSA-PKCS1-v1_5",
-//     hash: "SHA-256",
-//     publicExponent: new Uint8Array([1, 0, 1]),
-//     modulusLength: 1024,
-// };
-// const alg = {
-//     name: "ECDSA",
-//     namedCurve: "P-384",
-//     hash: "SHA-256",
-// };
-const alg = {
-    name: "AES-CBC",
-    length: 256
+const RSA_PKCS = {
+    name: "RSASSA-PKCS1-v1_5",
+    hash: "SHA-256",
+    publicExponent: new Uint8Array([1, 0, 1]),
+    modulusLength: 1024,
 };
+const ECDSA = {
+    name: "ECDSA",
+    namedCurve: "P-384",
+    hash: "SHA-256",
+};
+// const alg = {
+//     name: "AES-CBC",
+//     length: 256
+// };
+
+const alg = RSA_PKCS;
 
 const data = new Buffer([1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6]);
 
@@ -50,23 +52,26 @@ for (var i = 0; i < iterations; i++) {
         .then(() => {
             let msg = `Iteration #${iter}`;
             console.log(msg);
-            return p11.subtle.generateKey(alg, true, ["encrypt", "decrypt"])
-                .then((key) => {
-                    return p11.keyStorage.setItem(key);
+            return p11.subtle.generateKey(alg, false, ["sign", "verify"])
+                .then((keys) => {
+                    return p11.keyStorage.setItem(keys.privateKey);
                 })
                 .then((index) => {
                     console.log(index);
                     return p11.keyStorage.getItem(index);
                 })
                 .then((key) => {
-                    console.log(key)
+                    console.log(key._key.handle)
+                    return p11.keyStorage.keys();
                 })
-
         })
 
 }
 
 promise
+    .then(() => {
+        console.log("Success");
+    })
     // @ts-ignore
     .catch((err) => {
         console.error(err);

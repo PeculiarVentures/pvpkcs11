@@ -27,8 +27,16 @@ namespace mscapi {
             CryptoKey()
         {}
 
+        CK_RV CopyValues
+        (
+            Scoped<core::Object>    object,     /* the object which must be copied */
+            CK_ATTRIBUTE_PTR        pTemplate,  /* specifies attributes */
+            CK_ULONG                ulCount     /* attributes in template */
+        );
+
     protected:
-        void FillKeyStruct();
+        void FillPublicKeyStruct();
+        void FillPrivateKeyStruct();
 
         CK_RV GetValue(
             CK_ATTRIBUTE_PTR attr
@@ -45,6 +53,12 @@ namespace mscapi {
         (
             CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
             CK_ULONG          ulCount     /* attributes in template */
+        );
+
+        CK_RV CopyValues(
+            Scoped<core::Object>    object,     /* the object which must be copied */
+            CK_ATTRIBUTE_PTR        pTemplate,  /* specifies attributes */
+            CK_ULONG                ulCount     /* attributes in template */
         );
 
     protected:

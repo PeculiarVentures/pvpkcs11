@@ -7,6 +7,8 @@
 
 namespace ncrypt {
 
+    typedef std::vector<Scoped<NCryptKeyName>> NCryptKeyNames;
+
 	template<typename T>
 	class Object {
 	public:
@@ -157,12 +159,21 @@ namespace ncrypt {
 			ULONG dwFlags = 0
 		);
 
-		Scoped<Provider> provider;
+        Scoped<Buffer> ExportKey(
+            _In_    LPCWSTR pszBlobType,
+            _In_    DWORD   dwFlags
+        );
+        
+        void Delete(
+            ULONG           dwFlags
+        );
 	};
 
 	class Provider : public Object<NCRYPT_PROV_HANDLE> {
 	public:
 		~Provider();
+
+        static Scoped<std::wstring> GenerateRandomName();
 
 		void Open(
 			_In_opt_ LPCWSTR pszProviderName,
@@ -182,7 +193,7 @@ namespace ncrypt {
 			_In_    DWORD   dwFlags
 		);
 
-		Scoped<Key> GenerateKeyPair(
+		Scoped<Key> CreatePersistedKey(
 			_In_    LPCWSTR pszAlgId,
 			_In_opt_ LPCWSTR pszKeyName,
 			_In_    DWORD   dwLegacyKeySpec,
@@ -196,6 +207,25 @@ namespace ncrypt {
             _In_        DWORD               dwFlags
         );
 
+        Scoped<NCryptKeyNames> GetKeyNames(
+            ULONG               dwFlags
+        );
+
 	};
+
+    /*
+    Copy key to new provider
+    key - original key
+    pszBlobType - type of key blob
+    provider - provider for key
+    pszContainerName - name for container. If key is NULL, then key will be in memory
+     */
+    Scoped<Key> CopyKeyToProvider(
+        Key*                key,
+        LPCWSTR             pszBlobType,
+        Provider*           provider,
+        LPCWSTR             pszContainerName,
+        bool                extractable
+    );
 
 }

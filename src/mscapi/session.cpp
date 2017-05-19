@@ -92,6 +92,16 @@ CK_RV Session::Open
     try {
         // TestPrintContainers(PROV_RSA_AES);
         // TestCipher();
+        ncrypt::Provider provider;
+        provider.Open(NULL, 0);
+        auto keyNames = provider.GetKeyNames(0);
+        for (CK_ULONG i = 0; i < keyNames->size(); i++) {
+            auto keyName = keyNames->at(i);
+            wprintf(L"keyName->pszName: %s\n", keyName->pszName);
+            wprintf(L"keyName->pszAlgidpszName: %s\n", keyName->pszAlgid);
+            auto key = provider.OpenKey(keyName->pszName, 0, 0);
+            key->Delete(0);
+        }
 
         CK_RV res = core::Session::Open(flags, pApplication, Notify, phSession);
 
@@ -496,12 +506,19 @@ Scoped<core::Object> Session::CopyObject
     try {
         Scoped<core::Object> copy;
 
-        if (dynamic_cast<AesKey*>(object.get())) {
+        if (dynamic_cast<RsaPrivateKey*>(object.get())) {
+            copy = Scoped<RsaPrivateKey>(new RsaPrivateKey());
+        }
+        else if (dynamic_cast<EcPrivateKey*>(object.get())) {
+            copy = Scoped<EcPrivateKey>(new EcPrivateKey());
+        }
+        else if (dynamic_cast<AesKey*>(object.get())) {
             copy = Scoped<AesKey>(new AesKey());
         }
         else {
             THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Object is not copyable");
         }
+
         copy->CopyValues(object, pTemplate, ulCount);
         return copy;
     }

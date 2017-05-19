@@ -39,7 +39,10 @@ NT_STATUS_MESSAGE NT_STATUS_MESSAGES[] = {
     { NTE_INVALID_PARAMETER, "One or more parameters are not valid." },
     { NTE_NO_MEMORY, "A memory allocation failure occurred." },
     { NTE_NOT_SUPPORTED, "The specified property is not supported for the object." },
-    { NTE_PERM, "Access denied." }
+    { NTE_PERM, "Access denied." },
+    { NTE_NO_MORE_ITEMS, "The end of the enumeration has been reached." },
+    { NTE_SILENT_CONTEXT, "The dwFlags parameter contains the NCRYPT_SILENT_FLAG flag, but the key being enumerated requires user interaction." },
+    { NTE_BAD_TYPE, "Invalid type specified." }
 };
 
 std::string GetNTErrorAsString(NTSTATUS status)

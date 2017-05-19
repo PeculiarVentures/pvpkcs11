@@ -31,8 +31,14 @@ Scoped<CryptoKeyPair> RsaKey::Generate(
         Scoped<ncrypt::Provider> provider(new ncrypt::Provider());
         provider->Open(MS_KEY_STORAGE_PROVIDER, 0);
 
-        // TODO: Random name for key. If TOKEN flag is true
-        auto key = provider->GenerateKeyPair(NCRYPT_RSA_ALGORITHM, NULL, 0, 0);
+        Scoped<ncrypt::Key> key;
+        auto pszAlgorithm = NCRYPT_RSA_ALGORITHM;
+        if (privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue()) {
+            key = provider->CreatePersistedKey(pszAlgorithm, NULL, 0, 0);
+        }
+        else {
+            key = provider->CreatePersistedKey(pszAlgorithm, provider->GenerateRandomName()->c_str(), 0, 0);
+        }
 
         // Public exponent
         auto publicExponent = publicTemplate->GetBytes(CKA_PUBLIC_EXPONENT, true);
@@ -53,8 +59,13 @@ Scoped<CryptoKeyPair> RsaKey::Generate(
         }
         key->SetNumber(NCRYPT_KEY_USAGE_PROPERTY, keyUsage);
 
-        // TODO: Extractable
-        key->SetNumber(NCRYPT_EXPORT_POLICY_PROPERTY, NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG, NCRYPT_PERSIST_FLAG);
+        auto attrToken = privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue();
+        auto attrExtractable = privateKey->ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->ToValue();
+        if ((attrToken && attrExtractable) || !attrToken) {
+            // Make all session keys extractable. It allows to copy keys from session to storage via export/import
+            // This is extractable only for internal usage. Key object will have CKA_EXTRACTABLE with setted value
+            key->SetNumber(NCRYPT_EXPORT_POLICY_PROPERTY, NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG, NCRYPT_PERSIST_FLAG);
+        }
 
         key->Finalize();
 
@@ -68,20 +79,11 @@ Scoped<CryptoKeyPair> RsaKey::Generate(
 
 // RSA private key
 
-void RsaPrivateKey::FillKeyStruct()
+void RsaPrivateKey::FillPublicKeyStruct()
 {
     try {
-        DWORD dwKeyLen = 0;
-        BYTE* pbKey = NULL;
-        NTSTATUS status;
-        if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_RSAFULLPRIVATE_BLOB, 0, NULL, 0, &dwKeyLen, 0)) {
-            THROW_NT_EXCEPTION(status);
-        }
-        pbKey = (BYTE*)malloc(dwKeyLen);
-        if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_RSAFULLPRIVATE_BLOB, 0, pbKey, dwKeyLen, &dwKeyLen, 0)) {
-            free(pbKey);
-            THROW_NT_EXCEPTION(status);
-        }
+        auto buffer = nkey->ExportKey(BCRYPT_RSAPUBLIC_BLOB, 0);
+        BYTE* pbKey = buffer->data();
 
         // BCRYPT_RSAKEY_BLOB
         BCRYPT_RSAKEY_BLOB* header = (BCRYPT_RSAKEY_BLOB*)pbKey;
@@ -91,6 +93,22 @@ void RsaPrivateKey::FillKeyStruct()
         // Modulus[cbModulus]           // Big-endian.
         PBYTE pbModulus = (PBYTE)(pbPublicExponent + header->cbPublicExp);
         ItemByType(CKA_MODULUS)->SetValue(pbModulus, header->cbModulus);
+    }
+    CATCH_EXCEPTION
+}
+
+void RsaPrivateKey::FillPrivateKeyStruct()
+{
+    try {
+        auto buffer = nkey->ExportKey(BCRYPT_RSAFULLPRIVATE_BLOB, 0);
+        BYTE* pbKey = buffer->data();
+
+        // BCRYPT_RSAKEY_BLOB
+        BCRYPT_RSAKEY_BLOB* header = (BCRYPT_RSAKEY_BLOB*)pbKey;
+        // PublicExponent[cbPublicExp]  // Big-endian.
+        PBYTE pbPublicExponent = (PBYTE)(pbKey + sizeof(BCRYPT_RSAKEY_BLOB));
+        // Modulus[cbModulus]           // Big-endian.
+        PBYTE pbModulus = (PBYTE)(pbPublicExponent + header->cbPublicExp);
         // Prime1[cbPrime1]             // Big-endian.
         PBYTE pbPrime1 = (PBYTE)(pbModulus + header->cbModulus);
         ItemByType(CKA_PRIME_1)->SetValue(pbPrime1, header->cbPrime1);
@@ -109,8 +127,6 @@ void RsaPrivateKey::FillKeyStruct()
         // PrivateExponent[cbModulus]   // Big-endian.
         PBYTE pbPrivateExponent = (PBYTE)(pbCoefficient + header->cbPrime1);
         ItemByType(CKA_PRIVATE_EXPONENT)->SetValue(pbPrivateExponent, header->cbModulus);
-
-        free(pbKey);
     }
     CATCH_EXCEPTION
 }
@@ -124,6 +140,12 @@ CK_RV RsaPrivateKey::GetValue
         switch (attr->type) {
         case CKA_MODULUS:
         case CKA_PUBLIC_EXPONENT:
+        {
+            if (ItemByType(attr->type)->IsEmpty()) {
+                FillPublicKeyStruct();
+            }
+            break;
+        }
         case CKA_PRIME_1:
         case CKA_PRIME_2:
         case CKA_EXPONENT_1:
@@ -131,11 +153,48 @@ CK_RV RsaPrivateKey::GetValue
         case CKA_PRIVATE_EXPONENT:
         {
             if (ItemByType(attr->type)->IsEmpty()) {
-                FillKeyStruct();
+                FillPrivateKeyStruct();
             }
             break;
         }
         }
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV RsaPrivateKey::CopyValues(
+    Scoped<core::Object>    object,     /* the object which must be copied */
+    CK_ATTRIBUTE_PTR        pTemplate,  /* specifies attributes */
+    CK_ULONG                ulCount     /* attributes in template */
+)
+{
+    try {
+        core::RsaPrivateKey::CopyValues(
+            object,
+            pTemplate,
+            ulCount
+        );
+
+        RsaPrivateKey* originalKey = dynamic_cast<RsaPrivateKey*>(object.get());
+        if (!originalKey) {
+            THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Original key must be RsaPrivateKey");
+        }
+
+        ncrypt::Provider provider;
+        provider.Open(MS_KEY_STORAGE_PROVIDER, 0);
+
+        auto attrToken = ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue();
+        auto attrExtractable = ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->ToValue();
+
+        nkey = ncrypt::CopyKeyToProvider(
+            originalKey->nkey.get(), 
+            BCRYPT_RSAFULLPRIVATE_BLOB, 
+            &provider, 
+            attrToken ? provider.GenerateRandomName()->c_str() : NULL,
+            (attrToken && attrExtractable) || !attrToken
+            );
+
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -145,17 +204,8 @@ CK_RV RsaPrivateKey::GetValue
 void RsaPublicKey::FillKeyStruct()
 {
     try {
-        DWORD dwKeyLen = 0;
-        BYTE* pbKey = NULL;
-        NTSTATUS status;
-        if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_RSAPUBLIC_BLOB, 0, NULL, 0, &dwKeyLen, 0)) {
-            THROW_NT_EXCEPTION(status);
-        }
-        pbKey = (BYTE*)malloc(dwKeyLen);
-        if (status = NCryptExportKey(this->nkey->Get(), NULL, BCRYPT_RSAPUBLIC_BLOB, 0, pbKey, dwKeyLen, &dwKeyLen, 0)) {
-            free(pbKey);
-            THROW_NT_EXCEPTION(status);
-        }
+        auto buffer = nkey->ExportKey(BCRYPT_RSAPUBLIC_BLOB, 0);
+        BYTE* pbKey = buffer->data();
 
         // BCRYPT_RSAKEY_BLOB
         BCRYPT_RSAKEY_BLOB* header = (BCRYPT_RSAKEY_BLOB*)pbKey;
@@ -168,7 +218,6 @@ void RsaPublicKey::FillKeyStruct()
         PBYTE pbModulus = (PBYTE)(pbPublicExponent + header->cbPublicExp);
         ItemByType(CKA_MODULUS)->To<core::AttributeBytes>()->Set(pbModulus, header->cbModulus);
 
-        free(pbKey);
     }
     CATCH_EXCEPTION
 }
@@ -227,6 +276,31 @@ CK_RV RsaPublicKey::CreateValues
         auto key = provider.ImportKey(BCRYPT_RSAPUBLIC_BLOB, buffer->data(), buffer->size(), 0);
         Assign(key);
 
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV RsaPublicKey::CopyValues(
+    Scoped<core::Object>    object,     /* the object which must be copied */
+    CK_ATTRIBUTE_PTR        pTemplate,  /* specifies attributes */
+    CK_ULONG                ulCount     /* attributes in template */
+)
+{
+    try {
+        core::RsaPublicKey::CopyValues(
+            object,
+            pTemplate,
+            ulCount
+        );
+
+        RsaPublicKey* originalKey = dynamic_cast<RsaPublicKey*>(object.get());
+        if (!originalKey) {
+            THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Original key must be RsaPrivateKey");
+        }
+
+        nkey = originalKey->nkey;
+
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
