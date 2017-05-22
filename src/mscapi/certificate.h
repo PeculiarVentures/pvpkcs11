@@ -2,25 +2,22 @@
 
 #include "../stdafx.h"
 #include "../core/objects/x509_certificate.h"
-// #include "crypt/crypt.h"
+#include "crypt/crypt.h"
 
 namespace mscapi {
 
     class X509Certificate : public core::X509Certificate {
     public:
-        ~X509Certificate();
-
         void Assign(
-            PCCERT_CONTEXT context
+            Scoped<crypt::Certificate>     cert
         );
+        Scoped<crypt::Certificate> Get();
 
         Scoped<Buffer> GetPublicKeyHash(
-            CK_MECHANISM_PTR             pMechanism
+            CK_MECHANISM_TYPE       mechType
         );
-
-        void Destroy();
     protected:
-        PCCERT_CONTEXT context;
+        Scoped<crypt::Certificate> value;
     };
 
 

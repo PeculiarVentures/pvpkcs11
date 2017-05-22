@@ -167,6 +167,7 @@ namespace ncrypt {
         void Delete(
             ULONG           dwFlags
         );
+        Scoped<Buffer> GetId();
 	};
 
 	class Provider : public Object<NCRYPT_PROV_HANDLE> {

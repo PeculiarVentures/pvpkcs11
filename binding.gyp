@@ -85,8 +85,10 @@
                 "src/mscapi/ncrypt/provider.cpp",
                 "src/mscapi/ncrypt/key.cpp",
                 # mscapi/crypt
-                "src/mscapi/crypt/excep.cpp",
                 "src/mscapi/crypt/prov.cpp",
+                "src/mscapi/crypt/excep.cpp",
+                "src/mscapi/crypt/cert.cpp",
+                "src/mscapi/crypt/key.cpp",
                 # "src/mscapi/crypt/key.cpp",
                 "src/mscapi/crypt/cert_store.cpp"
                 # "src/mscapi/crypt/x509_cert.cpp"

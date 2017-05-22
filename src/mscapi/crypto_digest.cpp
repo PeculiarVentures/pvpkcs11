@@ -115,3 +115,31 @@ void CryptoDigest::Dispose()
     }
     active = false;
 }
+
+Scoped<Buffer> mscapi::Digest(
+    CK_MECHANISM_TYPE   mechType,
+    CK_BYTE_PTR         pbData,
+    CK_ULONG            ulDataLen
+)
+{
+    try {
+        Scoped<Buffer> buffer(new Buffer(256));
+        CK_ULONG digestLength = buffer->size();
+        CryptoDigest digest;
+        CK_MECHANISM mechanism = {
+            mechType,       // mechanism
+            NULL,           // pParameter
+            0               // ulParameterLen
+        };
+        digest.Init(&mechanism);
+        digest.Once(
+            pbData,
+            ulDataLen,
+            buffer->data(),
+            &digestLength
+        );
+        buffer->resize(digestLength);
+        return buffer;
+    }
+    CATCH_EXCEPTION
+}

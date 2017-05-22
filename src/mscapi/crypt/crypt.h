@@ -4,9 +4,10 @@
 #include "../../core/collection.h"
 #include "../../core/excep.h"
 
-#include "../certificate.h"
-
 namespace crypt {
+
+#define PV_STORE_NAME_MY            "MY"
+#define PV_STORE_NAME_REQUEST       "REQUEST"
 
 	/**
 	 * Exception
@@ -23,6 +24,8 @@ namespace crypt {
 			int                line
 		);
 	};
+
+    class Key;
 
 	/**
 	 * Provider
@@ -71,7 +74,12 @@ namespace crypt {
 		Scoped<std::string> GetName();
 		DWORD GetType();
 		DWORD GetKeySpec();
-		Scoped<Collection<Scoped<std::string>>> GetContainers();
+		std::vector<Scoped<std::string>> GetContainers();
+
+        Scoped<Key> GetUserKey(
+            DWORD           dwKeySpec
+        );
+
 
 	protected:
 		HCRYPTPROV handle;
@@ -112,7 +120,6 @@ namespace crypt {
 		) throw(Exception);
 
 		Key();
-		Key(Scoped<Provider> prov);
 		Key(HCRYPTKEY handle);
 		~Key();
 
@@ -120,21 +127,10 @@ namespace crypt {
 		void Destroy();
 
 		HCRYPTKEY Get() throw(Exception);
-		void Set(HCRYPTKEY value);
-
-		Scoped<Provider>  GetProvider();
-		DWORD GetKeyLen();
-		DWORD GetBlockLen();
-		ALG_ID GetAlgId();
-		DWORD GetMode();
-		DWORD GetPadding();
-
-		void SetIV(BYTE* pbData, DWORD pbDataLen);
-		void SetPadding(DWORD dwPadding);
+		void Assign(HCRYPTKEY value);
 
 	protected:
 		HCRYPTKEY         handle;
-		Scoped<Provider>  prov;
 	};
 
     /*
@@ -173,18 +169,51 @@ namespace crypt {
 	};
     */
 
+    // Certificate
+
+    class Certificate {
+    public:
+        Certificate();
+        ~Certificate();
+        void Destroy();
+        void Assign(PCCERT_CONTEXT context);
+        PCCERT_CONTEXT Get();
+        Scoped<Certificate> Duplicate();
+        bool HasProperty(
+            DWORD               dwPropId
+        );
+        Scoped<Buffer> GetPropertyBytes(
+            DWORD               dwPropId
+        );
+        ULONG GetPropertyNumber(
+            DWORD dwPropId
+        );
+        void SetPropertyBytes(
+            DWORD           dwPropId,
+            Buffer*         data,
+            DWORD           dwFlags = 0
+        );
+        void SetPropertyNumber(
+            DWORD           dwPropId,
+            DWORD           data,
+            DWORD           dwFlags
+        );
+    protected:
+        PCCERT_CONTEXT context;
+    };
+
 	class CertStore {
 	public:
 		CertStore();
 		~CertStore();
 
-		std::vector<Scoped<mscapi::X509Certificate>> GetCertificates();
-
-		void Open(LPCSTR storeName);
+		std::vector<Scoped<Certificate>> GetCertificates();
         void AddCertificate(
-            PCCERT_CONTEXT      context,
+            Scoped<Certificate> context,
             ULONG               dwFlags
         );
+
+		void Open(LPCSTR storeName);
 		void Close();
 	protected:
 		bool opened;
@@ -199,7 +228,7 @@ namespace crypt {
 #define THROW_MSCAPI_CODE_ERROR(dwErrorCode)                        \
 	throw Scoped<core::Exception>(new crypt::Exception(MSCAPI_EXCEPTION_NAME, dwErrorCode, "", __FUNCTION__, __FILE__, __LINE__)); \
 
-#define THROW_MSCAPI_ERROR()                                        \
+#define THROW_MSCAPI_EXCEPTION()                                        \
 	{                                                               \
 		DWORD dwErrorCode = GetLastError();							\
 		THROW_MSCAPI_CODE_ERROR(dwErrorCode); \

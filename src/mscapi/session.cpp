@@ -13,6 +13,80 @@
 
 using namespace mscapi;
 
+void Test()
+{
+    try {
+        ncrypt::Provider provider;
+        provider.Open(MS_KEY_STORAGE_PROVIDER, 0);
+        auto key = provider.CreatePersistedKey(NCRYPT_RSA_ALGORITHM, L"test RSA key", 0, NCRYPT_OVERWRITE_KEY_FLAG);
+        key->SetNumber(NCRYPT_KEY_USAGE_PROPERTY, NCRYPT_ALLOW_SIGNING_FLAG);
+        key->SetNumber(NCRYPT_EXPORT_POLICY_PROPERTY, NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG, NCRYPT_PERSIST_FLAG);
+        key->Finalize();
+
+        LPCTSTR pszX500 = "CN = CNG Certificate #1";
+
+        DWORD cbEncoded = 0;
+
+        if (!CertStrToName(X509_ASN_ENCODING, pszX500, CERT_X500_NAME_STR, NULL, NULL, &cbEncoded, NULL)) {
+            THROW_MSCAPI_EXCEPTION();
+        }
+        PUCHAR pbEncoded = (PUCHAR)malloc(cbEncoded);
+        if (!CertStrToName(X509_ASN_ENCODING, pszX500, CERT_X500_NAME_STR, NULL, pbEncoded, &cbEncoded, NULL)) {
+            THROW_MSCAPI_EXCEPTION();
+        }
+
+        CERT_NAME_BLOB nameBlob;
+        nameBlob.pbData = pbEncoded;
+        nameBlob.cbData = cbEncoded;
+
+        // Prepare key provider structure for self-signed certificate
+
+        CRYPT_KEY_PROV_INFO KeyProvInfo;
+
+        KeyProvInfo.pwszContainerName = L"test RSA key";
+
+        KeyProvInfo.pwszProvName = MS_KEY_STORAGE_PROVIDER;
+
+        KeyProvInfo.dwProvType = 0;
+
+        KeyProvInfo.dwFlags = 0;
+
+        KeyProvInfo.cProvParam = 0;
+
+        KeyProvInfo.rgProvParam = NULL;
+
+        KeyProvInfo.dwKeySpec = 0;
+
+
+        // Prepare algorithm structure for self-signed certificate
+
+        CRYPT_ALGORITHM_IDENTIFIER SignatureAlgorithm;
+
+        SignatureAlgorithm.pszObjId = szOID_RSA_SHA1RSA;
+
+
+        // Prepare Expiration date for self-signed certificate
+
+        SYSTEMTIME EndTime;
+
+        GetSystemTime(&EndTime);
+
+        EndTime.wYear += 5;
+
+        PCCERT_CONTEXT pCertContext = CertCreateSelfSignCertificate(key->Get(), &nameBlob, 0, &KeyProvInfo, &SignatureAlgorithm, 0, &EndTime, 0);
+        if (!pCertContext) {
+            THROW_MSCAPI_EXCEPTION();
+        }
+        Scoped<crypt::Certificate> cert(new crypt::Certificate);
+        cert->Assign(pCertContext);
+
+        crypt::CertStore store;
+        store.Open("My");
+        store.AddCertificate(cert, CERT_STORE_ADD_NEW);
+    }
+    CATCH_EXCEPTION
+}
+
 Session::Session() : core::Session()
 {
     digest = Scoped<CryptoDigest>(new CryptoDigest());
@@ -31,45 +105,104 @@ void Session::LoadMyStore()
     try {
         Scoped<crypt::CertStore> store(new crypt::CertStore());
         this->certStores.push_back(store);
-        store->Open("My");
+        store->Open(PV_STORE_NAME_MY);
         auto certs = store->GetCertificates();
         for (size_t i = 0; i < certs.size(); i++) {
-            auto x509 = certs.at(i);
-            /*
-            // Get public key for Certificate. Application supports RSA and EC algorithms
-            // In other case application throws error
-            Scoped<Object> publicKeyObject;
-            try {
-                Scoped<crypt::Key> publicKey = x509->GetPublicKey();
-                // fprintf(stdout, "Certificate '%s' has public key\n", x509->GetLabel()->c_str());
-                Scoped<MscapiRsaPublicKey> key(new MscapiRsaPublicKey(publicKey, true));
-                key->propId = *x509->GetHashPublicKey().get();
-                publicKeyObject = key;
-            }
-            catch (Scoped<core::Exception> e) {
+            auto cert = certs.at(i);
+
+            if (!cert->HasProperty(CERT_KEY_PROV_INFO_PROP_ID)) {
                 continue;
             }
 
-            // Get private key for Certificate
-            Scoped<Object> privateKeyObject;
-            if (x509->HasPrivateKey()) {
-                // fprintf(stdout, "Certificate '%s' has private key\n", x509->GetLabel()->c_str());
+            auto propKeyProvInfo = cert->GetPropertyBytes(CERT_KEY_PROV_INFO_PROP_ID);
+            CRYPT_KEY_PROV_INFO* pKeyProvInfo = (CRYPT_KEY_PROV_INFO*)propKeyProvInfo->data();
+
+            Scoped<core::Object> privateKey;
+            Scoped<core::Object> publicKey;
+            if (
+                pKeyProvInfo->dwProvType == 0 &&
+                !wmemcmp(MS_KEY_STORAGE_PROVIDER, pKeyProvInfo->pwszProvName, lstrlenW(MS_KEY_STORAGE_PROVIDER))
+                ) {
+                // CNG
+            }
+            else if (
+                pKeyProvInfo->dwProvType == PROV_RSA_FULL ||
+                pKeyProvInfo->dwProvType == PROV_RSA_AES ||
+                pKeyProvInfo->dwProvType == PROV_RSA_SIG ||
+                pKeyProvInfo->dwProvType == PROV_EC_ECDSA_FULL ||
+                pKeyProvInfo->dwProvType == PROV_EC_ECDSA_SIG
+                ) {
+                // CAPI
+                Scoped<crypt::Provider> provider(new crypt::Provider());
                 try {
-                    Scoped<crypt::Key> privateKey = x509->GetPrivateKey();
-                    Scoped<MscapiRsaPrivateKey> key(new MscapiRsaPrivateKey(privateKey, true));
-                    key->id = *x509->GetHashPublicKey().get();
-                    privateKeyObject = key;
+                    provider->AcquireContextW(
+                        pKeyProvInfo->pwszContainerName,
+                        pKeyProvInfo->pwszProvName,
+                        pKeyProvInfo->dwProvType,
+                        CRYPT_SILENT
+                    );
                 }
-                catch (Scoped<core::Exception> e) {
-                    // If we cannot get private key for certificate, we don't have to show this certificate in list
+                catch (...) {
+                    // cannot get key. it can be on smart card
                     continue;
                 }
+                auto key = provider->GetUserKey(pKeyProvInfo->dwKeySpec);
+
+                Scoped<ncrypt::Provider> nprov(new ncrypt::Provider());
+                nprov->Open(MS_KEY_STORAGE_PROVIDER, 0);
+                auto nkey = nprov->TranslateHandle(provider->Get(), key->Get(), 0, 0);
+
+                switch (pKeyProvInfo->dwProvType) {
+                case PROV_RSA_SIG:
+                case PROV_RSA_AES:
+                case PROV_RSA_FULL: {
+                    auto rsaPrivateKey = Scoped<RsaPrivateKey>(new RsaPrivateKey());
+                    rsaPrivateKey->Assign(nkey);
+                    auto rsaPublicKey = Scoped<RsaPublicKey>(new RsaPublicKey());
+                    rsaPublicKey->Assign(nkey);
+                    privateKey = rsaPrivateKey;
+                    publicKey = rsaPublicKey;
+                    break;
+                }
+                case PROV_EC_ECDSA_SIG:
+                case PROV_EC_ECDSA_FULL:
+                    auto ecPrivateKey = Scoped<EcPrivateKey>(new EcPrivateKey());
+                    ecPrivateKey->Assign(nkey);
+                    auto ecPublicKey = Scoped<EcPublicKey>(new EcPublicKey());
+                    ecPublicKey->Assign(nkey);
+                    privateKey = ecPrivateKey;
+                    publicKey = ecPublicKey;
+                    break;
+                }
             }
-            */
+            else {
+                continue;
+            }
+
+            Scoped<X509Certificate> x509(new X509Certificate());
+            x509->Assign(cert);
+
+            x509->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+            x509->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+            x509->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
 
             this->objects.add(x509);
-            // this->objects.add(publicKeyObject);
-            // this->objects.add(privateKeyObject);
+
+            if (privateKey && publicKey) {
+                auto attrID = x509->ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
+                privateKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
+                privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                privateKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+                privateKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+
+                publicKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
+                publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                publicKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+                publicKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+
+                this->objects.add(publicKey);
+                this->objects.add(privateKey);
+            }
         }
     }
     CATCH_EXCEPTION
@@ -78,49 +211,76 @@ void Session::LoadMyStore()
 void Session::LoadRequestStore()
 {
     try {
-        HCERTSTORE hStore = CertOpenSystemStoreA((HCRYPTPROV)NULL, "REQUEST");
-        if (!hStore) {
-            goto err;
+        Scoped<crypt::CertStore> requestStore(new crypt::CertStore());
+        requestStore->Open(PV_STORE_NAME_REQUEST);
+
+        auto certs = requestStore->GetCertificates();
+
+        for (ULONG i = 0; i < certs.size(); i++) {
+            auto cert = certs.at(i);
+            if (cert->HasProperty(CERT_PV_REQUEST) && cert->HasProperty(CERT_PV_ID)) {
+                Scoped<X509CertificateRequest> object(new X509CertificateRequest());
+                object->Assign(cert);
+
+                object->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                object->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+                object->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+
+                objects.add(object);
+            }
         }
+    }
+    CATCH_EXCEPTION
+}
 
-        PCCERT_CONTEXT hCert = NULL;
+void Session::LoadCngKeys()
+{
+    try {
+        Scoped<ncrypt::Provider> provider(new ncrypt::Provider());
+        provider->Open(MS_KEY_STORAGE_PROVIDER, 0);
 
-        while (hCert = CertEnumCertificatesInStore(hStore, hCert)) {
-            Buffer data;
-
-            ULONG ulDataLen = 0;
-            if (!CertGetCertificateContextProperty(hCert, CERT_PV_REQUEST, NULL, &ulDataLen)) {
+        auto keyNames = provider->GetKeyNames(0);
+        for (ULONG i = 0; i < keyNames->size(); i++) {
+            auto keyName = keyNames->at(i);
+            auto key = provider->OpenKey(keyName->pszName, keyName->dwLegacyKeySpec, keyName->dwFlags);
+            auto propAlgGroup = key->GetBytesW(NCRYPT_ALGORITHM_GROUP_PROPERTY);
+            Scoped<core::Object> privateKey;
+            Scoped<core::Object> publicKey;
+            if (!wmemcmp(propAlgGroup->c_str(), NCRYPT_RSA_ALGORITHM_GROUP, lstrlenW(NCRYPT_RSA_ALGORITHM_GROUP))) {
+                auto rsaPrivateKey = Scoped<RsaPrivateKey>(new RsaPrivateKey());
+                rsaPrivateKey->Assign(key);
+                auto rsaPublicKey = Scoped<RsaPublicKey>(new RsaPublicKey());
+                rsaPublicKey->Assign(key);
+                privateKey = rsaPrivateKey;
+                publicKey = rsaPublicKey;
+            } else if (!wmemcmp(propAlgGroup->c_str(), NCRYPT_ECDH_ALGORITHM_GROUP, lstrlenW(NCRYPT_ECDH_ALGORITHM_GROUP)) ||
+                !wmemcmp(propAlgGroup->c_str(), NCRYPT_ECDSA_ALGORITHM_GROUP, lstrlenW(NCRYPT_ECDSA_ALGORITHM_GROUP))) {
+                auto ecPrivateKey = Scoped<EcPrivateKey>(new EcPrivateKey());
+                ecPrivateKey->Assign(key);
+                auto ecPublicKey = Scoped<EcPublicKey>(new EcPublicKey());
+                ecPublicKey->Assign(key);
+                privateKey = ecPrivateKey;
+                publicKey = ecPublicKey;
+            }
+            else {
+                // Unsupported algorithm
                 continue;
             }
-            data.resize(ulDataLen);
-            if (!CertGetCertificateContextProperty(hCert, CERT_PV_REQUEST, data.data(), &ulDataLen)) {
-                goto err;
-            }
 
-            Scoped<core::Object> object(new X509CertificateRequest());
-            object->ItemByType(CKA_VALUE)->SetValue(data.data(), data.size());
-            char *label = "X509 Request";
-            object->ItemByType(CKA_LABEL)->SetValue(label, strlen(label));
-            object->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-            if (!CertGetCertificateContextProperty(hCert, CERT_PV_ID, NULL, &ulDataLen)) {
-                continue;
-            }
-            data.resize(ulDataLen);
-            if (!CertGetCertificateContextProperty(hCert, CERT_PV_ID, data.data(), &ulDataLen)) {
-                goto err;
-            }
-            object->ItemByType(CKA_OBJECT_ID)->SetValue(data.data(), data.size());
+            auto attrID = key->GetId();
+            privateKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
+            privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+            privateKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+            privateKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
 
-            objects.add(object);
+            publicKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
+            publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+            publicKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+            publicKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+
+            objects.add(publicKey);
+            objects.add(privateKey);
         }
-
-        return;
-    err:
-        if (hStore) {
-            CertCloseStore(hStore, 0);
-        }
-        THROW_MSCAPI_ERROR();
-
     }
     CATCH_EXCEPTION
 }
@@ -134,26 +294,15 @@ CK_RV Session::Open
 )
 {
     try {
-        // TestPrintContainers(PROV_RSA_AES);
-        // TestCipher();
-        /*
-        ncrypt::Provider provider;
-        provider.Open(NULL, 0);
-        auto keyNames = provider.GetKeyNames(0);
-        for (CK_ULONG i = 0; i < keyNames->size(); i++) {
-            auto keyName = keyNames->at(i);
-            wprintf(L"keyName->pszName: %s\n", keyName->pszName);
-            wprintf(L"keyName->pszAlgidpszName: %s\n", keyName->pszAlgid);
-            auto key = provider.OpenKey(keyName->pszName, 0, 0);
-            key->Delete(0);
-        }
-        */
+
+        // Test();
 
         CK_RV res = core::Session::Open(flags, pApplication, Notify, phSession);
 
         if (res == CKR_OK) {
-            // LoadMyStore();
+            LoadMyStore();
             LoadRequestStore();
+            LoadCngKeys();
         }
         return res;
     }

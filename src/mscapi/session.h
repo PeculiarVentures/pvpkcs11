@@ -101,6 +101,7 @@ namespace mscapi {
 
 		void LoadMyStore();
         void LoadRequestStore();
+        void LoadCngKeys();
 	};
 
 }

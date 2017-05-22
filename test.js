@@ -61,10 +61,10 @@ for (var i = 0; i < iterations; i++) {
             return p11.certStorage.keys()
                 .then((indexes) => {
                     console.log(indexes);
-                    return p11.certStorage.getItem(indexes[4])
+                    return p11.keyStorage.keys()
                 })
-                .then((item) => {
-                    console.log(item);
+                .then((indexes) => {
+                    console.log(indexes);
                 })
         })
 

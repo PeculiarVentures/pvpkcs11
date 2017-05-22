@@ -37,6 +37,17 @@ namespace mscapi {
         void Dispose();
     };
 
+    Scoped<Buffer> Digest(
+        CK_MECHANISM_TYPE   mechType,
+        CK_BYTE_PTR         pbData,
+        CK_ULONG            ulDataLen
+    );
+
+#define DIGEST_SHA1(pbData, ulDataLen) mscapi::Digest(CKM_SHA_1, pbData, ulDataLen)
+#define DIGEST_SHA256(pbData, ulDataLen) mscapi::Digest(CKM_SHA256, pbData, ulDataLen)
+#define DIGEST_SHA384(pbData, ulDataLen) mscapi::Digest(CKM_SHA384, pbData, ulDataLen)
+#define DIGEST_SHA512(pbData, ulDataLen) mscapi::Digest(CKM_SHA512, pbData, ulDataLen)
+
     /**
     * Sign/Verify
     */
@@ -44,7 +55,7 @@ namespace mscapi {
     public:
         CryptoSign(
             CK_BBOOL type
-        ) : core::CryptoSign(type) 
+        ) : core::CryptoSign(type)
         {}
     };
     /**
@@ -183,7 +194,7 @@ namespace mscapi {
     public:
         CryptoEncrypt(
             CK_BBOOL type
-        ): core::CryptoEncrypt(type) 
+        ) : core::CryptoEncrypt(type)
         {}
     };
 
@@ -223,7 +234,7 @@ namespace mscapi {
 
     protected:
         CryptoKey*          key;
-        
+
     };
 
 }

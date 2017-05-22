@@ -5,23 +5,23 @@
 
 using namespace mscapi;
 
-Scoped<Buffer> GetHash(CK_MECHANISM_TYPE mechanismType, PUCHAR pbData, ULONG cbData)
+void X509CertificateRequest::Assign(
+    Scoped<crypt::Certificate>  cert
+)
 {
     try {
-        Scoped<Buffer> buffer(new Buffer(256));
-        CK_ULONG digestLength;
-        CryptoDigest digest;
-        CK_MECHANISM mechanism = { mechanismType, NULL };
-        digest.Init(&mechanism);
-        digest.Once(
-            pbData,
-            cbData,
-            buffer->data(),
-            &digestLength
-        );
-        buffer->resize(digestLength);
+        if (cert->HasProperty(CERT_PV_REQUEST) && cert->HasProperty(CERT_PV_ID)) {
+            auto propRequest = cert->GetPropertyBytes(CERT_PV_REQUEST);
 
-        return buffer;
+            ItemByType(CKA_VALUE)->SetValue(propRequest->data(), propRequest->size());
+            char *label = "X509 Request";
+            ItemByType(CKA_LABEL)->SetValue(label, strlen(label));
+            auto propObjectId = cert->GetPropertyBytes(CERT_PV_ID);
+            ItemByType(CKA_OBJECT_ID)->SetValue(propObjectId->data(), propObjectId->size());
+        }
+        else {
+            THROW_EXCEPTION("Wrong certificate. Cannot get required properties CERT_PV_REQUEST and CERT_PV_ID");
+        }
     }
     CATCH_EXCEPTION
 }
@@ -52,7 +52,7 @@ CK_RV X509CertificateRequest::CreateValues(
             NULL,
             &ulDecodedLen
         )) {
-            THROW_MSCAPI_ERROR();
+            THROW_MSCAPI_EXCEPTION();
         }
         decoded.resize(ulDecodedLen);
         if (!CryptDecodeObject(
@@ -64,13 +64,13 @@ CK_RV X509CertificateRequest::CreateValues(
             decoded.data(),
             &ulDecodedLen
         )) {
-            THROW_MSCAPI_ERROR();
+            THROW_MSCAPI_EXCEPTION();
         }
 
         CERT_REQUEST_INFO* requestInfo = (CERT_REQUEST_INFO*)decoded.data();
 
         // create PCCERT_CONTEXT for request keeping
-        PCCERT_CONTEXT cert = CertCreateSelfSignCertificate(
+        PCCERT_CONTEXT context = CertCreateSelfSignCertificate(
             NULL,
             &requestInfo->Subject,
             CERT_CREATE_SELFSIGN_NO_KEY_INFO | CERT_CREATE_SELFSIGN_NO_SIGN,
@@ -81,36 +81,20 @@ CK_RV X509CertificateRequest::CreateValues(
             NULL
         );
 
-        if (!cert) {
-            THROW_MSCAPI_ERROR();
+        if (!context) {
+            THROW_MSCAPI_EXCEPTION();
         }
 
-        this->context = Scoped<CERT_CONTEXT>((PCERT_CONTEXT)cert, CertFreeCertificateContext);
+        cert = Scoped<crypt::Certificate>(new crypt::Certificate);
+        cert->Assign(context);
 
-        {
-            CRYPT_DATA_BLOB dataBlob = {
-                attrValue->size(), // cbData
-                attrValue->data()  // pbData
-            };
-            if (!CertSetCertificateContextProperty(cert, CERT_PV_REQUEST, 0, &dataBlob)) {
-                THROW_MSCAPI_ERROR();
-            }
-        }
-
-        {
-            auto hash = GetHash(CKM_SHA_1, requestInfo->SubjectPublicKeyInfo.PublicKey.pbData, requestInfo->SubjectPublicKeyInfo.PublicKey.cbData);
-            CRYPT_DATA_BLOB dataBlob = {
-                hash->size(), // cbData
-                hash->data()  // pbData
-            };
-            if (!CertSetCertificateContextProperty(cert, CERT_PV_ID, 0, &dataBlob)) {
-                THROW_MSCAPI_ERROR();
-            }
-        }
+        cert->SetPropertyBytes(CERT_PV_REQUEST, attrValue.get());
+        auto attrObjectId = tmpl.GetBytes(CKA_OBJECT_ID, false);
+        cert->SetPropertyBytes(CERT_PV_ID, attrObjectId.get());
 
         if (tmpl.GetBool(CKA_TOKEN, false, false)) {
             auto requestStore = Scoped<crypt::CertStore>(new crypt::CertStore());
-            requestStore->Open("REQUEST");
+            requestStore->Open(PV_STORE_NAME_REQUEST);
 
             requestStore->AddCertificate(cert, CERT_STORE_ADD_ALWAYS);
         }
@@ -139,13 +123,13 @@ CK_RV X509CertificateRequest::CopyValues(
         core::Template tmpl(pTemplate, ulCount);
 
         if (tmpl.GetBool(CKA_TOKEN, false, false)) {
+            cert = original->cert->Duplicate();
+
             auto requestStore = Scoped<crypt::CertStore>(new crypt::CertStore());
-            requestStore->Open("REQUEST");
+            requestStore->Open(PV_STORE_NAME_REQUEST);
 
-            requestStore->AddCertificate(original->context.get(), CERT_STORE_ADD_ALWAYS);
+            requestStore->AddCertificate(cert, CERT_STORE_ADD_ALWAYS);
         }
-
-        context = original->context;
     }
     CATCH_EXCEPTION
 }

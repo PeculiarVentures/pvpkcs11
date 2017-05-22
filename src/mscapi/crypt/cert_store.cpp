@@ -23,7 +23,7 @@ void CertStore::Open(LPCSTR storeName)
     try {
         this->hStore = CertOpenSystemStoreA((HCRYPTPROV)NULL, storeName);
         if (this->hStore == NULL_PTR) {
-            THROW_MSCAPI_ERROR();
+            THROW_MSCAPI_EXCEPTION();
         }
         this->name = storeName;
         this->opened = true;
@@ -32,20 +32,22 @@ void CertStore::Open(LPCSTR storeName)
 }
 
 void CertStore::AddCertificate(
-    PCCERT_CONTEXT      context,
+    Scoped<Certificate> cert,
     ULONG               dwFlags
 )
 {
     try {
-
+        PCCERT_CONTEXT storeCert;
         if (!CertAddCertificateContextToStore(
             hStore,
-            context,
+            cert->Get(),
             dwFlags,
-            NULL
+            &storeCert
         )) {
-            THROW_MSCAPI_ERROR();
+            THROW_MSCAPI_EXCEPTION();
         }
+
+        cert->Assign(storeCert);
     }
     CATCH_EXCEPTION
 }
@@ -61,8 +63,9 @@ void CertStore::Close()
     CATCH_EXCEPTION;
 }
 
-std::vector<Scoped<mscapi::X509Certificate>> CertStore::GetCertificates() {
-    std::vector<Scoped<mscapi::X509Certificate>> certs;
+std::vector<Scoped<Certificate>> CertStore::GetCertificates()
+{
+    std::vector<Scoped<Certificate>> certs;
     // get certificates
     PCCERT_CONTEXT hCert = NULL;
     while (true)
@@ -76,10 +79,9 @@ std::vector<Scoped<mscapi::X509Certificate>> CertStore::GetCertificates() {
         }
         else {
             PCCERT_CONTEXT hCopy = CertDuplicateCertificateContext(hCert);
-            Scoped<mscapi::X509Certificate> x509(new mscapi::X509Certificate());
-            x509->Assign(hCopy);
-            x509->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-            certs.push_back(x509);
+            Scoped<Certificate> cert(new Certificate());
+            cert->Assign(hCopy);
+            certs.push_back(cert);
         }
     }
     return certs;

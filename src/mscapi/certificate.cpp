@@ -5,25 +5,13 @@
 
 using namespace mscapi;
 
-X509Certificate::~X509Certificate() {
-    Destroy();
-}
-
-void X509Certificate::Destroy()
-{
-    if (context) {
-        CertFreeCertificateContext(context);
-        context = NULL;
-    }
-}
-
 void X509Certificate::Assign(
-    PCCERT_CONTEXT context
+    Scoped<crypt::Certificate>        cert
 )
 {
     try {
-        Destroy();
-        this->context = context;
+        value = cert;
+        auto context = cert->Get();
 
         // CKA_SUBJECT
         ItemByType(CKA_SUBJECT)->To<core::AttributeBytes>()->Set(
@@ -36,8 +24,7 @@ void X509Certificate::Assign(
             context->pCertInfo->Issuer.cbData
         );
         // CKA_ID
-        CK_MECHANISM digestMechanism = { CKM_SHA_1, NULL };
-        auto hash = GetPublicKeyHash(&digestMechanism);
+        auto hash = GetPublicKeyHash(CKM_SHA_1);
         ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set(
             hash->data(),
             hash->size()
@@ -62,22 +49,15 @@ void X509Certificate::Assign(
 }
 
 Scoped<Buffer> X509Certificate::GetPublicKeyHash(
-    CK_MECHANISM_PTR             pMechanism
+    CK_MECHANISM_TYPE       mechType
 )
 {
     try {
-        Scoped<Buffer> buffer(new Buffer(256));
-        CK_ULONG digestLength;
-        CryptoDigest digest;
-        digest.Init(pMechanism);
-        digest.Once(
-            context->pCertInfo->SubjectPublicKeyInfo.PublicKey.pbData,
-            context->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData,
-            buffer->data(),
-            &digestLength
+        return Digest(
+            mechType,
+            value->Get()->pCertInfo->SubjectPublicKeyInfo.PublicKey.pbData,
+            value->Get()->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData
         );
-        buffer->resize(digestLength);
-        return buffer;
     }
     CATCH_EXCEPTION
 }

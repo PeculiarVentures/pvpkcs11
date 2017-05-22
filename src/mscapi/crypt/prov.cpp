@@ -86,7 +86,7 @@ void Provider::AcquireContext(
 		// Remove old provider handle
 		this->Destroy();
 		if (!CryptAcquireContextA(&this->handle, szContainer, szProvider, dwProvType, dwFlags)) {
-			THROW_MSCAPI_ERROR();
+			THROW_MSCAPI_EXCEPTION();
 		}
 	}
 	CATCH_EXCEPTION;
@@ -103,7 +103,7 @@ void Provider::AcquireContextW(
 		// Remove old provider handle
 		this->Destroy();
 		if (!CryptAcquireContextW(&this->handle, szContainer, szProvider, dwProvType, dwFlags)) {
-			THROW_MSCAPI_ERROR();
+			THROW_MSCAPI_EXCEPTION();
 		}
 	}
 	CATCH_EXCEPTION;
@@ -118,7 +118,7 @@ void Provider::GetParam(
 {
 	try {
 		if (!CryptGetProvParam(this->handle, dwParam, pbData, pdwDataLen, dwFlags)) {
-			THROW_MSCAPI_ERROR();
+			THROW_MSCAPI_EXCEPTION();
 		}
 	}
 	CATCH_EXCEPTION;
@@ -188,17 +188,28 @@ DWORD Provider::GetKeySpec()
 	CATCH_EXCEPTION;
 }
 
-Scoped<Collection<Scoped<std::string>>> Provider::GetContainers()
+std::vector<Scoped<std::string>> Provider::GetContainers()
 {
-	Scoped<Collection<Scoped<std::string>>> res(new Collection<Scoped<std::string>>());
+	std::vector<Scoped<std::string>> res;
 	try {
 		while (true) {
-			Scoped<std::string> container = this->GetBufferParam(PP_ENUMCONTAINERS, res->count() ? CRYPT_NEXT : CRYPT_FIRST);
-			res->add(container);
+			Scoped<std::string> container = GetBufferParam(PP_ENUMCONTAINERS, res.size() ? CRYPT_NEXT : CRYPT_FIRST);
+			res.push_back(container);
 		}
 	}
 	catch (Scoped<core::Exception>) {
 		// Ignore last exception
 	}
 	return res;
+}
+
+Scoped<Key> Provider::GetUserKey(
+    DWORD           dwKeySpec
+)
+{
+    HCRYPTKEY hKey;
+    if (!CryptGetUserKey(handle, dwKeySpec, &hKey)) {
+        THROW_MSCAPI_EXCEPTION();
+    }
+    return Scoped<Key>(new Key(hKey));
 }

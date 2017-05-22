@@ -1,4 +1,6 @@
 #include "../ncrypt.h"
+#include "../crypt/crypt.h"
+#include "../crypto.h"
 
 using namespace ncrypt;
 
@@ -65,6 +67,60 @@ void Key::Delete(
     CATCH_EXCEPTION
 }
 
+/*
+    Calculate ID for key <HASH_SHA1(SPKI)>
+*/
+Scoped<Buffer> Key::GetId()
+{
+    try {
+        ULONG spkiLen;
+        if (!CryptExportPublicKeyInfo(
+            handle,
+            0,
+            X509_ASN_ENCODING,
+            NULL,
+            &spkiLen
+        )) {
+            THROW_MSCAPI_EXCEPTION();
+        }
+        PCERT_PUBLIC_KEY_INFO pSpki = (PCERT_PUBLIC_KEY_INFO)malloc(spkiLen);
+        if (!CryptExportPublicKeyInfo(
+            handle,
+            0,
+            X509_ASN_ENCODING,
+            pSpki,
+            &spkiLen
+        )) {
+            THROW_MSCAPI_EXCEPTION();
+        }
+        Scoped<CERT_PUBLIC_KEY_INFO> spki(pSpki, free);
+
+        ULONG ulEncodedLen;
+        if (!CryptEncodeObject(
+            X509_ASN_ENCODING,
+            X509_PUBLIC_KEY_INFO,
+            pSpki,
+            NULL,
+            &ulEncodedLen
+        )) {
+            THROW_MSCAPI_EXCEPTION();
+        }
+        Buffer encoded(ulEncodedLen);
+        if (!CryptEncodeObject(
+            X509_ASN_ENCODING,
+            X509_PUBLIC_KEY_INFO,
+            pSpki,
+            encoded.data(),
+            &ulEncodedLen
+        )) {
+            THROW_MSCAPI_EXCEPTION();
+        }
+
+        return DIGEST_SHA1(encoded.data(), encoded.size());
+    }
+    CATCH_EXCEPTION
+}
+
 Scoped<Key> ncrypt::CopyKeyToProvider(
     Key*                key,
     LPCWSTR             pszBlobType,
@@ -77,7 +133,7 @@ Scoped<Key> ncrypt::CopyKeyToProvider(
         // copy key to new Provider
         auto blob = key->ExportKey(pszBlobType, 0);
         auto keyAlforithm = key->GetBytesW(NCRYPT_ALGORITHM_PROPERTY);
-        
+
         auto nkey = provider->CreatePersistedKey(keyAlforithm->c_str(), pszContainerName, 0, 0);
         nkey->SetParam(BCRYPT_RSAFULLPRIVATE_BLOB, blob->data(), blob->size(), NCRYPT_PERSIST_FLAG);
 
