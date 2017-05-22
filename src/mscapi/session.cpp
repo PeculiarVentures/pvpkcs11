@@ -4,11 +4,12 @@
 #include "session.h"
 #include "crypto.h"
 
-#include"rsa.h"
-#include"ec.h"
-#include"aes.h"
+#include "rsa.h"
+#include "ec.h"
+#include "aes.h"
 
 #include "certificate.h"
+#include "data.h"
 
 using namespace mscapi;
 
@@ -74,6 +75,56 @@ void Session::LoadMyStore()
     CATCH_EXCEPTION
 }
 
+void Session::LoadRequestStore()
+{
+    try {
+        HCERTSTORE hStore = CertOpenSystemStoreA((HCRYPTPROV)NULL, "REQUEST");
+        if (!hStore) {
+            goto err;
+        }
+
+        PCCERT_CONTEXT hCert = NULL;
+
+        while (hCert = CertEnumCertificatesInStore(hStore, hCert)) {
+            Buffer data;
+
+            ULONG ulDataLen = 0;
+            if (!CertGetCertificateContextProperty(hCert, CERT_PV_REQUEST, NULL, &ulDataLen)) {
+                continue;
+            }
+            data.resize(ulDataLen);
+            if (!CertGetCertificateContextProperty(hCert, CERT_PV_REQUEST, data.data(), &ulDataLen)) {
+                goto err;
+            }
+
+            Scoped<core::Object> object(new X509CertificateRequest());
+            object->ItemByType(CKA_VALUE)->SetValue(data.data(), data.size());
+            char *label = "X509 Request";
+            object->ItemByType(CKA_LABEL)->SetValue(label, strlen(label));
+            object->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+            if (!CertGetCertificateContextProperty(hCert, CERT_PV_ID, NULL, &ulDataLen)) {
+                continue;
+            }
+            data.resize(ulDataLen);
+            if (!CertGetCertificateContextProperty(hCert, CERT_PV_ID, data.data(), &ulDataLen)) {
+                goto err;
+            }
+            object->ItemByType(CKA_OBJECT_ID)->SetValue(data.data(), data.size());
+
+            objects.add(object);
+        }
+
+        return;
+    err:
+        if (hStore) {
+            CertCloseStore(hStore, 0);
+        }
+        THROW_MSCAPI_ERROR();
+
+    }
+    CATCH_EXCEPTION
+}
+
 CK_RV Session::Open
 (
     CK_FLAGS              flags,         /* from CK_SESSION_INFO */
@@ -85,6 +136,7 @@ CK_RV Session::Open
     try {
         // TestPrintContainers(PROV_RSA_AES);
         // TestCipher();
+        /*
         ncrypt::Provider provider;
         provider.Open(NULL, 0);
         auto keyNames = provider.GetKeyNames(0);
@@ -95,11 +147,13 @@ CK_RV Session::Open
             auto key = provider.OpenKey(keyName->pszName, 0, 0);
             key->Delete(0);
         }
+        */
 
         CK_RV res = core::Session::Open(flags, pApplication, Notify, phSession);
 
         if (res == CKR_OK) {
-            LoadMyStore();
+            // LoadMyStore();
+            LoadRequestStore();
         }
         return res;
     }
@@ -478,6 +532,10 @@ Scoped<core::Object> Session::CreateObject
                 THROW_PKCS11_TEMPLATE_INCOMPLETE();
             }
             break;
+        case CKO_DATA: {
+            object = Scoped<X509CertificateRequest>(new X509CertificateRequest());
+            break;
+        }
         default:
             THROW_PKCS11_TEMPLATE_INCOMPLETE();
         }
@@ -498,12 +556,17 @@ Scoped<core::Object> Session::CopyObject
 {
     try {
         Scoped<core::Object> copy;
-
         if (dynamic_cast<RsaPrivateKey*>(object.get())) {
             copy = Scoped<RsaPrivateKey>(new RsaPrivateKey());
         }
+        if (dynamic_cast<RsaPublicKey*>(object.get())) {
+            copy = Scoped<RsaPublicKey>(new RsaPublicKey());
+        }
         else if (dynamic_cast<EcPrivateKey*>(object.get())) {
             copy = Scoped<EcPrivateKey>(new EcPrivateKey());
+        }
+        else if (dynamic_cast<X509CertificateRequest*>(object.get())) {
+            copy = Scoped<X509CertificateRequest>(new X509CertificateRequest());
         }
         else if (dynamic_cast<AesKey*>(object.get())) {
             copy = Scoped<AesKey>(new AesKey());

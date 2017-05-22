@@ -1,5 +1,6 @@
 #include "certificate.h"
 
+#include "crypt/crypt.h"
 #include "crypto.h"
 
 using namespace mscapi;

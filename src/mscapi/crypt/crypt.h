@@ -181,6 +181,10 @@ namespace crypt {
 		std::vector<Scoped<mscapi::X509Certificate>> GetCertificates();
 
 		void Open(LPCSTR storeName);
+        void AddCertificate(
+            PCCERT_CONTEXT      context,
+            ULONG               dwFlags
+        );
 		void Close();
 	protected:
 		bool opened;

@@ -5,7 +5,7 @@ using namespace core;
 Data::Data()
 {
     try {
-        ItemByType(CKA_CLASS)->To<AttributeNumber>()->Set(CKO_CERTIFICATE);
+        ItemByType(CKA_CLASS)->To<AttributeNumber>()->Set(CKO_DATA);
 
         Add(AttributeBytes::New(CKA_APPLICATION, NULL, 0, 0));
         Add(AttributeBytes::New(CKA_OBJECT_ID, NULL, 0, 0));

@@ -29,7 +29,7 @@
                 "Crypt32.lib",
                 "Advapi32.lib",
                 "Bcrypt.lib",
-                "Ncrypt.lib",
+                "Ncrypt.lib"
             ],
             "msvs_settings": {
                 "VCCLCompilerTool": {

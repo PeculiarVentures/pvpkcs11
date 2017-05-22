@@ -100,6 +100,7 @@ namespace mscapi {
         std::vector<Scoped<crypt::CertStore>> certStores;
 
 		void LoadMyStore();
+        void LoadRequestStore();
 	};
 
 }
