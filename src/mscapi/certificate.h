@@ -16,8 +16,21 @@ namespace mscapi {
         Scoped<Buffer> GetPublicKeyHash(
             CK_MECHANISM_TYPE       mechType
         );
+
+        CK_RV CreateValues(
+            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+            CK_ULONG          ulCount     /* attributes in template */
+        );
+
+        CK_RV CopyValues(
+            Scoped<Object>    object,     /* the object which must be copied */
+            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+            CK_ULONG          ulCount     /* attributes in template */
+        );
+
     protected:
         Scoped<crypt::Certificate> value;
+        void AddToMyStorage();
     };
 
 

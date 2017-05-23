@@ -53,11 +53,104 @@ Scoped<Buffer> X509Certificate::GetPublicKeyHash(
 )
 {
     try {
+        // Encode public key info
+        ULONG ulEncodedLen;
+        if (!CryptEncodeObject(
+            X509_ASN_ENCODING,
+            X509_PUBLIC_KEY_INFO,
+            &value->Get()->pCertInfo->SubjectPublicKeyInfo,
+            NULL,
+            &ulEncodedLen
+        )) {
+            THROW_MSCAPI_EXCEPTION();
+        }
+        Buffer encoded(ulEncodedLen);
+        if (!CryptEncodeObject(
+            X509_ASN_ENCODING,
+            X509_PUBLIC_KEY_INFO,
+            &value->Get()->pCertInfo->SubjectPublicKeyInfo,
+            encoded.data(),
+            &ulEncodedLen
+        )) {
+            THROW_MSCAPI_EXCEPTION();
+        }
+
         return Digest(
             mechType,
-            value->Get()->pCertInfo->SubjectPublicKeyInfo.PublicKey.pbData,
-            value->Get()->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData
+            encoded.data(),
+            encoded.size()
         );
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV X509Certificate::CreateValues(
+    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+    CK_ULONG          ulCount     /* attributes in template */
+)
+{
+    try {
+        core::X509Certificate::CreateValues(
+            pTemplate,
+            ulCount
+        );
+
+        core::Template tmpl(pTemplate, ulCount);
+
+        Scoped<crypt::Certificate> cert(new crypt::Certificate());
+        auto encoded = tmpl.GetBytes(CKA_VALUE, true);
+        cert->Import(encoded->data(), encoded->size());
+        Assign(cert);
+
+        if (tmpl.GetBool(CKA_TOKEN, false, false)) {
+            AddToMyStorage();
+        }
+
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV X509Certificate::CopyValues(
+    Scoped<Object>    object,     /* the object which must be copied */
+    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+    CK_ULONG          ulCount     /* attributes in template */
+)
+{
+    try {
+        core::X509Certificate::CopyValues(
+            object,
+            pTemplate,
+            ulCount
+        );
+
+        core::Template tmpl(pTemplate, ulCount);
+
+        X509Certificate* original = dynamic_cast<X509Certificate*>(object.get());
+        
+        auto cert = original->Get()->Duplicate();
+        Assign(cert);
+
+        if (tmpl.GetBool(CKA_TOKEN, false, false)) {
+            AddToMyStorage();
+        }
+
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+void mscapi::X509Certificate::AddToMyStorage()
+{
+    try {
+        crypt::CertStore store;
+        store.Open(PV_STORE_NAME_MY);
+
+        auto cert = Get();
+
+        // Add KEY_PROV_INFO
+
+        store.AddCertificate(cert, CERT_STORE_ADD_ALWAYS);
     }
     CATCH_EXCEPTION
 }

@@ -133,42 +133,6 @@ namespace crypt {
 		HCRYPTKEY         handle;
 	};
 
-    /*
-	class X509Certificate {
-
-	public:
-		X509Certificate();
-		X509Certificate(PCCERT_CONTEXT handle);
-		~X509Certificate();
-
-		void Destroy();
-
-		Scoped<std::string> GetHashPublicKey();
-		bool HasPrivateKey();
-		Scoped<Key> GetPrivateKey();
-		Scoped<Key> GetPublicKey();
-
-		PCCERT_CONTEXT Get();
-		void Set(PCCERT_CONTEXT value);
-
-		Scoped<std::string> GetLabel();
-		Scoped<CERT_KEY_CONTEXT> GetKeyContext();
-		Scoped<CRYPT_KEY_PROV_INFO> GetKeyProviderInfo();
-
-	protected:
-		PCCERT_CONTEXT handle;
-
-		void GetParam(DWORD dwPropId, void* pvData, DWORD* pdwDataLen);
-		Scoped<std::string> GetBufferParam(DWORD dwPropId);
-		template<typename T>
-		Scoped<T> GetStructureParam(DWORD dwPropId);
-
-		// Cache
-		Scoped<std::string> PUBLIC_KEY_HASH;
-		Scoped<std::string> LABEL;
-	};
-    */
-
     // Certificate
 
     class Certificate {
@@ -197,6 +161,11 @@ namespace crypt {
             DWORD           dwPropId,
             DWORD           data,
             DWORD           dwFlags
+        );
+
+        void Import(
+            PUCHAR  pbEncoded,
+            DWORD   cbEncoded
         );
     protected:
         PCCERT_CONTEXT context;

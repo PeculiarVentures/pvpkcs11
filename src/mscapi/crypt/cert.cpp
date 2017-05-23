@@ -142,3 +142,23 @@ void Certificate::SetPropertyNumber(
     }
     CATCH_EXCEPTION
 }
+
+void Certificate::Import(
+    PUCHAR  pbEncoded,
+    DWORD   cbEncoded
+)
+{
+    try {
+        PCCERT_CONTEXT context = CertCreateCertificateContext(
+            X509_ASN_ENCODING,
+            pbEncoded,
+            cbEncoded
+        );
+        if (!context) {
+            THROW_MSCAPI_EXCEPTION();
+        }
+
+        Assign(context);
+    }
+    CATCH_EXCEPTION
+}

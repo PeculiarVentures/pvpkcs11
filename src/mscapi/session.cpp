@@ -124,6 +124,7 @@ void Session::LoadMyStore()
                 !wmemcmp(MS_KEY_STORAGE_PROVIDER, pKeyProvInfo->pwszProvName, lstrlenW(MS_KEY_STORAGE_PROVIDER))
                 ) {
                 // CNG
+                // Get all CNG keys via LoadCngKeys
             }
             else if (
                 pKeyProvInfo->dwProvType == PROV_RSA_FULL ||
@@ -713,6 +714,9 @@ Scoped<core::Object> Session::CopyObject
         }
         else if (dynamic_cast<EcPrivateKey*>(object.get())) {
             copy = Scoped<EcPrivateKey>(new EcPrivateKey());
+        }
+        else if (dynamic_cast<X509Certificate*>(object.get())) {
+            copy = Scoped<X509Certificate>(new X509Certificate());
         }
         else if (dynamic_cast<X509CertificateRequest*>(object.get())) {
             copy = Scoped<X509CertificateRequest>(new X509CertificateRequest());
