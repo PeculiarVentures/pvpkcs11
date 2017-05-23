@@ -49,7 +49,7 @@ Scoped<CryptoKeyPair> EcKey::Generate(
         provider->Open(MS_KEY_STORAGE_PROVIDER, 0);
 
         Scoped<ncrypt::Key> key;
-        if (privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue()) {
+        if (!privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue()) {
             key = provider->CreatePersistedKey(pszAlgorithm, NULL, 0, 0);
         }
         else {
@@ -108,6 +108,14 @@ void EcPrivateKey::FillPublicKeyStruct()
         }
         default:
             THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Unsupported named curve");
+        }
+
+        auto keyUsage = nkey->GetNumber(NCRYPT_KEY_USAGE_PROPERTY);
+        if (keyUsage & NCRYPT_ALLOW_SIGNING_FLAG) {
+            ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
+        }
+        if (keyUsage & NCRYPT_ALLOW_KEY_AGREEMENT_FLAG) {
+            ItemByType(CKA_DERIVE)->To<core::AttributeBool>()->Set(true);
         }
 
     }
@@ -237,6 +245,14 @@ void EcPublicKey::FillKeyStruct()
         }
         *propPoint += std::string(pPoint, header->cbKey * 2);
         ItemByType(CKA_EC_POINT)->SetValue((CK_VOID_PTR)propPoint->c_str(), propPoint->length());
+
+        auto keyUsage = nkey->GetNumber(NCRYPT_KEY_USAGE_PROPERTY);
+        if (keyUsage & NCRYPT_ALLOW_SIGNING_FLAG) {
+            ItemByType(CKA_VERIFY)->To<core::AttributeBool>()->Set(true);
+        }
+        if (keyUsage & NCRYPT_ALLOW_KEY_AGREEMENT_FLAG) {
+            ItemByType(CKA_DERIVE)->To<core::AttributeBool>()->Set(true);
+        }
 
     }
     CATCH_EXCEPTION;

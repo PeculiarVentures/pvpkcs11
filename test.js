@@ -61,6 +61,9 @@ for (var i = 0; i < iterations; i++) {
             return p11.certStorage.keys()
                 .then((indexes) => {
                     console.log(indexes);
+
+                    let promise = Promise.resolve()
+
                     // return p11.certStorage.removeItem(indexes[2]);
                 })
                 .then(() => {
@@ -68,7 +71,7 @@ for (var i = 0; i < iterations; i++) {
                 })
                 .then((indexes) => {
                     console.log(indexes);
-                    // return p11.keyStorage.clear();
+                    return p11.keyStorage.clear();
                 })
         })
 

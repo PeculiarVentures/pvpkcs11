@@ -153,12 +153,34 @@ void mscapi::X509Certificate::AddToMyStorage()
         DWORD dwKeySpec;
         BOOL fFree;
 
-        store.AddCertificate(cert, CERT_STORE_ADD_ALWAYS);
+        auto certSpkiHash = GetPublicKeyHash(CKM_SHA_1);
+        ncrypt::Provider provider;
+        provider.Open(MS_KEY_STORAGE_PROVIDER, 0);
+        auto provKeyNames = provider.GetKeyNames(NCRYPT_SILENT_FLAG);
+        for (ULONG i = 0; i < provKeyNames->size(); i++) {
+            auto provKeyName = provKeyNames->at(i);
+            auto key = provider.OpenKey(provKeyName->pszName, provKeyName->dwLegacyKeySpec, 0);
+            auto keySpkiHash = key->GetId();
+            if (!memcmp(certSpkiHash->data(), keySpkiHash->data(), keySpkiHash->size
+            ())) {
+                provKeyName->dwFlags;
+                CRYPT_KEY_PROV_INFO keyProvInfo;
+                
+                keyProvInfo.pwszContainerName = provKeyName->pszName;
+                keyProvInfo.pwszProvName = MS_KEY_STORAGE_PROVIDER;
+                keyProvInfo.dwProvType = 0;
+                keyProvInfo.dwFlags = provKeyName->dwFlags;
+                keyProvInfo.cProvParam = 0;
+                keyProvInfo.rgProvParam = NULL;
+                keyProvInfo.dwKeySpec = 0;
 
-        BOOL res = CryptAcquireCertificatePrivateKey(cert->Get(), 0, NULL, &key, &dwKeySpec, &fFree);
-        if (!res) {
-            THROW_MSCAPI_EXCEPTION();
+                if (!CertSetCertificateContextProperty(cert->Get(), CERT_KEY_PROV_INFO_PROP_ID, 0, &keyProvInfo)) {
+                    THROW_MSCAPI_EXCEPTION();
+                }
+            }
         }
+
+        store.AddCertificate(cert, CERT_STORE_ADD_ALWAYS);
     }
     CATCH_EXCEPTION
 }

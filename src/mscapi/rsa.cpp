@@ -33,7 +33,7 @@ Scoped<CryptoKeyPair> RsaKey::Generate(
 
         Scoped<ncrypt::Key> key;
         auto pszAlgorithm = NCRYPT_RSA_ALGORITHM;
-        if (privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue()) {
+        if (!privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue()) {
             key = provider->CreatePersistedKey(pszAlgorithm, NULL, 0, 0);
         }
         else {
@@ -93,6 +93,15 @@ void RsaPrivateKey::FillPublicKeyStruct()
         // Modulus[cbModulus]           // Big-endian.
         PBYTE pbModulus = (PBYTE)(pbPublicExponent + header->cbPublicExp);
         ItemByType(CKA_MODULUS)->SetValue(pbModulus, header->cbModulus);
+
+        auto keyUsage = nkey->GetNumber(NCRYPT_KEY_USAGE_PROPERTY);
+        if (keyUsage & NCRYPT_ALLOW_SIGNING_FLAG) {
+            ItemByType(CKA_VERIFY)->To<core::AttributeBool>()->Set(true);
+        }
+        if (keyUsage & NCRYPT_ALLOW_DECRYPT_FLAG) {
+            ItemByType(CKA_DECRYPT)->To<core::AttributeBool>()->Set(true);
+            ItemByType(CKA_UNWRAP)->To<core::AttributeBool>()->Set(true);
+        }
     }
     CATCH_EXCEPTION
 }
@@ -187,12 +196,12 @@ CK_RV RsaPrivateKey::CopyValues(
         auto attrExtractable = ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->ToValue();
 
         nkey = ncrypt::CopyKeyToProvider(
-            originalKey->nkey.get(), 
-            BCRYPT_RSAFULLPRIVATE_BLOB, 
-            &provider, 
+            originalKey->nkey.get(),
+            BCRYPT_RSAFULLPRIVATE_BLOB,
+            &provider,
             attrToken ? provider.GenerateRandomName()->c_str() : NULL,
             (attrToken && attrExtractable) || !attrToken
-            );
+        );
 
         return CKR_OK;
     }
@@ -228,6 +237,14 @@ void RsaPublicKey::FillKeyStruct()
         PBYTE pbModulus = (PBYTE)(pbPublicExponent + header->cbPublicExp);
         ItemByType(CKA_MODULUS)->To<core::AttributeBytes>()->Set(pbModulus, header->cbModulus);
 
+        auto keyUsage = nkey->GetNumber(NCRYPT_KEY_USAGE_PROPERTY);
+        if (keyUsage & NCRYPT_ALLOW_SIGNING_FLAG) {
+            ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
+        }
+        if (keyUsage & NCRYPT_ALLOW_DECRYPT_FLAG) {
+            ItemByType(CKA_ENCRYPT)->To<core::AttributeBool>()->Set(true);
+            ItemByType(CKA_WRAP)->To<core::AttributeBool>()->Set(true);
+        }
     }
     CATCH_EXCEPTION
 }

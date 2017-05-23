@@ -317,13 +317,6 @@ CK_RV Session::Close()
 
         this->objects.clear();
 
-        // close all opened stores
-        /*
-        for (size_t i = 0; i < this->certStores.count(); i++) {
-            this->certStores.items(i)->Close();
-        }
-        */
-
         return res;
     }
     CATCH_EXCEPTION;
@@ -715,6 +708,12 @@ Scoped<core::Object> Session::CopyObject
         }
         else if (dynamic_cast<RsaPublicKey*>(object.get())) {
             copy = Scoped<RsaPublicKey>(new RsaPublicKey());
+        }
+        else if (dynamic_cast<EcPrivateKey*>(object.get())) {
+            copy = Scoped<EcPrivateKey>(new EcPrivateKey());
+        }
+        else if (dynamic_cast<EcPublicKey*>(object.get())) {
+            copy = Scoped<EcPublicKey>(new EcPublicKey());
         }
         else if (dynamic_cast<EcPrivateKey*>(object.get())) {
             copy = Scoped<EcPrivateKey>(new EcPrivateKey());

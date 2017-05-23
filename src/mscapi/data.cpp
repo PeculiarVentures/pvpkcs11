@@ -73,7 +73,7 @@ CK_RV X509CertificateRequest::CreateValues(
         PCCERT_CONTEXT context = CertCreateSelfSignCertificate(
             NULL,
             &requestInfo->Subject,
-            CERT_CREATE_SELFSIGN_NO_KEY_INFO | CERT_CREATE_SELFSIGN_NO_SIGN,
+            CERT_CREATE_SELFSIGN_NO_SIGN,
             NULL,
             NULL,
             NULL,
@@ -87,6 +87,22 @@ CK_RV X509CertificateRequest::CreateValues(
 
         cert = Scoped<crypt::Certificate>(new crypt::Certificate);
         cert->Assign(context);
+
+        // Remove private key for self-signed certificate
+        {
+            auto keyProvInfo = cert->GetPropertyBytes(CERT_KEY_PROV_INFO_PROP_ID);
+            PCRYPT_KEY_PROV_INFO pKeyProvInfo = (PCRYPT_KEY_PROV_INFO)keyProvInfo->data();
+
+            ncrypt::Provider prov;
+            prov.Open(MS_KEY_STORAGE_PROVIDER, 0);
+            auto requestKey = prov.OpenKey(pKeyProvInfo->pwszContainerName, pKeyProvInfo->dwKeySpec, pKeyProvInfo->dwFlags);
+            requestKey->Delete(0);
+
+            // remove CERT_KEY_PROV_INFO property
+            if (!CertSetCertificateContextProperty(cert->Get(), CERT_KEY_PROV_INFO_PROP_ID, 0, NULL)) {
+                THROW_MSCAPI_EXCEPTION();
+            }
+        }
 
         cert->SetPropertyBytes(CERT_PV_REQUEST, attrValue.get());
         auto attrObjectId = tmpl.GetBytes(CKA_OBJECT_ID, false);

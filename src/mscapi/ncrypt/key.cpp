@@ -135,7 +135,7 @@ Scoped<Key> ncrypt::CopyKeyToProvider(
         auto keyAlforithm = key->GetBytesW(NCRYPT_ALGORITHM_PROPERTY);
 
         auto nkey = provider->CreatePersistedKey(keyAlforithm->c_str(), pszContainerName, 0, 0);
-        nkey->SetParam(BCRYPT_RSAFULLPRIVATE_BLOB, blob->data(), blob->size(), NCRYPT_PERSIST_FLAG);
+        nkey->SetParam(BCRYPT_ECCPRIVATE_BLOB, blob->data(), blob->size(), NCRYPT_PERSIST_FLAG);
 
         // Set CNG properties
         // Extractable
