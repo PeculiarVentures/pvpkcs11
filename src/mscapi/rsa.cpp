@@ -199,6 +199,16 @@ CK_RV RsaPrivateKey::CopyValues(
     CATCH_EXCEPTION
 }
 
+CK_RV RsaPrivateKey::Destroy()
+{
+    try {
+        nkey->Delete(0);
+
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
 // RSA public key
 
 void RsaPublicKey::FillKeyStruct()
@@ -300,6 +310,14 @@ CK_RV RsaPublicKey::CopyValues(
 
         nkey = originalKey->nkey;
 
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV RsaPublicKey::Destroy()
+{
+    try {
         return CKR_OK;
     }
     CATCH_EXCEPTION

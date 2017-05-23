@@ -43,6 +43,8 @@ Scoped<Certificate> Certificate::Duplicate()
     if (!res->context) {
         THROW_MSCAPI_EXCEPTION();
     }
+
+    return res;
 }
 
 bool Certificate::HasProperty(
@@ -159,6 +161,22 @@ void Certificate::Import(
         }
 
         Assign(context);
+    }
+    CATCH_EXCEPTION
+}
+
+void Certificate::DeleteFromStore()
+{
+    try {
+        if (context->hCertStore) {
+            BOOL res = CertDeleteCertificateFromStore(context);
+            //  NOTE: the pCertContext is always CertFreeCertificateContext'ed by
+            //  this function, even for an error.
+            context = NULL;
+            if (!res) {
+                THROW_MSCAPI_EXCEPTION();
+            }
+        }
     }
     CATCH_EXCEPTION
 }

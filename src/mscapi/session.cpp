@@ -686,6 +686,10 @@ Scoped<core::Object> Session::CreateObject
             object = Scoped<X509CertificateRequest>(new X509CertificateRequest());
             break;
         }
+        case CKO_CERTIFICATE: {
+            object = Scoped<X509Certificate>(new X509Certificate());
+            break;
+        }
         default:
             THROW_PKCS11_TEMPLATE_INCOMPLETE();
         }
@@ -709,7 +713,7 @@ Scoped<core::Object> Session::CopyObject
         if (dynamic_cast<RsaPrivateKey*>(object.get())) {
             copy = Scoped<RsaPrivateKey>(new RsaPrivateKey());
         }
-        if (dynamic_cast<RsaPublicKey*>(object.get())) {
+        else if (dynamic_cast<RsaPublicKey*>(object.get())) {
             copy = Scoped<RsaPublicKey>(new RsaPublicKey());
         }
         else if (dynamic_cast<EcPrivateKey*>(object.get())) {

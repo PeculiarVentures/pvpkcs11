@@ -439,7 +439,13 @@ CK_DEFINE_FUNCTION(CK_RV, C_DestroyObject)
     CK_OBJECT_HANDLE  hObject    /* the object's handle */
     )
 {
-    return CKR_FUNCTION_NOT_SUPPORTED;
+    try {
+        pkcs11.DestroyObject(
+            hSession,
+            hObject
+        );
+    }
+    CATCH(__FUNCTION__)
 }
 
 

@@ -28,6 +28,8 @@ namespace mscapi {
             CK_ULONG          ulCount     /* attributes in template */
         );
 
+        CK_RV Destroy();
+
     protected:
         Scoped<crypt::Certificate> value;
         void AddToMyStorage();

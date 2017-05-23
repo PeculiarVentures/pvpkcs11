@@ -61,10 +61,14 @@ for (var i = 0; i < iterations; i++) {
             return p11.certStorage.keys()
                 .then((indexes) => {
                     console.log(indexes);
+                    // return p11.certStorage.removeItem(indexes[2]);
+                })
+                .then(() => {
                     return p11.keyStorage.keys()
                 })
                 .then((indexes) => {
                     console.log(indexes);
+                    // return p11.keyStorage.clear();
                 })
         })
 

@@ -88,6 +88,14 @@ CK_RV AesKey::CreateValues(
     CATCH_EXCEPTION
 }
 
+CK_RV mscapi::AesKey::Destroy()
+{
+    try {
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
 // AES-CBC
 
 CryptoAesEncrypt::CryptoAesEncrypt(

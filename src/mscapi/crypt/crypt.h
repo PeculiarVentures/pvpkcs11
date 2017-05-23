@@ -167,6 +167,7 @@ namespace crypt {
             PUCHAR  pbEncoded,
             DWORD   cbEncoded
         );
+        void DeleteFromStore();
     protected:
         PCCERT_CONTEXT context;
     };

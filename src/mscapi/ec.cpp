@@ -190,6 +190,16 @@ CK_RV EcPrivateKey::CopyValues(
     CATCH_EXCEPTION
 }
 
+CK_RV mscapi::EcPrivateKey::Destroy()
+{
+    try {
+        nkey->Delete(0);
+
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
 // Public key
 
 void EcPublicKey::FillKeyStruct()
@@ -359,6 +369,14 @@ CK_RV EcPublicKey::CopyValues(
 
         nkey = originalKey->nkey;
 
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV mscapi::EcPublicKey::Destroy()
+{
+    try {
         return CKR_OK;
     }
     CATCH_EXCEPTION

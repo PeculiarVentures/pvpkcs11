@@ -221,6 +221,11 @@ CK_RV Object::UnwrapValues(
     CATCH_EXCEPTION
 }
 
+CK_RV core::Object::Destroy()
+{
+    return CKR_FUNCTION_NOT_SUPPORTED;
+}
+
 CK_RV Object::UnwrapValue(
     CK_ATTRIBUTE_PTR  attr
 )

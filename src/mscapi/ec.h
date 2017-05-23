@@ -34,6 +34,8 @@ namespace mscapi {
             CK_ULONG                ulCount     /* attributes in template */
         );
 
+        CK_RV Destroy();
+
     protected:
         void FillPublicKeyStruct();
         void FillPrivateKeyStruct();
@@ -60,6 +62,8 @@ namespace mscapi {
             CK_ATTRIBUTE_PTR        pTemplate,  /* specifies attributes */
             CK_ULONG                ulCount     /* attributes in template */
         );
+
+        CK_RV Destroy();
 
     protected:
         void FillKeyStruct();

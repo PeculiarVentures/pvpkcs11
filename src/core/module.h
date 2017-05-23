@@ -370,6 +370,11 @@ namespace core {
             CK_OBJECT_HANDLE_PTR phNewObject  /* receives handle of copy */
         );
 
+        CK_RV DestroyObject(
+            CK_SESSION_HANDLE hSession,  /* the session's handle */
+            CK_OBJECT_HANDLE  hObject    /* the object's handle */
+        );
+
     protected:
         Scoped<Slot> getSlotBySession(CK_SESSION_HANDLE hSession);
         Scoped<Session> getSession(CK_SESSION_HANDLE hSession);

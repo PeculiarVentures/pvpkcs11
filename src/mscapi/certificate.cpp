@@ -128,7 +128,7 @@ CK_RV X509Certificate::CopyValues(
 
         X509Certificate* original = dynamic_cast<X509Certificate*>(object.get());
         
-        auto cert = original->Get()->Duplicate();
+        auto cert = original->value->Duplicate();
         Assign(cert);
 
         if (tmpl.GetBool(CKA_TOKEN, false, false)) {
@@ -146,11 +146,27 @@ void mscapi::X509Certificate::AddToMyStorage()
         crypt::CertStore store;
         store.Open(PV_STORE_NAME_MY);
 
-        auto cert = Get();
+        auto cert = value;
 
         // Add KEY_PROV_INFO
+        HCRYPTPROV_OR_NCRYPT_KEY_HANDLE key;
+        DWORD dwKeySpec;
+        BOOL fFree;
 
         store.AddCertificate(cert, CERT_STORE_ADD_ALWAYS);
+
+        BOOL res = CryptAcquireCertificatePrivateKey(cert->Get(), 0, NULL, &key, &dwKeySpec, &fFree);
+        if (!res) {
+            THROW_MSCAPI_EXCEPTION();
+        }
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV mscapi::X509Certificate::Destroy()
+{
+    try {
+        value->DeleteFromStore();
     }
     CATCH_EXCEPTION
 }

@@ -25,6 +25,8 @@ namespace mscapi {
             CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
             CK_ULONG          ulCount     /* attributes in template */
         );
+
+        CK_RV Destroy();
     };
 
     class CryptoAesEncrypt : public CryptoEncrypt {

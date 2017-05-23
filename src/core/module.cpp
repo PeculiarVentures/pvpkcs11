@@ -903,33 +903,56 @@ CK_RV Module::CopyObject
     CK_OBJECT_HANDLE_PTR phNewObject  /* receives handle of copy */
 )
 {
-    CHECK_INITIALIZED();
+    try {
+        CHECK_INITIALIZED();
 
-    auto session = getSession(hSession);
+        auto session = getSession(hSession);
 
-    if (pTemplate == NULL_PTR) {
-        THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pTemplate is NULL");
+        if (pTemplate == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pTemplate is NULL");
+        }
+
+        if (phNewObject == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "phObject is NULL");
+        }
+
+        auto object = session->GetObject(hObject);
+
+        auto newObject = session->CopyObject(
+            object,
+            pTemplate,
+            ulCount
+        );
+
+        if (!newObject) {
+            THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Object wasn't created");
+        }
+
+        session->objects.add(newObject);
+
+        *phNewObject = newObject->handle;
+
+        return CKR_OK;
     }
+    CATCH_EXCEPTION
+}
 
-    if (phNewObject == NULL_PTR) {
-        THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "phObject is NULL");
+CK_RV Module::DestroyObject(
+    CK_SESSION_HANDLE hSession,  /* the session's handle */
+    CK_OBJECT_HANDLE  hObject    /* the object's handle */
+)
+{
+    try {
+        CHECK_INITIALIZED();
+
+        auto session = getSession(hSession);
+        auto object = session->GetObject(hObject);
+
+        object->Destroy();
+
+        session->objects.remove(object);
+
+        return CKR_OK;
     }
-
-    auto object = session->GetObject(hObject);
-
-    auto newObject = session->CopyObject(
-        object,
-        pTemplate,
-        ulCount
-    );
-
-    if (!newObject) {
-        THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Object wasn't created");
-    }
-
-    session->objects.add(newObject);
-
-    *phNewObject = newObject->handle;
-
-    return CKR_OK;
+    CATCH_EXCEPTION
 }

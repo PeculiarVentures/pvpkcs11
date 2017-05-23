@@ -49,6 +49,8 @@ namespace core {
             CK_ULONG          ulCount     /* attributes in template */
         );
 
+        virtual CK_RV Destroy();
+
     protected:
         virtual CK_RV CreateValue
         (
