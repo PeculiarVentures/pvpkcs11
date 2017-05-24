@@ -27,6 +27,12 @@ At this time we have only one PKCS#11 implementation, `mscapi`, but in the futur
 - Where ECC is supported only secp256r1, secp384r1 and secp521r1 are supported.
 - Where RSA is supported RSA 1024, 2048, 3072 and 4096 are supported.
 
+
+## WARNING
+
+**At this time this solution should be considered suitable for research and experimentation, further code and security review is needed before utilization in a production application.**
+
+
 ## Using
 
 ### Building
