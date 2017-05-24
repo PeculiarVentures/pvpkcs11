@@ -95,15 +95,15 @@ void EcPrivateKey::FillPublicKeyStruct()
         switch (header->dwMagic) {
         case BCRYPT_ECDH_PUBLIC_P256_MAGIC:
         case BCRYPT_ECDSA_PUBLIC_P256_MAGIC:
-            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)&core::EC_P256_BLOB, sizeof(core::EC_P256_BLOB));
+            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)&core::EC_P256_BLOB, 10);
             break;
         case BCRYPT_ECDH_PUBLIC_P384_MAGIC:
         case BCRYPT_ECDSA_PUBLIC_P384_MAGIC:
-            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)&core::EC_P384_BLOB, sizeof(core::EC_P384_BLOB));
+            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)&core::EC_P384_BLOB, 7);
             break;
         case BCRYPT_ECDH_PUBLIC_P521_MAGIC:
         case BCRYPT_ECDSA_PUBLIC_P521_MAGIC: {
-            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)&core::EC_P521_BLOB, sizeof(core::EC_P521_BLOB));
+            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)&core::EC_P521_BLOB, 7);
             break;
         }
         default:
@@ -235,17 +235,17 @@ void EcPublicKey::FillKeyStruct()
         switch (header->dwMagic) {
         case BCRYPT_ECDH_PUBLIC_P256_MAGIC:
         case BCRYPT_ECDSA_PUBLIC_P256_MAGIC:
-            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P256_BLOB, sizeof(core::EC_P256_BLOB));
+            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P256_BLOB, 10);
             *propPoint += std::string("\x04\x41\x04");
             break;
         case BCRYPT_ECDH_PUBLIC_P384_MAGIC:
         case BCRYPT_ECDSA_PUBLIC_P384_MAGIC:
-            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P384_BLOB, sizeof(core::EC_P384_BLOB));
+            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P384_BLOB, 7);
             *propPoint += std::string("\x04\x61\x04");
             break;
         case BCRYPT_ECDH_PUBLIC_P521_MAGIC:
         case BCRYPT_ECDSA_PUBLIC_P521_MAGIC: {
-            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P521_BLOB, sizeof(core::EC_P521_BLOB));
+            ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P521_BLOB, 7);
             *propPoint += std::string("\x04\x81\x85\x04");
             break;
         }

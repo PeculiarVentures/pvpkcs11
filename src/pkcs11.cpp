@@ -120,7 +120,6 @@ public:
 
 App app = App();
 
-
 CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList)
 {
     try {
