@@ -5,7 +5,7 @@
 
 `pvpkcs11` consists of a input validation library we call `core` and a set of PKCS#11 implementations that wrap operating system and browser cryptographic and certificate store implementations. 
 
-We wanted a solution that provides unified access to the underlying certificate stores and associated cryptographic implementations in a uniform way. PKCS#11 was a natural choice for an API to enable this scenario given its broad adoption.
+We wanted a solution that provides unified access to the underlying certificate stores and associated cryptographic implementations. PKCS#11 was a natural choice for an API to enable this scenario given its broad adoption.
 
 To make the development on these platforms and user agents easier and to ensure their runtime behavior is uniform, we utilize  `core` to perform input validation. This is similar to how we architected `node-webcrypto-ossl`, `node-webcrypto-p11` and `webcrypto-liner` where we share `webcrypto-core`.
 
