@@ -24,9 +24,13 @@ At this time we have only one PKCS#11 implementation, `mscapi`, but in the futur
 
 ### Supported Algorithms
 
-| Name       | Algorithms                                                                                                                                                                                         |
-|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| MSCAPI.dll | HASH: SHA1, SHA2, SHA384, SHA512  SIGN: RSA /w SHA1; RSA PKCS1 /w SHA1, SHA2;  RSA PSS /w SHA1,  SHA2;  ECDSA /w SHA1, SHA2 EXCHANGE: ECDH ENCRYPT: RSA OAEP; AES modes CBC, CBC-PAD, GCM, and ECB |
+#### MSCAPI.dll
+
+|------------|-------------------------------------------------------------------------------------|
+| Hash       | SHA1; SHA2; SHA384; SHA512                                                          |
+| Sign       | RSA /w SHA1; RSA PKCS1 /w SHA1, SHA2;  RSA PSS /w SHA1, SHA2;  ECDSA /w SHA1, SHA2  |
+| Exchange   | ECDH                                                                                |
+| Encryption | RSA OAEP; AES modes CBC, CBC-PAD, GCM, and ECB                                      |
 
 ## Related
 - [webcrypto-local](https://github.com/PeculiarVentures/webcrypto-local)
