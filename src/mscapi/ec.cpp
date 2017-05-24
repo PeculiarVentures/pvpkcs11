@@ -27,7 +27,7 @@ Scoped<CryptoKeyPair> EcKey::Generate(
 
         LPCWSTR pszAlgorithm;
 
-#define POINT_COMPARE(curve) memcmp(core::EC_##curve##_BLOB, point->data(), sizeof(core::EC_##curve##_BLOB)) == 0
+#define POINT_COMPARE(curve) memcmp(core::EC_##curve##_BLOB, point->data(), sizeof(core::EC_##curve##_BLOB)-1 ) == 0
 
         if (POINT_COMPARE(P256)) {
             pszAlgorithm = NCRYPT_ECDSA_P256_ALGORITHM;

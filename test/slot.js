@@ -26,7 +26,7 @@ context("Slot", () => {
 
         assert.equal(info.slotDescription, "Windows CryptoAPI                                               ");
         assert.equal(info.manufacturerID, "Windows CryptoAPI               ");
-        assert.equal(info.flags, 1024);
+        assert.equal(info.flags, 1025);
     });
 
     context("Mechanism", () => {

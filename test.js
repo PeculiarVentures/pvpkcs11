@@ -53,7 +53,7 @@ for (var i = 0; i < iterations; i++) {
         .then(() => {
             let msg = `Iteration #${iter}`;
 
-            return crypto.certStorage.keys()
+            return crypto.keyStorage.keys()
                 .then((indexes) => {
                     console.log(indexes);
                 })
