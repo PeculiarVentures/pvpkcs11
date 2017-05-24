@@ -17,19 +17,16 @@ At this time we have only one PKCS#11 implementation, `mscapi`, but in the futur
 
 ### System variables
 
-| Name              | Value             | Description                                                                 |
-|-------------------|-------------------------------------------------------------------------------------------------|
-| `PV_PKCS11_ERROR` | true              | Prints to stdout additional information about errors from PKCS#11 module    |
+| Name              | Value | Description                                                              |
+|-------------------|-------|--------------------------------------------------------------------------|
+| `PV_PKCS11_ERROR` | true  | Prints to stdout additional information about errors from PKCS#11 module |
+
 
 ### Supported Algorithms
 
-| Name              | Algorithms                                                                                      |
-|-------------------|-------------------------------------------------------------------------------------------------|
-| MSCAPI.dll        | HASH: SHA1, SHA2, SHA384, SHA512; 
-                      SIGN: RSA /w SHA1; RSA PKCS1 /w SHA1 || SHA2, RSA PSS /w SHA1 || SHA2, ECDSA /w SHA1 || SHA2    
-                      EXCHANGE: ECDH
-                      ENCRYPT: RSA OAEP; AES modes CBC, CBC-PAD, GCM, and ECB                                         |
-
+| Name       | Algorithms                                                                                                                                                                                         |
+|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| MSCAPI.dll | HASH: SHA1, SHA2, SHA384, SHA512  SIGN: RSA /w SHA1; RSA PKCS1 /w SHA1, SHA2;  RSA PSS /w SHA1,  SHA2;  ECDSA /w SHA1, SHA2 EXCHANGE: ECDH ENCRYPT: RSA OAEP; AES modes CBC, CBC-PAD, GCM, and ECB |
 
 ## Related
 - [webcrypto-local](https://github.com/PeculiarVentures/webcrypto-local)
