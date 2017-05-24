@@ -153,17 +153,20 @@ void mscapi::X509Certificate::AddToMyStorage()
         DWORD dwKeySpec;
         BOOL fFree;
 
+        // get SHA1 of certificate SPKI
         auto certSpkiHash = GetPublicKeyHash(CKM_SHA_1);
         ncrypt::Provider provider;
         provider.Open(MS_KEY_STORAGE_PROVIDER, 0);
+        // Looking for equal public key hash through all CNG containers
         auto provKeyNames = provider.GetKeyNames(NCRYPT_SILENT_FLAG);
         for (ULONG i = 0; i < provKeyNames->size(); i++) {
             auto provKeyName = provKeyNames->at(i);
             auto key = provider.OpenKey(provKeyName->pszName, provKeyName->dwLegacyKeySpec, 0);
             auto keySpkiHash = key->GetId();
+            // compare hashes
             if (!memcmp(certSpkiHash->data(), keySpkiHash->data(), keySpkiHash->size
             ())) {
-                provKeyName->dwFlags;
+                // Create key info
                 CRYPT_KEY_PROV_INFO keyProvInfo;
                 
                 keyProvInfo.pwszContainerName = provKeyName->pszName;

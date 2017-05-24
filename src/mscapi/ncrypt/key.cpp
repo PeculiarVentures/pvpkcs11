@@ -67,10 +67,7 @@ void Key::Delete(
     CATCH_EXCEPTION
 }
 
-/*
-    Calculate ID for key <HASH_SHA1(SPKI)>
-*/
-Scoped<Buffer> Key::GetId()
+Scoped<CERT_PUBLIC_KEY_INFO> Key::GetPublicKeyInfo()
 {
     try {
         ULONG spkiLen;
@@ -93,13 +90,23 @@ Scoped<Buffer> Key::GetId()
         )) {
             THROW_MSCAPI_EXCEPTION();
         }
-        Scoped<CERT_PUBLIC_KEY_INFO> spki(pSpki, free);
+        return Scoped<CERT_PUBLIC_KEY_INFO>(pSpki, free);
+    }
+    CATCH_EXCEPTION
+}
 
+/*
+    Calculate ID for key <HASH_SHA1(SPKI)>
+*/
+Scoped<Buffer> Key::GetId()
+{
+    try {
+        Scoped<CERT_PUBLIC_KEY_INFO> spki = GetPublicKeyInfo();
         ULONG ulEncodedLen;
         if (!CryptEncodeObject(
             X509_ASN_ENCODING,
             X509_PUBLIC_KEY_INFO,
-            pSpki,
+            spki.get(),
             NULL,
             &ulEncodedLen
         )) {
@@ -109,7 +116,7 @@ Scoped<Buffer> Key::GetId()
         if (!CryptEncodeObject(
             X509_ASN_ENCODING,
             X509_PUBLIC_KEY_INFO,
-            pSpki,
+            spki.get(),
             encoded.data(),
             &ulEncodedLen
         )) {
@@ -119,6 +126,40 @@ Scoped<Buffer> Key::GetId()
         return DIGEST_SHA1(encoded.data(), encoded.size());
     }
     CATCH_EXCEPTION
+}
+
+void LinkKeyToCertificate(
+    Key*            key
+) 
+{
+    crypt::CertStore store;
+    store.Open(PV_STORE_NAME_MY);
+    auto certs = store.GetCertificates();
+    for (ULONG i = 0; i < certs.size(); i++) {
+        auto cert = certs.at(i);
+
+        if (!cert->HasProperty(CERT_KEY_PROV_INFO_PROP_ID)) {
+            auto keySpki = key->GetPublicKeyInfo().get();
+            if (CertComparePublicKeyInfo(X509_ASN_ENCODING, keySpki, &cert->Get()->pCertInfo->SubjectPublicKeyInfo)) {
+                // Create key 
+                CRYPT_KEY_PROV_INFO keyProvInfo;
+
+                auto containerName = key->GetBytesW(NCRYPT_NAME_PROPERTY);
+
+                keyProvInfo.pwszContainerName = (LPWSTR) containerName->c_str();
+                keyProvInfo.pwszProvName = MS_KEY_STORAGE_PROVIDER;
+                keyProvInfo.dwProvType = 0;
+                keyProvInfo.dwFlags = 0;
+                keyProvInfo.cProvParam = 0;
+                keyProvInfo.rgProvParam = NULL;
+                keyProvInfo.dwKeySpec = 0;
+
+                if (!CertSetCertificateContextProperty(cert->Get(), CERT_KEY_PROV_INFO_PROP_ID, 0, &keyProvInfo)) {
+                    THROW_MSCAPI_EXCEPTION();
+                }
+            }
+        }
+    }
 }
 
 Scoped<Key> ncrypt::CopyKeyToProvider(
@@ -148,6 +189,8 @@ Scoped<Key> ncrypt::CopyKeyToProvider(
         nkey->SetNumber(NCRYPT_KEY_USAGE_PROPERTY, attrKeyUsage, NCRYPT_PERSIST_FLAG);
 
         nkey->Finalize();
+
+        LinkKeyToCertificate(nkey.get());
 
         return nkey;
     }

@@ -167,6 +167,7 @@ namespace ncrypt {
         void Delete(
             ULONG           dwFlags
         );
+        Scoped<CERT_PUBLIC_KEY_INFO> GetPublicKeyInfo();
         Scoped<Buffer> GetId();
 	};
 
