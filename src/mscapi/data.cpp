@@ -18,6 +18,8 @@ void X509CertificateRequest::Assign(
             ItemByType(CKA_LABEL)->SetValue(label, strlen(label));
             auto propObjectId = cert->GetPropertyBytes(CERT_PV_ID);
             ItemByType(CKA_OBJECT_ID)->SetValue(propObjectId->data(), propObjectId->size());
+
+            this->cert = cert;
         }
         else {
             THROW_EXCEPTION("Wrong certificate. Cannot get required properties CERT_PV_REQUEST and CERT_PV_ID");
@@ -148,6 +150,16 @@ CK_RV X509CertificateRequest::CopyValues(
 
             requestStore->AddCertificate(cert, CERT_STORE_ADD_ALWAYS);
         }
+
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV X509CertificateRequest::Destroy()
+{
+    try {
+        cert->DeleteFromStore();
 
         return CKR_OK;
     }

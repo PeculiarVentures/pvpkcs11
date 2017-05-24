@@ -42,6 +42,20 @@ At this time only MSCAPI.dll is implemented, it also does not have a build scrip
 - open build/binding.snl
 - Run build
 
+### Tests running
+
+Install npm dependencies
+
+```
+npm install
+```
+
+Run tests
+
+```
+npm test
+```
+
 ### System variables
 
 | Name              | Value | Description                                                              |
