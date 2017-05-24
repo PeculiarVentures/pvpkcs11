@@ -37,7 +37,7 @@ At this time only MSCAPI.dll is implemented, it also does not have a build scrip
 
 ### Supported Algorithms
 
-#### MSCAPI.dll
+#### MSCAPI
 
 | Function   | Algorithms                                                                          |
 |------------|-------------------------------------------------------------------------------------|
