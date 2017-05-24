@@ -37,6 +37,7 @@ At this time we have only one PKCS#11 implementation, `mscapi`, but in the futur
 
 ### Building
 - At this time only MSCAPI support is implemented. 
+- At this time only Windows is supported.
 - The package does not have a build script at this time. 
 
 To build you need Visual Studio and you follow the following steps:
