@@ -26,6 +26,7 @@ At this time we have only one PKCS#11 implementation, `mscapi`, but in the futur
 
 #### MSCAPI.dll
 
+| Function   | Algorithms                                                                          |
 |------------|-------------------------------------------------------------------------------------|
 | Hash       | SHA1; SHA2; SHA384; SHA512                                                          |
 | Sign       | RSA /w SHA1; RSA PKCS1 /w SHA1, SHA2;  RSA PSS /w SHA1, SHA2;  ECDSA /w SHA1, SHA2  |
