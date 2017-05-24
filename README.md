@@ -13,6 +13,14 @@ At this time we have only one PKCS#11 implementation, `mscapi`, but in the futur
 
 ![image](http://yuml.me/b60167b1)
 
+## Approach
+- Each implementation will be compiled into one library, pvpkcs11.dll/.so that will be exposed via it's own slot.
+- Certificate store operations will be exposed via CKO_X509 only Generate, Destroy, and Clone will be supported.
+- Certificate requests will be stored via CKO_DATA and if the underlying store supports storage of requests that will be used.
+- AES keys will only be supported as session objects.
+- RSA keys, ECDSA keys, X509 certificates, and PKCS10's can be persisted.
+
+
 ## Capabilities
 - Basic certificate store management enabling access of certificates, and certificate requests as well as installation and removal.
 - Basic cryptographic operations where supported by underying cryptographic and certificate store implementation (typically RSA PKCS1, RSA PSS, ECDSA, ECDH, and AES).
