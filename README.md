@@ -80,6 +80,5 @@ npm test
 | Encryption | RSA OAEP; AES modes CBC, CBC-PAD, GCM, and ECB                                      |
 
 ## Related
-- [webcrypto-local](https://github.com/PeculiarVentures/webcrypto-local)
 - [node-webcrypto-p11](https://github.com/PeculiarVentures/node-webcrypto-p11)
 - [Attacking and Fixing PKCS#11 Security Tokens](http://www.lsv.ens-cachan.fr/Publis/PAPERS/PDF/BCFS-ccs10.pdf)

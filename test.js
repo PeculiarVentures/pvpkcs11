@@ -56,6 +56,10 @@ for (var i = 0; i < iterations; i++) {
             return crypto.certStorage.keys()
                 .then((indexes) => {
                     console.log(indexes);
+                    return crypto.keyStorage.keys()
+                })
+                .then((indexes) => {
+                    console.log(indexes);
                 })
         })
 
