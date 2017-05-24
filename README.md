@@ -25,7 +25,8 @@ At this time we have only one PKCS#11 implementation, `mscapi`, but in the futur
 - Basic certificate store management enabling access of certificates, and certificate requests as well as installation and removal.
 - Basic cryptographic operations where supported by underying cryptographic and certificate store implementation (typically RSA PKCS1, RSA PSS, ECDSA, ECDH, and AES).
 - Where ECC is supported only secp256r1, secp384r1 and secp521r1 are supported.
-- Where RSA is supported RSA 1024, 2048, 3072 and 4096 are supported.
+- Where RSA is supported only RSA 1024, 2048, 3072 and 4096 are supported.
+- Where AES is supported keylengths of 128, 256,384 are supported.
 
 
 ## WARNING
