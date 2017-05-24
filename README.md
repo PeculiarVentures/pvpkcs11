@@ -44,7 +44,7 @@ At this time only MSCAPI.dll is implemented, it also does not have a build scrip
 
 ### Testing
 
-- Install npm dependencies
+- Install dependencies
 
 ```
 npm install
