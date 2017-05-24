@@ -36,7 +36,10 @@ At this time we have only one PKCS#11 implementation, `mscapi`, but in the futur
 ## Using
 
 ### Building
-At this time only MSCAPI.dll is implemented, it also does not have a build script at this time. To build you need Visual Studio and you follow the following steps:
+- At this time only MSCAPI support is implemented. 
+- The package does not have a build script at this time. 
+
+To build you need Visual Studio and you follow the following steps:
 
 - build.bat
 - open build/binding.snl
