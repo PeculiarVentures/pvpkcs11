@@ -59,7 +59,7 @@ npm install
 npm test
 ```
 
-### System variables
+### Enviroment Variables
 
 | Name              | Value | Description                                                              |
 |-------------------|-------|--------------------------------------------------------------------------|
