@@ -42,15 +42,15 @@ At this time only MSCAPI.dll is implemented, it also does not have a build scrip
 - open build/binding.snl
 - Run build
 
-### Tests running
+### Testing
 
-Install npm dependencies
+- Install npm dependencies
 
 ```
 npm install
 ```
 
-Run tests
+- Run tests
 
 ```
 npm test
