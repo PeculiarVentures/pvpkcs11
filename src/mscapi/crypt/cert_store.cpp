@@ -15,7 +15,8 @@ CertStore::~CertStore()
     try {
         this->Close();
     }
-    CATCH_EXCEPTION;
+    catch (...) {
+    }
 }
 
 void CertStore::Open(LPCSTR storeName)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../core/slot.h";
+#include "../core/slot.h"
 
 namespace mscapi {
 

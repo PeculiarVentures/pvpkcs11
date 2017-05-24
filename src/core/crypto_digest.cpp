@@ -16,6 +16,8 @@ CK_RV CryptoDigest::Init
         if (pMechanism == NULL_PTR) {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
         }
+
+        return CKR_FUNCTION_NOT_SUPPORTED;
     }
     CATCH_EXCEPTION;
 }
@@ -48,6 +50,8 @@ CK_RV CryptoDigest::Update(
         if (pPart == NULL_PTR) {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pPart is NULL");
         }
+
+        return CKR_FUNCTION_NOT_SUPPORTED;
     }
     CATCH_EXCEPTION;
 }
@@ -66,6 +70,8 @@ CK_RV CryptoDigest::Key(
         if (!dynamic_cast<SecretKey*>(key.get())) {
             THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "Key is not SecretKey");
         }
+
+        return CKR_FUNCTION_NOT_SUPPORTED;
     }
     CATCH_EXCEPTION;
 }
@@ -80,6 +86,8 @@ CK_RV CryptoDigest::Final(
         if (!active) {
             THROW_PKCS11_OPERATION_NOT_INITIALIZED();
         }
+
+        return CKR_FUNCTION_NOT_SUPPORTED;
     }
     CATCH_EXCEPTION;
 }

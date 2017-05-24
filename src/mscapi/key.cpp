@@ -7,6 +7,7 @@ void CryptoKey::Assign(
 )
 {
     nkey = key;
+    OnKeyAssigned();
 }
 
 void CryptoKey::Assign(
@@ -14,6 +15,9 @@ void CryptoKey::Assign(
 )
 {
     bkey = key;
+}
+
+void CryptoKey::OnKeyAssigned() {
 }
 
 CryptoKeyPair::CryptoKeyPair(

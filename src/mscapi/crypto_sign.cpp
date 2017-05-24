@@ -1,7 +1,7 @@
 #include "crypto.h"
 
-#include "rsa.h";
-#include "ec.h";
+#include "rsa.h"
+#include "ec.h"
 
 using namespace mscapi;
 

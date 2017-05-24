@@ -84,6 +84,7 @@ CK_RV AesKey::CreateValues(
         auto key = provider.ImportKey(BCRYPT_KEY_DATA_BLOB, buffer->data(), buffer->size(), 0);
         Assign(key);
 
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }

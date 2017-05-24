@@ -53,11 +53,9 @@ for (var i = 0; i < iterations; i++) {
         .then(() => {
             let msg = `Iteration #${iter}`;
 
-            return crypto.subtle.generateKey(alg, false, ["encrypt", "decrypt"])
-                .then((key) => {
-                    return crypto.keyStorage.setItem(key);
-                })
-                .then(() => {
+            return crypto.certStorage.keys()
+                .then((indexes) => {
+                    console.log(indexes);
                 })
         })
 

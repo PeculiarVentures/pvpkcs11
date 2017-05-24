@@ -21,6 +21,8 @@ CK_RV CryptoEncrypt::Init
         if (IsActive()) {
             THROW_PKCS11_OPERATION_ACTIVE();
         }
+
+        return CKR_FUNCTION_NOT_SUPPORTED;
     }
     CATCH_EXCEPTION;
 }
@@ -63,6 +65,8 @@ CK_RV CryptoEncrypt::Update
         if (pEncryptedPart == NULL_PTR) {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pEncryptedPart is NULL");
         }
+
+        return CKR_FUNCTION_NOT_SUPPORTED;
     }
     CATCH_EXCEPTION;
 }
@@ -81,6 +85,8 @@ CK_RV CryptoEncrypt::Final
         if (pLastEncryptedPart == NULL_PTR) {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pLastEncryptedPart is NULL");
         }
+
+        return CKR_FUNCTION_NOT_SUPPORTED;
     }
     CATCH_EXCEPTION;
 }

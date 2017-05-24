@@ -21,6 +21,8 @@ namespace mscapi {
             Scoped<bcrypt::Key> key
         );
 
+        virtual void OnKeyAssigned();
+
 		Scoped<ncrypt::Key> nkey;
         Scoped<bcrypt::Key> bkey;
 	};

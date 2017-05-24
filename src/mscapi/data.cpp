@@ -114,6 +114,8 @@ CK_RV X509CertificateRequest::CreateValues(
 
             requestStore->AddCertificate(cert, CERT_STORE_ADD_ALWAYS);
         }
+
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -146,6 +148,8 @@ CK_RV X509CertificateRequest::CopyValues(
 
             requestStore->AddCertificate(cert, CERT_STORE_ADD_ALWAYS);
         }
+
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }

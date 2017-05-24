@@ -122,6 +122,7 @@ bool core::Slot::hasSession(CK_SESSION_HANDLE hSession)
             return true;
         }
     }
+    return false;
 }
 
 CK_RV core::Slot::InitToken

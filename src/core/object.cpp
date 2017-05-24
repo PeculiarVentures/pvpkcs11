@@ -48,6 +48,7 @@ CK_RV Object::GetValue
 )
 {
     try {
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -86,6 +87,7 @@ CK_RV Object::SetValue
 )
 {
     try {
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -143,6 +145,7 @@ CK_RV Object::CreateValue
             break;
         }
         }
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -188,6 +191,7 @@ CK_RV Object::GenerateValue
 )
 {
     try {
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -231,7 +235,7 @@ CK_RV Object::UnwrapValue(
 )
 {
     try {
-
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -279,6 +283,7 @@ CK_RV Object::CopyValue
 )
 {
     try {
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }

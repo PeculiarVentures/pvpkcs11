@@ -111,8 +111,8 @@ void Certificate::SetPropertyBytes(
 ) {
     try {
         CRYPT_DATA_BLOB dataBlob = {
-            data->size(),   // cbData
-            data->data()    // pbData
+            (ULONG) data->size(),           // cbData
+            data->data()                    // pbData
         };
 
         if (!CertSetCertificateContextProperty(

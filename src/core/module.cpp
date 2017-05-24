@@ -175,6 +175,8 @@ CK_RV Module::InitPIN
 )
 {
     CHECK_INITIALIZED();
+
+    return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV Module::OpenSession

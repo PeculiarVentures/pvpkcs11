@@ -32,6 +32,8 @@ namespace mscapi {
 
         CK_RV Destroy();
 
+        void OnKeyAssigned();
+
     protected:
         void FillPublicKeyStruct();
         void FillPrivateKeyStruct();
@@ -60,6 +62,8 @@ namespace mscapi {
         );
 
         CK_RV Destroy();
+
+        void OnKeyAssigned();
 
     protected:
         void FillKeyStruct();

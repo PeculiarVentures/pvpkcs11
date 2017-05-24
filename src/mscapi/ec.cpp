@@ -27,7 +27,7 @@ Scoped<CryptoKeyPair> EcKey::Generate(
 
         LPCWSTR pszAlgorithm;
 
-#define POINT_COMPARE(curve) memcmp(core::EC_##curve##_BLOB, point->data(), strlen(core::EC_##curve##_BLOB)) == 0
+#define POINT_COMPARE(curve) memcmp(core::EC_##curve##_BLOB, point->data(), sizeof(core::EC_##curve##_BLOB)) == 0
 
         if (POINT_COMPARE(P256)) {
             pszAlgorithm = NCRYPT_ECDSA_P256_ALGORITHM;
@@ -157,6 +157,8 @@ CK_RV EcPrivateKey::GetValue(
             }
             break;
         }
+
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -208,6 +210,14 @@ CK_RV mscapi::EcPrivateKey::Destroy()
     CATCH_EXCEPTION
 }
 
+void EcPrivateKey::OnKeyAssigned()
+{
+    try {
+        FillPublicKeyStruct();
+    }
+    CATCH_EXCEPTION
+}
+
 // Public key
 
 void EcPublicKey::FillKeyStruct()
@@ -226,18 +236,17 @@ void EcPublicKey::FillKeyStruct()
         case BCRYPT_ECDH_PUBLIC_P256_MAGIC:
         case BCRYPT_ECDSA_PUBLIC_P256_MAGIC:
             ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P256_BLOB, sizeof(core::EC_P256_BLOB));
-            *propPoint += std::string({ 0x04, 0x41, 0x04 });
+            *propPoint += std::string("\x04\x41\x04");
             break;
         case BCRYPT_ECDH_PUBLIC_P384_MAGIC:
         case BCRYPT_ECDSA_PUBLIC_P384_MAGIC:
             ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P384_BLOB, sizeof(core::EC_P384_BLOB));
-            *propPoint += std::string({ 0x04, 0x61, 0x04 });
+            *propPoint += std::string("\x04\x61\x04");
             break;
         case BCRYPT_ECDH_PUBLIC_P521_MAGIC:
         case BCRYPT_ECDSA_PUBLIC_P521_MAGIC: {
             ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P521_BLOB, sizeof(core::EC_P521_BLOB));
-            char padding[] = { 0x04, 0x81, 0x85, 0x04 };
-            *propPoint += std::string(padding);
+            *propPoint += std::string("\x04\x81\x85\x04");
             break;
         }
         default:
@@ -273,6 +282,8 @@ CK_RV EcPublicKey::GetValue(
             }
             break;
         }
+
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -359,6 +370,7 @@ CK_RV EcPublicKey::CreateValues
         auto key = provider.ImportKey(BCRYPT_ECCPUBLIC_BLOB, buffer->data(), buffer->size(), 0);
         Assign(key);
 
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -394,6 +406,14 @@ CK_RV mscapi::EcPublicKey::Destroy()
 {
     try {
         return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+void EcPublicKey::OnKeyAssigned()
+{
+    try {
+        FillKeyStruct();
     }
     CATCH_EXCEPTION
 }

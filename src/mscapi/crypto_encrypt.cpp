@@ -97,9 +97,9 @@ CK_RV CryptoRsaOAEPEncrypt::Once(
         }
 
         BCRYPT_OAEP_PADDING_INFO paddingInfo = {
-            digestAlg,  // pszAlgId;
-            (PUCHAR)(label.length() ? label.c_str() : NULL), // pbLabel;
-            label.length()// cbLabel;
+            digestAlg,                                              // pszAlgId
+            (PUCHAR)    (label.length() ? label.c_str() : NULL),    // pbLabel
+            (ULONG)     label.length()                              // cbLabel
         };
 
         ncryptFn* fn;

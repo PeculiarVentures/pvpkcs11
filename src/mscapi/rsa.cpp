@@ -96,7 +96,7 @@ void RsaPrivateKey::FillPublicKeyStruct()
 
         auto keyUsage = nkey->GetNumber(NCRYPT_KEY_USAGE_PROPERTY);
         if (keyUsage & NCRYPT_ALLOW_SIGNING_FLAG) {
-            ItemByType(CKA_VERIFY)->To<core::AttributeBool>()->Set(true);
+            ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
         }
         if (keyUsage & NCRYPT_ALLOW_DECRYPT_FLAG) {
             ItemByType(CKA_DECRYPT)->To<core::AttributeBool>()->Set(true);
@@ -167,6 +167,8 @@ CK_RV RsaPrivateKey::GetValue
             break;
         }
         }
+
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -218,6 +220,14 @@ CK_RV RsaPrivateKey::Destroy()
     CATCH_EXCEPTION
 }
 
+void RsaPrivateKey::OnKeyAssigned()
+{
+    try {
+        FillPublicKeyStruct();
+    }
+    CATCH_EXCEPTION
+}
+
 // RSA public key
 
 void RsaPublicKey::FillKeyStruct()
@@ -239,7 +249,7 @@ void RsaPublicKey::FillKeyStruct()
 
         auto keyUsage = nkey->GetNumber(NCRYPT_KEY_USAGE_PROPERTY);
         if (keyUsage & NCRYPT_ALLOW_SIGNING_FLAG) {
-            ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
+            ItemByType(CKA_VERIFY)->To<core::AttributeBool>()->Set(true);
         }
         if (keyUsage & NCRYPT_ALLOW_DECRYPT_FLAG) {
             ItemByType(CKA_ENCRYPT)->To<core::AttributeBool>()->Set(true);
@@ -265,6 +275,8 @@ CK_RV RsaPublicKey::GetValue
             break;
         }
         }
+
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -303,6 +315,7 @@ CK_RV RsaPublicKey::CreateValues
         auto key = provider.ImportKey(BCRYPT_RSAPUBLIC_BLOB, buffer->data(), buffer->size(), 0);
         Assign(key);
 
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -336,6 +349,14 @@ CK_RV RsaPublicKey::Destroy()
 {
     try {
         return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+void RsaPublicKey::OnKeyAssigned()
+{
+    try {
+        FillKeyStruct();
     }
     CATCH_EXCEPTION
 }

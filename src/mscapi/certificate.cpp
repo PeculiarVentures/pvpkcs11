@@ -189,6 +189,8 @@ CK_RV mscapi::X509Certificate::Destroy()
 {
     try {
         value->DeleteFromStore();
+
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }

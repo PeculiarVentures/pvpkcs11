@@ -8,15 +8,20 @@ CK_RV CryptoSign::Init
     Scoped<Object>    key          /* signature key */
 )
 {
-    if (active) {
-        THROW_PKCS11_OPERATION_ACTIVE();
+    try {
+        if (active) {
+            THROW_PKCS11_OPERATION_ACTIVE();
+        }
+        if (pMechanism == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
+        }
+        if (!(key && key.get())) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "key is NULL");
+        }
+
+        return CKR_FUNCTION_NOT_SUPPORTED;
     }
-    if (pMechanism == NULL_PTR) {
-        THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
-    }
-    if (!(key && key.get())) {
-        THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "key is NULL");
-    }
+    CATCH_EXCEPTION
 }
 
 /**
@@ -60,12 +65,17 @@ CK_RV CryptoSign::Update(
     CK_ULONG          ulPartLen  /* count of bytes to sign/verify */
 )
 {
-    if (!active) {
-        THROW_PKCS11_OPERATION_NOT_INITIALIZED();
+    try {
+        if (!active) {
+            THROW_PKCS11_OPERATION_NOT_INITIALIZED();
+        }
+        if (pPart == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pPart is NULL");
+        }
+
+        return CKR_FUNCTION_NOT_SUPPORTED;
     }
-    if (pPart == NULL_PTR) {
-        THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pPart is NULL");
-    }
+    CATCH_EXCEPTION
 }
 
 CK_RV CryptoSign::Final(
@@ -73,9 +83,14 @@ CK_RV CryptoSign::Final(
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
 )
 {
-    if (!active) {
-        THROW_PKCS11_OPERATION_NOT_INITIALIZED();
+    try {
+        if (!active) {
+            THROW_PKCS11_OPERATION_NOT_INITIALIZED();
+        }
+
+        return CKR_FUNCTION_NOT_SUPPORTED;
     }
+    CATCH_EXCEPTION
 }
 
 CK_RV CryptoSign::Final(
@@ -83,12 +98,17 @@ CK_RV CryptoSign::Final(
     CK_ULONG          ulSignatureLen  /* signature length */
 )
 {
-    if (!active) {
-        THROW_PKCS11_OPERATION_NOT_INITIALIZED();
+    try {
+        if (!active) {
+            THROW_PKCS11_OPERATION_NOT_INITIALIZED();
+        }
+        if (pSignature == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pSignature is NULL");
+        }
+
+        return CKR_FUNCTION_NOT_SUPPORTED;
     }
-    if (pSignature == NULL_PTR) {
-        THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pSignature is NULL");
-    }
+    CATCH_EXCEPTION;
 }
 
 bool CryptoSign::IsActive() {
