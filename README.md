@@ -13,6 +13,10 @@ At this time we have only one PKCS#11 implementation, `mscapi`, but in the futur
 
 ![image](http://yuml.me/b60167b1)
 
+## Capabilities
+- Basic certificate store management enabling access of certificates, and certificate requests as well as installation and removal.
+- Basic cryptographic operations where supported by underying cryptographic and certificate store implementation (typically RSA PKCS1, RSA PSS, ECDSA, ECDH, and AES).
+
 ## Using
 
 ### System variables
