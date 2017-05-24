@@ -13,6 +13,14 @@ At this time we have only one PKCS#11 implementation, `mscapi`, but in the futur
 
 ![image](http://yuml.me/b60167b1)
 
+## Using
+
+### System variables
+
+| Name              | Description                                                                 |
+|-------------------|-----------------------------------------------------------------------------|
+| `PV_PKCS11_ERROR` | Prints to stdout additional information about errors from PKCS#11 module    |
+
 
 ## Related
 - [webcrypto-local](https://github.com/PeculiarVentures/webcrypto-local)

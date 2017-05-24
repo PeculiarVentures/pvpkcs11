@@ -724,9 +724,6 @@ Scoped<core::Object> Session::CopyObject
         else if (dynamic_cast<X509CertificateRequest*>(object.get())) {
             copy = Scoped<X509CertificateRequest>(new X509CertificateRequest());
         }
-        else if (dynamic_cast<AesKey*>(object.get())) {
-            copy = Scoped<AesKey>(new AesKey());
-        }
         else {
             THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Object is not copyable");
         }

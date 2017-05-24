@@ -3,21 +3,33 @@
 #include "core/excep.h"
 #include "mscapi/slot.h"
 
+#define PV_ENV_ERROR "PV_PKCS11_ERROR"
+
+static auto fEnvError = std::getenv(PV_ENV_ERROR);
+
 #define CATCH(functionName)                                     \
     catch (Scoped<core::Exception> e) {                         \
-        fprintf(stdout, "Error: %s\n", functionName);           \
 		core::Pkcs11Exception* exception;                       \
-        puts(e->what());                                        \
+        if (fEnvError) {                                        \
+            fprintf(stdout, "Error: %s\n", functionName);       \
+            puts(e->what());                                    \
+        }                                                       \
 		if (exception = dynamic_cast<core::Pkcs11Exception*>(e.get())) { \
 			return strcmp(exception->name.c_str(), PKCS11_EXCEPTION_NAME) ? CKR_FUNCTION_FAILED : exception->code;\
 		}                                                       \
     }                                                           \
 	catch (const std::exception &e) {                           \
-		fprintf(stdout, "Error: %s\n", functionName);           \
-		fprintf(stdout, "%s\n", e.what());                      \
+		if (fEnvError) {                                        \
+            fprintf(stdout, "Error: %s\n", functionName);       \
+            puts(e.what());                                     \
+        }                                                       \
+        return CKR_FUNCTION_FAILED;                             \
 	}                                                           \
 	catch (...) {                                               \
-		fprintf(stdout, "Error: %s\n", functionName);           \
+		if (fEnvError) {                                        \
+            fprintf(stdout, "Error: %s\n", functionName);       \
+        }                                                       \
+        return CKR_FUNCTION_FAILED;                             \
 	}
 
 static CK_FUNCTION_LIST functionList =
