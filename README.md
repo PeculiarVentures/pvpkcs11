@@ -20,8 +20,8 @@ At this time we have only one PKCS#11 implementation, `mscapi`, but in the futur
 - AES keys will only be supported as session objects.
 - RSA keys, ECDSA keys, X509 certificates, and PKCS10's can be persisted.
 
-## Architecture
-![image](https://cloud.githubusercontent.com/assets/1619279/26436214/c77477ea-40c9-11e7-8ad0-959f1d1ac9df.png)
+## Class Design
+![image](https://cloud.githubusercontent.com/assets/1619279/26436231/e7a32066-40c9-11e7-8628-bc6ac9366138.png)
 
 ## Capabilities
 - Basic certificate store management enabling access of certificates, and certificate requests as well as installation and removal.
