@@ -2,30 +2,27 @@
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat)](https://raw.githubusercontent.com/PeculiarVentures/2key-ratchet/master/LICENSE.md)
 
-
-`pvpkcs11` consists of a input validation library we call `core` and a set of PKCS#11 implementations that wrap operating system and browser cryptographic and certificate store implementations. 
+`pvpkcs11` consists of an input validation library we call `core` and a set of PKCS#11 implementations that wrap operating system and browser cryptographic and certificate store implementations. 
 
 We wanted a solution that provides unified access to the underlying certificate stores and associated cryptographic implementations. PKCS#11 was a natural choice for an API to enable this scenario given its broad adoption.
 
 To make the development on these platforms and user agents easier and to ensure their runtime behavior is uniform, we utilize  `core` to perform input validation. This is similar to how we architected `node-webcrypto-ossl`, `node-webcrypto-p11` and `webcrypto-liner` where we share `webcrypto-core`.
-
-At this time we have only one PKCS#11 implementation, `mscapi`, but in the future we will have others as well.
-
 ![image](https://cloud.githubusercontent.com/assets/1619279/26436272/2cea6648-40ca-11e7-904b-70432419b8dc.png)
 
 ## Approach
-- Each implementation will be compiled into one library, pvpkcs11.dll/.so that will be exposed via it's own slot.
-- Certificate store operations will be exposed via CKO_X509 only C_CreateObject, C_DestroyObject, C_CloneObject will be supported.
-- Certificate requests will be stored via CKO_DATA and if the underlying store supports storage of requests that will be used.
-- AES keys will only be supported as session objects.
+- Each implementation will be compiled into one library, pvpkcs11.dll/.so, and each one will be exposed via its own slot.
 - RSA keys, ECDSA keys, X509 certificates, and PKCS10's can be persisted.
+- Certificate store operations will be exposed as CKO_X509 
+- Certificate requests will be stored via CKO_DATA.
+- Both CKO_X509 and CKO_DATA will be manageable via C_CreateObject, C_DestroyObject, C_CloneObject. 
+- AES keys will only be supported as session objects.
 
 ## Capabilities
 - Basic certificate store management enabling access of certificates, and certificate requests as well as installation and removal.
-- Basic cryptographic operations where supported by underying cryptographic and certificate store implementation (typically RSA PKCS1, RSA PSS, ECDSA, ECDH, and AES).
+- Basic cryptographic operations where supported by underlying cryptographic and certificate store implementation (typically RSA PKCS1, RSA-PSS, ECDSA, ECDH, and AES).
 - Where ECC is supported only secp256r1, secp384r1 and secp521r1 are supported.
 - Where RSA is supported only RSA 1024, 2048, 3072 and 4096 are supported.
-- Where AES is supported keylengths of 128, 256,384 are supported.
+- Where AES is supported key lengths of 128, 256,384 are supported.
 
 ## Class Design
 ![image](https://cloud.githubusercontent.com/assets/1619279/26436231/e7a32066-40c9-11e7-8628-bc6ac9366138.png)
