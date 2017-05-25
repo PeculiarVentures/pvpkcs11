@@ -20,9 +20,6 @@ At this time we have only one PKCS#11 implementation, `mscapi`, but in the futur
 - AES keys will only be supported as session objects.
 - RSA keys, ECDSA keys, X509 certificates, and PKCS10's can be persisted.
 
-## Class Design
-![image](https://cloud.githubusercontent.com/assets/1619279/26436231/e7a32066-40c9-11e7-8628-bc6ac9366138.png)
-
 ## Capabilities
 - Basic certificate store management enabling access of certificates, and certificate requests as well as installation and removal.
 - Basic cryptographic operations where supported by underying cryptographic and certificate store implementation (typically RSA PKCS1, RSA PSS, ECDSA, ECDH, and AES).
@@ -30,6 +27,8 @@ At this time we have only one PKCS#11 implementation, `mscapi`, but in the futur
 - Where RSA is supported only RSA 1024, 2048, 3072 and 4096 are supported.
 - Where AES is supported keylengths of 128, 256,384 are supported.
 
+## Class Design
+![image](https://cloud.githubusercontent.com/assets/1619279/26436231/e7a32066-40c9-11e7-8628-bc6ac9366138.png)
 
 ## WARNING
 
