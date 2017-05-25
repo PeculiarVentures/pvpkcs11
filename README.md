@@ -11,7 +11,7 @@ To make the development on these platforms and user agents easier and to ensure 
 
 At this time we have only one PKCS#11 implementation, `mscapi`, but in the future we will have others as well.
 
-![image](http://yuml.me/b60167b1)
+![image](https://cloud.githubusercontent.com/assets/1619279/26436272/2cea6648-40ca-11e7-904b-70432419b8dc.png)
 
 ## Approach
 - Each implementation will be compiled into one library, pvpkcs11.dll/.so that will be exposed via it's own slot.
