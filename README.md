@@ -7,6 +7,7 @@
 We wanted a solution that provides unified access to the underlying certificate stores and associated cryptographic implementations. PKCS#11 was a natural choice for an API to enable this scenario given its broad adoption.
 
 To make the development on these platforms and user agents easier and to ensure their runtime behavior is uniform, we utilize  `core` to perform input validation. This is similar to how we architected `node-webcrypto-ossl`, `node-webcrypto-p11` and `webcrypto-liner` where we share `webcrypto-core`.
+
 ![image](https://cloud.githubusercontent.com/assets/1619279/26436272/2cea6648-40ca-11e7-904b-70432419b8dc.png)
 
 ## Approach
