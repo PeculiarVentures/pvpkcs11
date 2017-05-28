@@ -13,80 +13,6 @@
 
 using namespace mscapi;
 
-void Test()
-{
-    try {
-        ncrypt::Provider provider;
-        provider.Open(MS_KEY_STORAGE_PROVIDER, 0);
-        auto key = provider.CreatePersistedKey(NCRYPT_RSA_ALGORITHM, L"test RSA key", 0, NCRYPT_OVERWRITE_KEY_FLAG);
-        key->SetNumber(NCRYPT_KEY_USAGE_PROPERTY, NCRYPT_ALLOW_SIGNING_FLAG);
-        key->SetNumber(NCRYPT_EXPORT_POLICY_PROPERTY, NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG, NCRYPT_PERSIST_FLAG);
-        key->Finalize();
-
-        LPCTSTR pszX500 = "CN = CNG Certificate #1";
-
-        DWORD cbEncoded = 0;
-
-        if (!CertStrToName(X509_ASN_ENCODING, pszX500, CERT_X500_NAME_STR, NULL, NULL, &cbEncoded, NULL)) {
-            THROW_MSCAPI_EXCEPTION();
-        }
-        PUCHAR pbEncoded = (PUCHAR)malloc(cbEncoded);
-        if (!CertStrToName(X509_ASN_ENCODING, pszX500, CERT_X500_NAME_STR, NULL, pbEncoded, &cbEncoded, NULL)) {
-            THROW_MSCAPI_EXCEPTION();
-        }
-
-        CERT_NAME_BLOB nameBlob;
-        nameBlob.pbData = pbEncoded;
-        nameBlob.cbData = cbEncoded;
-
-        // Prepare key provider structure for self-signed certificate
-
-        CRYPT_KEY_PROV_INFO KeyProvInfo;
-
-        KeyProvInfo.pwszContainerName = L"test RSA key";
-
-        KeyProvInfo.pwszProvName = MS_KEY_STORAGE_PROVIDER;
-
-        KeyProvInfo.dwProvType = 0;
-
-        KeyProvInfo.dwFlags = 0;
-
-        KeyProvInfo.cProvParam = 0;
-
-        KeyProvInfo.rgProvParam = NULL;
-
-        KeyProvInfo.dwKeySpec = 0;
-
-
-        // Prepare algorithm structure for self-signed certificate
-
-        CRYPT_ALGORITHM_IDENTIFIER SignatureAlgorithm;
-
-        SignatureAlgorithm.pszObjId = szOID_RSA_SHA1RSA;
-
-
-        // Prepare Expiration date for self-signed certificate
-
-        SYSTEMTIME EndTime;
-
-        GetSystemTime(&EndTime);
-
-        EndTime.wYear += 5;
-
-        PCCERT_CONTEXT pCertContext = CertCreateSelfSignCertificate(key->Get(), &nameBlob, 0, &KeyProvInfo, &SignatureAlgorithm, 0, &EndTime, 0);
-        if (!pCertContext) {
-            THROW_MSCAPI_EXCEPTION();
-        }
-        Scoped<crypt::Certificate> cert(new crypt::Certificate);
-        cert->Assign(pCertContext);
-
-        crypt::CertStore store;
-        store.Open("My");
-        store.AddCertificate(cert, CERT_STORE_ADD_NEW);
-    }
-    CATCH_EXCEPTION
-}
-
 Session::Session() : core::Session()
 {
     digest = Scoped<CryptoDigest>(new CryptoDigest());
@@ -230,6 +156,8 @@ void Session::LoadRequestStore()
                 objects.add(object);
             }
         }
+
+        certStores.push_back(requestStore);
     }
     CATCH_EXCEPTION
 }
@@ -295,8 +223,6 @@ CK_RV Session::Open
 )
 {
     try {
-
-        // Test();
 
         CK_RV res = core::Session::Open(flags, pApplication, Notify, phSession);
 
