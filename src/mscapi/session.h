@@ -97,7 +97,7 @@ namespace mscapi {
         );
 
 	protected:
-        std::vector<Scoped<crypt::CertStore>> certStores;
+        std::vector<Scoped<crypt::CertStore> > certStores;
 
 		void LoadMyStore();
         void LoadRequestStore();

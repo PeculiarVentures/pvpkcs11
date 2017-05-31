@@ -36,7 +36,7 @@ CK_RV CryptoEncrypt::Once
 )
 {
     try {
-        ULONG ulPaddingLen = *pulEncryptedDataLen;
+        CK_ULONG ulPaddingLen = *pulEncryptedDataLen;
         Update(pData, ulDataLen, pEncryptedData, &ulPaddingLen);
         CK_BYTE_PTR pPadding = pEncryptedData + ulPaddingLen;
         *pulEncryptedDataLen = *pulEncryptedDataLen - ulPaddingLen;

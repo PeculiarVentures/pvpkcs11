@@ -188,9 +188,9 @@ DWORD Provider::GetKeySpec()
 	CATCH_EXCEPTION;
 }
 
-std::vector<Scoped<std::string>> Provider::GetContainers()
+std::vector<Scoped<std::string> > Provider::GetContainers()
 {
-	std::vector<Scoped<std::string>> res;
+	std::vector<Scoped<std::string> > res;
 	try {
 		while (true) {
 			Scoped<std::string> container = GetBufferParam(PP_ENUMCONTAINERS, res.size() ? CRYPT_NEXT : CRYPT_FIRST);

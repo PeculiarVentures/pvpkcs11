@@ -48,9 +48,10 @@ Session::Session()
     this->Application = NULL_PTR;
     this->Notify = NULL_PTR;
 
-    this->find = {
-        false, NULL_PTR, 0, 0
-    };
+    this->find.active = false;
+    this->find.pTemplate = NULL;
+    this->find.ulTemplateSize = 0;
+    this->find.index = 0;
 }
 
 Session::~Session()
@@ -186,7 +187,7 @@ CK_RV Session::SetAttributeValue
 }
 
 Scoped<Object> GetObject(CK_OBJECT_HANDLE hObject) {
-    return NULL_PTR;
+    THROW_PKCS11_EXCEPTION(CKR_GENERAL_ERROR, "Function is not implemented");
 }
 
 CK_RV Session::FindObjectsInit

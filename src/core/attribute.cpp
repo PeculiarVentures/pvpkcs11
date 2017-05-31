@@ -15,7 +15,9 @@ struct AttributeInfo {
 #define PVT_ATTRIBUTE_BYTES             3
 #define PVT_ATTRIBUTE_UTF8_STRING       4
 
-std::vector<AttributeInfo> attr_info({
+std::vector<AttributeInfo> attr_info;
+
+/*
     { CKA_CLASS, "CKA_CLASS", PVT_ATTRIBUTE_ULONG },
     { CKA_TOKEN, "CKA_TOKEN", PVT_ATTRIBUTE_BBOOL },
     { CKA_PRIVATE, "CKA_PRIVATE", PVT_ATTRIBUTE_BBOOL },
@@ -120,7 +122,7 @@ std::vector<AttributeInfo> attr_info({
     { CKA_DEFAULT_CMS_ATTRIBUTES, "CKA_DEFAULT_CMS_ATTRIBUTES", PVT_ATTRIBUTE_BYTES },
     { CKA_SUPPORTED_CMS_ATTRIBUTES, "CKA_SUPPORTED_CMS_ATTRIBUTES", PVT_ATTRIBUTE_BYTES },
     { CKA_ALLOWED_MECHANISMS, "CKA_ALLOWED_MECHANISMS", PVT_ATTRIBUTE_BYTES },
-});
+    */
 
 std::string GetAttributeName(
     CK_ATTRIBUTE_TYPE   type

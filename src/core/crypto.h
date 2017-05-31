@@ -147,7 +147,6 @@ namespace core {
         bool IsActive();
 
     protected:
-        LPCWSTR     digestAlg;
         std::string label;
         bool        active;
         CK_BBOOL    type;

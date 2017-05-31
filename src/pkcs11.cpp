@@ -1,11 +1,24 @@
 #include "stdafx.h"
 #include "core/module.h"
 #include "core/excep.h"
+
+#ifdef _WIN32
 #include "mscapi/slot.h"
+#endif // _WIN32
+
+#ifdef __APPLE__
+// #ifdef TARGET_OS_MAC
+#include "osx/slot.h"
+// #endif // TARGET_OS_MAC
+#endif // __APPLE__
 
 #define PV_ENV_ERROR "PV_PKCS11_ERROR"
 
+#ifdef _WIN32
 static auto fEnvError = std::getenv(PV_ENV_ERROR);
+#else
+static auto fEnvError = getenv(PV_ENV_ERROR);
+#endif // _WIN32
 
 #define CATCH(functionName)                                     \
     catch (Scoped<core::Exception> e) {                         \
@@ -112,9 +125,18 @@ core::Module pkcs11 = core::Module();
 class App {
 public:
     App() {
+#ifdef _WIN32
         Scoped<core::Slot> mscapiSlot(new mscapi::Slot());
         pkcs11.slots.add(mscapiSlot);
         mscapiSlot->slotID = pkcs11.slots.count() - 1;
+#endif // _WIN32
+#ifdef __APPLE__
+// #ifdef TARGET_OS_MAC
+        Scoped<core::Slot> osxSlot(new osx::Slot());
+        pkcs11.slots.add(osxSlot);
+        osxSlot->slotID = pkcs11.slots.count() - 1;
+// #endif // TARGET_OS_MAC
+#endif // __APPLE__
     }
 };
 
@@ -126,6 +148,7 @@ CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList)
         CHECK_ARGUMENT_NULL(ppFunctionList);
 
         *ppFunctionList = &functionList;
+
         return CKR_OK;
     }
     CATCH("C_GetFunctionList");

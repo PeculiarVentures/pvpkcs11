@@ -74,7 +74,7 @@ namespace crypt {
 		Scoped<std::string> GetName();
 		DWORD GetType();
 		DWORD GetKeySpec();
-		std::vector<Scoped<std::string>> GetContainers();
+		std::vector<Scoped<std::string> > GetContainers();
 
         Scoped<Key> GetUserKey(
             DWORD           dwKeySpec
@@ -177,7 +177,7 @@ namespace crypt {
 		CertStore();
 		~CertStore();
 
-		std::vector<Scoped<Certificate>> GetCertificates();
+		std::vector<Scoped<Certificate> > GetCertificates();
         void AddCertificate(
             Scoped<Certificate> context,
             ULONG               dwFlags

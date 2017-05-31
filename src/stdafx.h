@@ -2,12 +2,13 @@
 
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
-#include <crtdbg.h>
 
 #ifdef _WIN32
+
+#include <crtdbg.h>
+
 #define WIN32_LEAN_AND_MEAN
 
-#include <stdio.h>
 #include <tchar.h>
 #define WIN32_NO_STATUS
 #include <windows.h>
@@ -16,9 +17,15 @@
 
 #endif // _WIN32
 
+#ifdef _WIN32
 #pragma pack(push, cryptoki, 1)
+#endif // _WIN32
+
 #include "./pkcs11.h"
+
+#ifdef _WIN32
 #pragma pack(pop, cryptoki)
+#endif // _WIN32
 
 #include <stdio.h>
 #include <memory>

@@ -102,7 +102,7 @@ namespace core {
             CK_ULONG            flags
         ) :
             Attribute(type, flags),
-            value(Scoped<std::vector<T>>(new std::vector<T>))
+            value(Scoped<std::vector<T> >(new std::vector<T>))
         {
             try {
                 SetValue(pData, ulDataLen);
@@ -151,7 +151,7 @@ namespace core {
             return value->empty();
         }
     protected:
-        Scoped<std::vector<T>> value;
+        Scoped<std::vector<T> > value;
     };
 
     class AttributeBytes : public AttributeTemplate<CK_BYTE> {
@@ -244,7 +244,7 @@ namespace core {
         );
         CK_ULONG Size();
     protected:
-        std::vector<Scoped<Attribute>> items;
+        std::vector<Scoped<Attribute> > items;
 
         void Add(
             Scoped<Attribute> item

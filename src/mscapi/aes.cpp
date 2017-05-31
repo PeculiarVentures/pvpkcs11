@@ -355,7 +355,7 @@ CK_RV CryptoAesGCMEncrypt::Init
         }
 
         // tagLength
-        tagLength = params->ulTagBits >> 3;
+        tagLength = params->ulTagBits > > 3;
 
         this->key->SetParam(BCRYPT_CHAINING_MODE, (PUCHAR)BCRYPT_CHAIN_MODE_GCM, lstrlenW(BCRYPT_CHAIN_MODE_GCM));
 

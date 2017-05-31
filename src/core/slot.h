@@ -8,8 +8,8 @@ namespace core {
 
     class Slot {
     public:
-        Collection<Scoped<Mechanism>> mechanisms;
-        Collection<Scoped<Session>> sessions;
+        Collection<Scoped<Mechanism> > mechanisms;
+        Collection<Scoped<Session> > sessions;
 
         Slot();
         ~Slot();

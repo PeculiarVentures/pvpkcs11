@@ -1,77 +1,22 @@
-/// <reference types="mocha" />
-
 // @ts-check
 
 const pkcs11 = require("pkcs11js");
-const helper = require("pvtsutils");
-const p11_crypto = require("node-webcrypto-p11");
-const ossl_crypto = require("node-webcrypto-ossl");
-const assert = require("assert");
 
-const config = require("./test/config");
+const mod = new pkcs11.PKCS11();
 
+mod.load("out/Debug_x64/libpvpkcs11.dylib");
 
-let crypto = new p11_crypto.WebCrypto({
-    library: config.lib,
-    slot: 0,
-});
-let ossl = new ossl_crypto();
+mod.C_Initialize();
 
-const RSA_PKCS = {
-    name: "RSASSA-PKCS1-v1_5",
-    hash: "SHA-256",
-    publicExponent: new Uint8Array([1, 0, 1]),
-    modulusLength: 2048,
-};
-const ECDSA = {
-    name: "ECDSA",
-    namedCurve: "P-384",
-    hash: "SHA-256",
-};
-const AES_CBC = {
-    name: "AES-CBC",
-    length: 256,
-    iv: new Uint8Array([1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6]),
-};
+console.log("Slots:", mod.C_GetSlotList().length);
 
-const alg = AES_CBC;
+const slot = mod.C_GetSlotList()[0];
 
-const data = new Buffer([1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6]);
+const session = mod.C_OpenSession(slot, 2 | 4);
 
-function hex2b64url(hex) {
-    return helper.Convert.ToBase64Url(helper.Convert.FromHex(hex));
-}
+mod.C_DigestInit(session, {mechanism: pkcs11.CKM_SHA_1, parameter: null});
+const digest = mod.C_Digest(session, new Buffer("hello"), new Buffer(20));
 
-let promise = Promise.resolve()
+console.log(digest.toString("hex"));
 
-// Iterations
-const iterations = 1
-
-for (var i = 0; i < iterations; i++) {
-    let iter = i;
-    promise = promise
-        .then(() => {
-            let msg = `Iteration #${iter}`;
-
-            return crypto.certStorage.keys()
-                .then((indexes) => {
-                    console.log(indexes);
-                    return crypto.keyStorage.keys()
-                })
-                .then((indexes) => {
-                    console.log(indexes);
-                })
-        })
-
-}
-
-promise
-    .then(() => {
-        console.log("Success");
-    })
-    // @ts-ignore
-    .catch((err) => {
-        console.error(err);
-    });
-
-
+mod.C_Finalize();

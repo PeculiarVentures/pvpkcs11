@@ -6,7 +6,7 @@ namespace core {
     class Module {
     public:
         bool initialized;
-        Collection<Scoped<Slot>> slots;
+        Collection<Scoped<Slot> > slots;
 
         Module(void);
 

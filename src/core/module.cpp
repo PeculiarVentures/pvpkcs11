@@ -56,11 +56,13 @@ CK_RV Module::GetInfo(
     CHECK_INITIALIZED();
     CHECK_ARGUMENT_NULL(pInfo);
 
-    pInfo->cryptokiVersion = { CRYPTOKI_VERSION_MAJOR, CRYPTOKI_VERSION_MINOR };
+    pInfo->cryptokiVersion.major = CRYPTOKI_VERSION_MAJOR;
+    pInfo->cryptokiVersion.minor = CRYPTOKI_VERSION_MINOR;
     pInfo->flags = 0;
     SET_STRING(pInfo->manufacturerID, "Module", 32);
     SET_STRING(pInfo->libraryDescription, "Windows CryptoAPI", 32);
-    pInfo->libraryVersion = { 0, 1 };
+    pInfo->libraryVersion.major = 0;
+    pInfo->libraryVersion.minor = 1;
 
     return CKR_OK;
 }
@@ -203,7 +205,7 @@ CK_RV Module::CloseSession
     CHECK_INITIALIZED();
     Scoped<Slot> slot = this->getSlotBySession(hSession);
 
-    if (slot == NULL_PTR) {
+    if (!(slot && slot.get())) {
         return CKR_SESSION_HANDLE_INVALID;
     }
 
@@ -218,7 +220,7 @@ Scoped<Slot> Module::getSlotBySession(CK_SESSION_HANDLE hSession)
             return slot;
         }
     }
-    return NULL_PTR;
+    THROW_PKCS11_EXCEPTION(CKR_SESSION_HANDLE_INVALID, "Session handle invalid");
 }
 
 Scoped<Session> Module::getSession(CK_SESSION_HANDLE hSession)
