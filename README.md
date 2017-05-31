@@ -25,7 +25,7 @@ With this one library you will be able to access many different underlying crypt
 - Basic cryptographic operations where supported by underlying cryptographic and certificate store implementation (typically RSA PKCS1, RSA-PSS, ECDSA, ECDH, and AES).
 - Where ECC is supported only secp256r1, secp384r1 and secp521r1 are supported.
 - Where RSA is supported only RSA 1024, 2048, 3072 and 4096 are supported.
-- Where AES is supported key lengths of 128, 256,384 are supported.
+- Where AES is supported key lengths of 128, 192 and 256 are supported.
 
 ## Class Design
 ![image](https://cloud.githubusercontent.com/assets/1619279/26436231/e7a32066-40c9-11e7-8628-bc6ac9366138.png)
