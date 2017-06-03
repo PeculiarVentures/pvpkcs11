@@ -59,3 +59,30 @@ CK_RV osx::Session::Close()
     }
     CATCH_EXCEPTION
 }
+
+CK_RV osx::Session::GenerateRandom(
+    CK_BYTE_PTR       pPart,     /* data to be digested */
+    CK_ULONG          ulPartLen  /* bytes of data to be digested */
+) 
+{
+    try {
+        core::Session::GenerateRandom(
+            pPart,   
+            ulPartLen
+        );
+
+        FILE *fp = fopen("/dev/random", "r");
+        if (!fp) {
+            THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Cannot get /dev/random");
+        }
+        
+        for (int i=0; i<ulPartLen; i++) {
+            pPart[i] = fgetc(fp);
+        }
+        
+        fclose(fp);
+
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}

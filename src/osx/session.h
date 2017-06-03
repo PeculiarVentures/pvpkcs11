@@ -30,6 +30,11 @@ namespace osx {
             CK_ATTRIBUTE_PTR     pTemplate,   /* template for new object */
             CK_ULONG             ulCount      /* attributes in template */
         );
+
+        CK_RV GenerateRandom(
+            CK_BYTE_PTR       pPart,     /* data to be digested */
+            CK_ULONG          ulPartLen  /* bytes of data to be digested */
+        );
     };
 
 }

@@ -1273,7 +1273,7 @@ CK_RV C_SeedRandom
     )
 {
     try {
-        pkcs11.SeedRandom(hSession, pSeed, ulSeedLen);
+        return pkcs11.SeedRandom(hSession, pSeed, ulSeedLen);
     }
     CATCH(__FUNCTION__);
 }
@@ -1288,7 +1288,7 @@ CK_RV C_GenerateRandom
     )
 {
     try {
-        pkcs11.GenerateRandom(hSession, RandomData, ulRandomLen);
+        return pkcs11.GenerateRandom(hSession, RandomData, ulRandomLen);
     }
     CATCH(__FUNCTION__);
 }
