@@ -80,7 +80,6 @@ CK_RV osx::CryptoDigest::Final(
         } else if (*pulDigestLen < ulDigestLen) {
             THROW_PKCS11_BUFFER_TOO_SMALL();
         } else {
-            puts("final");
             *pulDigestLen = ulDigestLen;
             
             switch (mechType) {
