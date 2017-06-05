@@ -2,6 +2,7 @@
 
 #include "../stdafx.h"
 #include "../core/crypto.h"
+#include "aes.h"
 
 #include <CommonCrypto/CommonCrypto.h>
 
@@ -48,5 +49,33 @@ namespace osx {
 #define DIGEST_SHA256(pbData, ulDataLen) mscapi::Digest(CKM_SHA256, pbData, ulDataLen)
 #define DIGEST_SHA384(pbData, ulDataLen) mscapi::Digest(CKM_SHA384, pbData, ulDataLen)
 #define DIGEST_SHA512(pbData, ulDataLen) mscapi::Digest(CKM_SHA512, pbData, ulDataLen)
+    
+    class CryptoAesEncrypt : public core::CryptoEncrypt {
+    public:
+        CryptoAesEncrypt(CK_BBOOL type);
+        
+        CK_RV Init
+        (
+         CK_MECHANISM_PTR  pMechanism,
+         Scoped<core::Object>    hKey
+        );
+        
+        
+        CK_RV Update
+        (
+         CK_BYTE_PTR       pPart,
+         CK_ULONG          ulPartLen,
+         CK_BYTE_PTR       pEncryptedPart,
+         CK_ULONG_PTR      pulEncryptedPartLen
+        );
+        
+        CK_RV Final
+        (
+         CK_BYTE_PTR       pLastEncryptedPart,
+         CK_ULONG_PTR      pulLastEncryptedPartLen
+        );
+    protected:
+        CCCryptorRef        cryptor;
+    };
 
 }

@@ -6,3 +6,6 @@ test*.js
 # out
 build
 out
+
+# mac
+.DS_Store

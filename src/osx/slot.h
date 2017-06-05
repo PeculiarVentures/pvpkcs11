@@ -1,4 +1,4 @@
-#pragma Once
+#pragma once
 
 #include "../stdafx.h"
 #include "../core/slot.h"

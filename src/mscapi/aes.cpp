@@ -66,8 +66,6 @@ CK_RV AesKey::CreateValues(
         NTSTATUS status;
         Scoped<Buffer> buffer(new Buffer);
 
-
-        // Named curve
         auto value = tmpl.GetBytes(CKA_VALUE, true, "");
 
         buffer->resize(sizeof(BCRYPT_KEY_DATA_BLOB_HEADER));

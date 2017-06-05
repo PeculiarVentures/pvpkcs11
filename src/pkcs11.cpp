@@ -22,14 +22,15 @@ static auto fEnvError = getenv(PV_ENV_ERROR);
 
 #define CATCH(functionName)                                     \
     catch (Scoped<core::Exception> e) {                         \
-		core::Pkcs11Exception* exception;                       \
+		core::Pkcs11Exception* exception = dynamic_cast<core::Pkcs11Exception*>(e.get()); \
         if (fEnvError) {                                        \
             fprintf(stdout, "Error: %s\n", functionName);       \
             puts(e->what());                                    \
         }                                                       \
-		if (exception = dynamic_cast<core::Pkcs11Exception*>(e.get())) { \
+		if (exception) {                                        \
 			return strcmp(exception->name.c_str(), PKCS11_EXCEPTION_NAME) ? CKR_FUNCTION_FAILED : exception->code;\
 		}                                                       \
+        return CKR_FUNCTION_FAILED;                             \
     }                                                           \
 	catch (const std::exception &e) {                           \
 		if (fEnvError) {                                        \

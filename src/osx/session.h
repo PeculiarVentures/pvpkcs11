@@ -35,6 +35,28 @@ namespace osx {
             CK_BYTE_PTR       pPart,     /* data to be digested */
             CK_ULONG          ulPartLen  /* bytes of data to be digested */
         );
+
+        // Key generation
+
+		CK_RV GenerateKey
+		(
+			CK_MECHANISM_PTR     pMechanism,  /* key generation mech. */
+			CK_ATTRIBUTE_PTR     pTemplate,   /* template for new key */
+			CK_ULONG             ulCount,     /* # of attrs in template */
+			CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
+		);
+
+        CK_RV EncryptInit
+        (
+            CK_MECHANISM_PTR  pMechanism,  /* the encryption mechanism */
+            CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
+        );
+
+        CK_RV DecryptInit
+        (
+            CK_MECHANISM_PTR  pMechanism,
+            CK_OBJECT_HANDLE  hKey       
+        );
     };
 
 }

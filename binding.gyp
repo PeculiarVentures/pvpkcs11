@@ -103,6 +103,10 @@
                     ],
                 }],
                 ['OS=="mac"', {
+                    'include_dirs': [
+                        '/System/Library/Frameworks/CoreFoundation.framework/Headers',
+                        '/System/Library/Frameworks/Security.framework/Headers',
+                    ],
                     'xcode_settings': {
                         'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
                         'OTHER_CFLAGS': [
@@ -112,15 +116,21 @@
                     'cflags': [
                         '-Wc++11-extensions',
                     ],
-                    'libraries': [
-                        '-lobjc'
-                    ],
+                    'link_settings': {
+                        'libraries': [
+                            '-lobjc',
+                            '-framework CoreFoundation',
+                            '-framework Security',
+                        ],
+                    },
                     'sources': [
                         # osx
                         'src/osx/slot.cpp',
                         'src/osx/session.cpp',
                         # crypto
                         'src/osx/crypto/digest.cpp',
+                        'src/osx/crypto/aes.cpp',
+                        'src/osx/aes.cpp',
                     ],
                 }],
             ],
