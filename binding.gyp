@@ -44,6 +44,7 @@
                 'src/core/slot.cpp',
                 'src/core/attribute.cpp',
                 'src/core/template.cpp',
+                'src/core/keypair.cpp',
                 # core/objects
                 'src/core/objects/mechanism.cpp',
                 'src/core/objects/storage.cpp',
@@ -130,7 +131,9 @@
                         # crypto
                         'src/osx/crypto/digest.cpp',
                         'src/osx/crypto/aes.cpp',
+                        'src/osx/crypto/rsa.cpp',
                         'src/osx/aes.cpp',
+                        'src/osx/rsa.cpp',
                     ],
                 }],
             ],

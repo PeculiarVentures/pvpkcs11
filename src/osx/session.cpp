@@ -4,6 +4,7 @@
 
 #include "crypto.h"
 #include "aes.h"
+#include "rsa.h"
 
 using namespace osx;
 
@@ -146,6 +147,64 @@ CK_RV osx::Session::GenerateKey
 
         // set handles for keys
         *phKey = key->handle;
+        
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION;
+}
+
+CK_RV osx::Session::GenerateKeyPair
+(
+    CK_MECHANISM_PTR     pMechanism,                  /* key-gen mechanism */
+    CK_ATTRIBUTE_PTR     pPublicKeyTemplate,          /* template for pub. key */
+    CK_ULONG             ulPublicKeyAttributeCount,   /* # pub. attributes */
+    CK_ATTRIBUTE_PTR     pPrivateKeyTemplate,         /* template for private key */
+    CK_ULONG             ulPrivateKeyAttributeCount,  /* # private attributes */
+    CK_OBJECT_HANDLE_PTR phPublicKey,                 /* gets pub. key handle */
+    CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
+)
+{
+    try {
+        core::Session::GenerateKeyPair(
+            pMechanism,
+            pPublicKeyTemplate,
+            ulPublicKeyAttributeCount,
+            pPrivateKeyTemplate,
+            ulPrivateKeyAttributeCount,
+            phPublicKey,
+            phPrivateKey
+        );
+
+        Scoped<core::Template> publicTemplate(new core::Template(pPublicKeyTemplate, ulPublicKeyAttributeCount));
+        Scoped<core::Template> privateTemplate(new core::Template(pPrivateKeyTemplate, ulPrivateKeyAttributeCount));
+
+        Scoped<core::KeyPair> keyPair;
+        switch (pMechanism->mechanism) {
+        case CKM_RSA_PKCS_KEY_PAIR_GEN:
+            keyPair = RsaKey::Generate(
+                pMechanism,
+                publicTemplate,
+                privateTemplate
+            );
+            break;
+        // case CKM_ECDSA_KEY_PAIR_GEN:
+        //     keyPair = EcKey::Generate(
+        //         pMechanism,
+        //         publicTemplate,
+        //         privateTemplate
+        //     );
+        //     break;
+        default:
+            THROW_PKCS11_MECHANISM_INVALID();
+        }
+
+        // add key to session's objects
+        objects.add(keyPair->publicKey);
+        objects.add(keyPair->privateKey);
+
+        // set handles for keys
+        *phPublicKey = keyPair->publicKey->handle;
+        *phPrivateKey = keyPair->privateKey->handle;
 
         return CKR_OK;
     }

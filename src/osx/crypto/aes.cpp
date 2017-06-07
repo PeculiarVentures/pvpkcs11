@@ -105,7 +105,7 @@ CK_RV osx::CryptoAesEncrypt::Final
         if (status) {
             THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Error on CCCryptorFinal");
         }
-        CFRelease(cryptor);
+        CCCryptorRelease(cryptor);
         cryptor = NULL;
         
         active = false;

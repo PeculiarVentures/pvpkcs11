@@ -10,13 +10,13 @@
 
 namespace core {
 
-    struct OBJECT_FIND
+    typedef struct OBJECT_FIND
     {
         bool active;
         CK_ATTRIBUTE_PTR pTemplate;
         CK_ULONG ulTemplateSize;
         CK_ULONG index;
-    };
+    } OBJECT_FIND;
 
     class Session
     {

@@ -13,12 +13,14 @@
 #endif // __APPLE__
 
 #define PV_ENV_ERROR "PV_PKCS11_ERROR"
-
+/*
 #ifdef _WIN32
 static auto fEnvError = std::getenv(PV_ENV_ERROR);
 #else
 static auto fEnvError = getenv(PV_ENV_ERROR);
 #endif // _WIN32
+*/
+static char* fEnvError = "true";
 
 #define CATCH(functionName)                                     \
     catch (Scoped<core::Exception> e) {                         \
