@@ -8,6 +8,7 @@
 namespace ncrypt {
 
     typedef std::vector<Scoped<NCryptKeyName>> NCryptKeyNames;
+    typedef std::vector<Scoped<NCryptProviderName>> NCryptProviderNames;
 
 	template<typename T>
 	class Object {

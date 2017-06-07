@@ -132,8 +132,6 @@ void EcPrivateKey::FillPrivateKeyStruct()
 
         // CK_VALUE
         ItemByType(CKA_VALUE)->SetValue(pValue, header->cbKey);
-
-        free(pbKey);
     }
     CATCH_EXCEPTION
 }
@@ -338,15 +336,15 @@ CK_RV EcPublicKey::CreateValues
 
         ULONG dwMagic;
         ULONG keySize;
-        if (!memcmp(core::EC_P256_BLOB, params->data(), sizeof(core::EC_P256_BLOB))) {
+        if (!memcmp(core::EC_P256_BLOB, params->data(), sizeof(core::EC_P256_BLOB) - 1)) {
             dwMagic = BCRYPT_ECDSA_PUBLIC_P256_MAGIC;
             keySize = 32;
         }
-        else if (!memcmp(core::EC_P384_BLOB, params->data(), sizeof(core::EC_P384_BLOB))) {
+        else if (!memcmp(core::EC_P384_BLOB, params->data(), sizeof(core::EC_P384_BLOB) - 1)) {
             dwMagic = BCRYPT_ECDSA_PUBLIC_P384_MAGIC;
             keySize = 48;
         }
-        else if (!memcmp(core::EC_P521_BLOB, params->data(), sizeof(core::EC_P521_BLOB))) {
+        else if (!memcmp(core::EC_P521_BLOB, params->data(), sizeof(core::EC_P521_BLOB) - 1)) {
             dwMagic = BCRYPT_ECDSA_PUBLIC_P521_MAGIC;
             keySize = 66;
         }
