@@ -6,6 +6,11 @@
 #include "aes.h"
 #include "rsa.h"
 
+#include "certificate.h"
+#include "x509_template.h"
+#include <Security/SecAsn1Coder.h>
+#include <Security/SecAsn1Templates.h>
+
 using namespace osx;
 
 Scoped<core::Object> osx::Session::CreateObject
@@ -67,10 +72,52 @@ CK_RV osx::Session::Open
             Notify,      
             phSession    
         );
-
+        
         digest = Scoped<CryptoDigest>(new CryptoDigest());
         encrypt = Scoped<core::CryptoEncrypt>(new core::CryptoEncrypt(CRYPTO_ENCRYPT));
         decrypt = Scoped<core::CryptoEncrypt>(new core::CryptoEncrypt(CRYPTO_DECRYPT));
+        
+        OSStatus status;
+        
+        CFMutableDictionaryRef matchAttr = CFDictionaryCreateMutable(
+                                                                          kCFAllocatorDefault,
+                                                                          0,
+                                                                          &kCFTypeDictionaryKeyCallBacks,
+                                                                          &kCFTypeDictionaryValueCallBacks);
+        CFDictionaryAddValue(matchAttr, kSecClass, kSecClassCertificate);
+        CFDictionaryAddValue(matchAttr, kSecMatchLimit, kSecMatchLimitAll);
+//         CFDictionaryAddValue(matchAttr, kSecReturnAttributes, kCFBooleanTrue); // returns CFDictinoryRef
+        // CFArrayRef certList = CFArrayCreate(NULL, , <#const void **values#>, <#CFIndex numValues#>, kCFTypeArrayCallBacks);
+        // CFDictionaryAddValue(matchAttr, kSecMatchItemList, certList);
+        CFDictionaryAddValue(matchAttr, kSecReturnRef, kCFBooleanTrue);
+        
+        CFArrayRef result = NULL;
+        status = SecItemCopyMatching(matchAttr, (CFTypeRef*)&result);
+        if (status) {
+            THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Error on SecItemCopyMatching");
+        }
+        
+        auto certCount = CFArrayGetCount(result);
+        
+        CFIndex index = 0;
+        while (index < certCount) {
+            SecCertificateRef cert = (SecCertificateRef)CFArrayGetValueAtIndex(result, index++);
+            
+            CFStringRef commonName = NULL;
+            SecCertificateCopyCommonName(cert, &commonName);
+//
+            Scoped<X509Certificate> x509(new X509Certificate);
+            x509->Assign(cert);
+            x509->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+            objects.add(x509);
+//            CFStringRef commonName = NULL;
+//            SecCertificateCopyCommonName(x509, &commonName);
+//            
+//            fprintf(stdout, "Certificate: %s\n", CFStringGetCStringPtr(commonName, kCFStringEncodingUTF8));
+        }
+        
+        CFRelease(matchAttr);
+        CFRelease(result);
         
         return CKR_OK;
     }

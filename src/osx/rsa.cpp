@@ -12,7 +12,7 @@ Scoped<core::KeyPair> osx::RsaKey::Generate(
 )
 {
     try {
-        if (pMechanism == NULL_PTR) {
+        if (pMechanism == NULL) {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
         }
         if (pMechanism->mechanism != CKM_RSA_PKCS_KEY_PAIR_GEN) {
@@ -50,14 +50,17 @@ Scoped<core::KeyPair> osx::RsaKey::Generate(
                                          kCFNumberSInt32Type, &modulusBits);
         CFDictionarySetValue(keyPairAttr, kSecAttrKeySizeInBits, cfModulusBits);
         
+        CFStringRef cfPrivateLabel = CFStringCreateWithCString(NULL, "WebCrypto Local", kCFStringEncodingUTF8);
+        CFDictionarySetValue(privateKeyAttr, kSecAttrLabel, cfPrivateLabel);
+        CFDictionarySetValue(privateKeyAttr, kSecUseKeychain, NULL);
+        
         CFDictionarySetValue(keyPairAttr, kSecPrivateKeyAttrs, privateKeyAttr);
+        
+        CFStringRef cfPublicLabel = CFStringCreateWithCString(NULL, "WebCrypto Local", kCFStringEncodingUTF8);
+        CFDictionarySetValue(publicKeyAttr, kSecAttrLabel, cfPublicLabel);
+        CFDictionarySetValue(publicKeyAttr, kSecUseKeychain, NULL);
         CFDictionarySetValue(keyPairAttr, kSecPublicKeyAttrs, publicKeyAttr);
-        
-        // [privateKeyAttr setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecAttrIsPermanent];
-        // [privateKeyAttr setObject:privateTag forKey:(__bridge id)kSecAttrApplicationTag];
-        
-        // [publicKeyAttr setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecAttrIsPermanent];
-        // [publicKeyAttr setObject:publicTag forKey:(__bridge id)kSecAttrApplicationTag];
+
         
         // Public exponent
         auto publicExponent = publicTemplate->GetBytes(CKA_PUBLIC_EXPONENT, true);

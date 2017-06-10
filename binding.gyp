@@ -134,6 +134,7 @@
                         'src/osx/crypto/rsa.cpp',
                         'src/osx/aes.cpp',
                         'src/osx/rsa.cpp',
+                        'src/osx/certificate.cpp',
                     ],
                 }],
             ],
