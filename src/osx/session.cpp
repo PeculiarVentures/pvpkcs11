@@ -102,14 +102,18 @@ CK_RV osx::Session::Open
         CFIndex index = 0;
         while (index < certCount) {
             SecCertificateRef cert = (SecCertificateRef)CFArrayGetValueAtIndex(result, index++);
+            CFDataRef certData = SecCertificateCopyData(cert);
+            SecCertificateRef certCopy = SecCertificateCreateWithData(NULL, certData);
             
-            CFStringRef commonName = NULL;
-            SecCertificateCopyCommonName(cert, &commonName);
-//
             Scoped<X509Certificate> x509(new X509Certificate);
-            x509->Assign(cert);
+            x509->Assign(certCopy);
             x509->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+            
+            auto publicKey = x509->GetPublicKey();
+            publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+            
             objects.add(x509);
+            objects.add(publicKey);
 //            CFStringRef commonName = NULL;
 //            SecCertificateCopyCommonName(x509, &commonName);
 //            

@@ -4,16 +4,29 @@
 #include <CommonCrypto/CommonDigest.h>
 #include "x509_template.h"
 
+#include "rsa.h"
+
 using namespace osx;
+
+osx::X509Certificate::~X509Certificate()
+{
+    Dispose();
+}
+
+void osx::X509Certificate::Dispose()
+{
+    if (value) {
+        CFRelease(value);
+        value = NULL;
+    }
+}
 
 void osx::X509Certificate::Assign(
     SecCertificateRef        cert
 )
 {
     try {
-        if (value) {
-            
-        }
+        Dispose();
         value = cert;
 
         // CKA_SUBJECT
@@ -207,6 +220,40 @@ CK_RV osx::X509Certificate::Destroy()
 {
     try {
         THROW_PKCS11_FUNCTION_NOT_SUPPORTED();
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<core::PublicKey> osx::X509Certificate::GetPublicKey()
+{
+    try {
+        SecKeyRef secPublicKey = NULL;
+        SecCertificateCopyPublicKey(value, &secPublicKey);
+        if (!secPublicKey) {
+            THROW_EXCEPTION("Cannot get public key");
+        }
+
+        CFDictionaryRef cfAttributes = SecKeyCopyAttributes(secPublicKey);
+        if (!cfAttributes) {
+            CFRelease(secPublicKey);
+            THROW_EXCEPTION("Error on SecKeyCopyAttributes");
+        }
+        Scoped<void> attributes((void*)cfAttributes, CFRelease);
+        
+        Scoped<core::PublicKey> res;
+        CFStringRef cfKeyType = static_cast<CFStringRef>(CFDictionaryGetValue(cfAttributes, kSecAttrKeyType));
+        if (!CFStringCompare(kSecAttrKeyTypeRSA, cfKeyType, kCFCompareCaseInsensitive)) {
+            Scoped<RsaPublicKey> rsaKey(new RsaPublicKey);
+            rsaKey->Assign(secPublicKey);
+            res = rsaKey;
+        } else {
+            THROW_EXCEPTION("Unsupported key type");
+        }
+        
+        auto certId = ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
+        res->ItemByType(CKA_ID)->SetValue(certId->data(), certId->size());
+        
+        return res;
     }
     CATCH_EXCEPTION
 }

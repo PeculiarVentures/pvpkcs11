@@ -6,6 +6,8 @@
 #include "../core/objects/rsa_private_key.h"
 #include "../core/objects/rsa_public_key.h"
 
+#include <Security/Security.h>
+
 namespace osx {
     
     class RsaKey {
@@ -48,6 +50,10 @@ namespace osx {
         core::RsaPublicKey()
         {};
         
+        void Dispose();
+        
+        void Assign(SecKeyRef key);
+        
         CK_RV CreateValues(
                            CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
                            CK_ULONG          ulCount     /* attributes in template */
@@ -61,9 +67,9 @@ namespace osx {
         
         CK_RV Destroy();
         
-        void OnKeyAssigned();
-        
     protected:
+        SecKeyRef value;
+        
         void FillKeyStruct();
         
         CK_RV GetValue

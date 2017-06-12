@@ -12,6 +12,7 @@ static CK_ATTRIBUTE_PTR ATTRIBUTE_new()
     attr->type = 0;
     attr->pValue = NULL_PTR;
     attr->ulValueLen = 0;
+    return attr;
 }
 
 static void ATTRIBUTE_free(CK_ATTRIBUTE_PTR attr)

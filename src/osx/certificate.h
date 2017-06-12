@@ -2,6 +2,7 @@
 
 #include "../stdafx.h"
 #include "../core/objects/x509_certificate.h"
+#include "../core/objects/public_key.h"
 
 #include <Security.h>
 
@@ -10,6 +11,9 @@ namespace osx {
     class X509Certificate : public core::X509Certificate {
     public:
         X509Certificate(): value(NULL){}
+        ~X509Certificate();
+        
+        void Dispose();
         
         void Assign(
             SecCertificateRef        cert
@@ -32,6 +36,8 @@ namespace osx {
         );
 
         CK_RV Destroy();
+        
+        Scoped<core::PublicKey> GetPublicKey();
 
     protected:
         SecCertificateRef value;

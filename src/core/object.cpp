@@ -173,6 +173,7 @@ CK_RV Object::GenerateValues
 
         for (size_t i = 0; i < ulCount; i++) {
             CK_ATTRIBUTE_PTR attr = &pTemplate[i];
+            GenerateValue(attr);
         }
 
         // Set values
