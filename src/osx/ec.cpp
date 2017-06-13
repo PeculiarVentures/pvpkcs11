@@ -1,4 +1,4 @@
-#include "rsa.h"
+#include "ec.h"
 
 #include <Security.h>
 #include <Security/SecAsn1Coder.h>
@@ -8,46 +8,7 @@
 
 using namespace osx;
 
-typedef struct {
-    SecAsn1Item modulus;
-    SecAsn1Item publicExponent;
-} ASN1_RSA_PUBLIC_KEY;
-
-const SecAsn1Template kRsaPublicKeyTemplate[] = {
-    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(ASN1_RSA_PUBLIC_KEY) },
-    { SEC_ASN1_INTEGER, offsetof(ASN1_RSA_PUBLIC_KEY, modulus) },
-    { SEC_ASN1_INTEGER, offsetof(ASN1_RSA_PUBLIC_KEY, publicExponent) },
-    { 0 },
-};
-
-typedef struct {
-    SecAsn1Item version;
-    SecAsn1Item modulus;
-    SecAsn1Item publicExponent;
-    SecAsn1Item privateExponent;
-    SecAsn1Item prime1;
-    SecAsn1Item prime2;
-    SecAsn1Item exponent1;
-    SecAsn1Item exponent2;
-    SecAsn1Item coefficient;
-} ASN1_RSA_PRIVATE_KEY;
-
-const SecAsn1Template kRsaPrivateKeyTemplate[] = {
-    { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(ASN1_RSA_PRIVATE_KEY) },
-    { SEC_ASN1_INTEGER, offsetof(ASN1_RSA_PRIVATE_KEY, version) },
-    { SEC_ASN1_INTEGER, offsetof(ASN1_RSA_PRIVATE_KEY, modulus) },
-    { SEC_ASN1_INTEGER, offsetof(ASN1_RSA_PRIVATE_KEY, publicExponent) },
-    { SEC_ASN1_INTEGER, offsetof(ASN1_RSA_PRIVATE_KEY, privateExponent) },
-    { SEC_ASN1_INTEGER, offsetof(ASN1_RSA_PRIVATE_KEY, prime1) },
-    { SEC_ASN1_INTEGER, offsetof(ASN1_RSA_PRIVATE_KEY, prime2) },
-    { SEC_ASN1_INTEGER, offsetof(ASN1_RSA_PRIVATE_KEY, exponent1) },
-    { SEC_ASN1_INTEGER, offsetof(ASN1_RSA_PRIVATE_KEY, exponent2) },
-    { SEC_ASN1_INTEGER, offsetof(ASN1_RSA_PRIVATE_KEY, coefficient) },
-    { 0 },
-};
-
-
-Scoped<core::KeyPair> osx::RsaKey::Generate
+Scoped<core::KeyPair> osx::EcKey::Generate
 (
  CK_MECHANISM_PTR       pMechanism,
  Scoped<core::Template> publicTemplate,
@@ -58,14 +19,14 @@ Scoped<core::KeyPair> osx::RsaKey::Generate
         if (pMechanism == NULL) {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
         }
-        if (pMechanism->mechanism != CKM_RSA_PKCS_KEY_PAIR_GEN) {
+        if (pMechanism->mechanism != CKM_EC_KEY_PAIR_GEN) {
             THROW_PKCS11_MECHANISM_INVALID();
         }
         
-        Scoped<RsaPrivateKey> privateKey(new RsaPrivateKey());
+        Scoped<EcPrivateKey> privateKey(new EcPrivateKey());
         privateKey->GenerateValues(privateTemplate->Get(), privateTemplate->Size());
         
-        Scoped<RsaPublicKey> publicKey(new RsaPublicKey());
+        Scoped<EcPublicKey> publicKey(new EcPublicKey());
         publicKey->GenerateValues(publicTemplate->Get(), publicTemplate->Size());
         
         CFMutableDictionaryRef privateKeyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
@@ -84,28 +45,40 @@ Scoped<core::KeyPair> osx::RsaKey::Generate
         SecKeyRef pPrivateKey = NULL;
         SecKeyRef pPublicKey = NULL;
         
-        CFDictionarySetValue(keyPairAttr, kSecAttrKeyType, kSecAttrKeyTypeRSA);
-        int32_t modulusBits = publicTemplate->GetNumber(CKA_MODULUS_BITS, true);
-        CFRef<CFNumberRef> cfModulusBits = CFNumberCreate(kCFAllocatorDefault,
-                                                          kCFNumberSInt32Type,
-                                                          &modulusBits);
-        CFDictionarySetValue(keyPairAttr, kSecAttrKeySizeInBits, &cfModulusBits);
+        auto params = publicTemplate->GetBytes(CKA_EC_PARAMS, true, "");
+        unsigned int keySizeInBits = 0;
+        
+#define POINT_COMPARE(curve) memcmp(core::EC_##curve##_BLOB, params->data(), sizeof(core::EC_##curve##_BLOB)-1 ) == 0
+        
+        if (POINT_COMPARE(P256)) {
+            keySizeInBits = 256;
+        }
+        else if (POINT_COMPARE(P384)) {
+            keySizeInBits = 384;
+        }
+        else if (POINT_COMPARE(P521)) {
+            keySizeInBits = 521;
+        }
+        else {
+            THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, "Wrong POINT for EC key");
+        }
+        
+#undef POINT_COMPARE
+        
+        CFDictionarySetValue(keyPairAttr, kSecAttrKeyType, kSecAttrKeyTypeEC);
+        CFRef<CFNumberRef> cfKeySizeInBits = CFNumberCreate(NULL,
+                                                            kCFNumberSInt32Type,
+                                                            &keySizeInBits);
+        CFDictionarySetValue(keyPairAttr, kSecAttrKeySizeInBits, &cfKeySizeInBits);
         
         CFRef<CFStringRef> cfPrivateLabel = CFStringCreateWithCString(NULL, "WebCrypto Local", kCFStringEncodingUTF8);
         CFDictionarySetValue(privateKeyAttr, kSecAttrLabel, &cfPrivateLabel);
+        
         CFDictionarySetValue(keyPairAttr, kSecPrivateKeyAttrs, privateKeyAttr);
         
         CFRef<CFStringRef> cfPublicLabel = CFStringCreateWithCString(NULL, "WebCrypto Local", kCFStringEncodingUTF8);
         CFDictionarySetValue(publicKeyAttr, kSecAttrLabel, &cfPublicLabel);
         CFDictionarySetValue(keyPairAttr, kSecPublicKeyAttrs, publicKeyAttr);
-        
-        
-        // Public exponent
-        auto publicExponent = publicTemplate->GetBytes(CKA_PUBLIC_EXPONENT, true);
-        char PUBLIC_EXPONENT_65537[3] = { 1,0,1 };
-        if (!(publicExponent->size() == 3 && !memcmp(publicExponent->data(), PUBLIC_EXPONENT_65537, 3))) {
-            THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, "Public exponent must be 65537 only");
-        }
         
         OSStatus status = SecKeyGeneratePair(keyPairAttr, &pPublicKey, &pPrivateKey);
         if (status) {
@@ -121,9 +94,9 @@ Scoped<core::KeyPair> osx::RsaKey::Generate
     CATCH_EXCEPTION
 }
 
-// RsaPrivateKey
+// EcPrivateKey
 
-void osx::RsaPrivateKey::Assign(SecKeyRef key)
+void osx::EcPrivateKey::Assign(SecKeyRef key)
 {
     value = key;
     
@@ -158,7 +131,7 @@ void osx::RsaPrivateKey::Assign(SecKeyRef key)
     }
 }
 
-CK_RV osx::RsaPrivateKey::CopyValues
+CK_RV osx::EcPrivateKey::CopyValues
 (
  Scoped<core::Object>    object,     /* the object which must be copied */
  CK_ATTRIBUTE_PTR        pTemplate,  /* specifies attributes */
@@ -171,7 +144,7 @@ CK_RV osx::RsaPrivateKey::CopyValues
     CATCH_EXCEPTION
 }
 
-CK_RV osx::RsaPrivateKey::Destroy()
+CK_RV osx::EcPrivateKey::Destroy()
 {
     try {
         THROW_PKCS11_FUNCTION_NOT_SUPPORTED();
@@ -179,47 +152,54 @@ CK_RV osx::RsaPrivateKey::Destroy()
     CATCH_EXCEPTION
 }
 
-void osx::RsaPrivateKey::FillPublicKeyStruct()
+void osx::EcPrivateKey::FillPublicKeyStruct()
 {
     try {
         CFRef<SecKeyRef> publicKey = SecKeyCopyPublicKey(&value);
         
-        // Get public key SEQUENCE
-        CFRef<CFDataRef> cfKeyData = SecKeyCopyExternalRepresentation(&publicKey, NULL);
+        CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(&publicKey);
+        if (!&cfAttributes) {
+            THROW_EXCEPTION("Error on SecKeyCopyAttributes");
+        }
+        
+        CFDataRef cfLabel = (CFDataRef)CFDictionaryGetValue(&cfAttributes, kSecAttrApplicationLabel);
+        if (cfLabel) {
+            ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
+                                                                        (CK_BYTE_PTR)CFDataGetBytePtr(cfLabel),
+                                                                        CFDataGetLength(cfLabel)
+                                                                        );
+        }
+        
+        CFNumberRef cfKeySizeInBits = (CFNumberRef)CFDictionaryGetValue(&cfAttributes, kSecAttrKeySizeInBits);
+        if (!cfKeySizeInBits) {
+            THROW_EXCEPTION("Cannot get size of key");
+        }
+        CK_ULONG keySizeInBits = 0;
+        CFNumberGetValue(cfKeySizeInBits, kCFNumberSInt64Type, &keySizeInBits);
+        CFRef<CFDataRef> cfKeyData = SecKeyCopyExternalRepresentation(&value, NULL);
         if (cfKeyData.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyExternalRepresentation");
         }
         
-        // Init ASN1 coder
-        SecAsn1CoderRef coder = NULL;
-        SecAsn1CoderCreate(&coder);
-        if (!coder) {
-            THROW_EXCEPTION("Error on SecAsn1CoderCreate");
+        auto propPoint = Scoped<std::string>(new std::string(""));
+        switch (keySizeInBits) {
+            case 256:
+                ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P256_BLOB, sizeof(core::EC_P256_BLOB) - 1);
+                break;
+            case 384:
+                ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P384_BLOB, sizeof(core::EC_P384_BLOB) - 1);
+                break;
+            case 521:
+                ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P521_BLOB, sizeof(core::EC_P521_BLOB) - 1);
+                break;
+            default:
+                THROW_EXCEPTION("Unsuported size of key");
         }
-        
-        ASN1_RSA_PUBLIC_KEY asn1PublicKey;
-        OSStatus status = SecAsn1Decode(coder,
-                                        CFDataGetBytePtr(&cfKeyData),
-                                        CFDataGetLength(&cfKeyData),
-                                        kRsaPublicKeyTemplate,
-                                        &asn1PublicKey);
-        if (status) {
-            SecAsn1CoderRelease(coder);
-            THROW_EXCEPTION("Error on SecAsn1Decode");
-        }
-        
-        ItemByType(CKA_MODULUS)->SetValue(asn1PublicKey.modulus.Data,
-                                          asn1PublicKey.modulus.Length);
-        
-        ItemByType(CKA_PUBLIC_EXPONENT)->SetValue(asn1PublicKey.publicExponent.Data,
-                                                  asn1PublicKey.publicExponent.Length);
-        
-        SecAsn1CoderRelease(coder);
     }
     CATCH_EXCEPTION
 }
 
-void osx::RsaPrivateKey::FillPrivateKeyStruct()
+void osx::EcPrivateKey::FillPrivateKeyStruct()
 {
     try {
         // Get public key SEQUENCE
@@ -228,75 +208,56 @@ void osx::RsaPrivateKey::FillPrivateKeyStruct()
             THROW_EXCEPTION("Error on SecKeyCopyExternalRepresentation");
         }
         
-        // Init ASN1 coder
-        SecAsn1CoderRef coder = NULL;
-        SecAsn1CoderCreate(&coder);
-        if (!coder) {
-            THROW_EXCEPTION("Error on SecAsn1CoderCreate");
+        auto data = CFDataGetBytePtr(&cfKeyData);
+        auto dataLen = CFDataGetLength(&cfKeyData);
+        
+        puts("Public key EC:");
+        for (int i = 0; i < dataLen; i++) {
+            fprintf(stdout, "%02X", data[i]);
+        }
+        puts("");
+        
+        // Get attributes of key
+        CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(&value);
+        if (!&cfAttributes) {
+            THROW_EXCEPTION("Error on SecKeyCopyAttributes");
         }
         
-        ASN1_RSA_PRIVATE_KEY asn1PrivateKey;
-        OSStatus status = SecAsn1Decode(coder,
-                                        CFDataGetBytePtr(&cfKeyData),
-                                        CFDataGetLength(&cfKeyData),
-                                        kRsaPrivateKeyTemplate,
-                                        &asn1PrivateKey);
-        if (status) {
-            SecAsn1CoderRelease(coder);
-            THROW_EXCEPTION("Error on SecAsn1Decode");
+        // Get key size
+        CFNumberRef cfKeySizeInBits = (CFNumberRef)CFDictionaryGetValue(&cfAttributes, kSecAttrKeySizeInBits);
+        if (!cfKeySizeInBits) {
+            THROW_EXCEPTION("Cannot get size of key");
         }
+        CK_ULONG keySizeInBits = 0;
+        CFNumberGetValue(cfKeySizeInBits, kCFNumberSInt64Type, &keySizeInBits);
+        keySizeInBits = (keySizeInBits+7) >> 3;
         
-        ItemByType(CKA_PRIVATE_EXPONENT)->SetValue(asn1PrivateKey.privateExponent.Data,
-                                                   asn1PrivateKey.privateExponent.Length);
-        
-        ItemByType(CKA_PRIME_1)->SetValue(asn1PrivateKey.prime1.Data,
-                                          asn1PrivateKey.prime1.Length);
-        
-        ItemByType(CKA_PRIME_2)->SetValue(asn1PrivateKey.prime2.Data,
-                                          asn1PrivateKey.prime2.Length);
-        
-        ItemByType(CKA_EXPONENT_1)->SetValue(asn1PrivateKey.exponent1.Data,
-                                             asn1PrivateKey.exponent1.Length);
-        
-        ItemByType(CKA_EXPONENT_2)->SetValue(asn1PrivateKey.exponent2.Data,
-                                             asn1PrivateKey.exponent2.Length);
-        
-        ItemByType(CKA_COEFFICIENT)->SetValue(asn1PrivateKey.coefficient.Data,
-                                              asn1PrivateKey.coefficient.Length);
-        
-        SecAsn1CoderRelease(coder);
+        // Get private part of the key
+        ItemByType(CKA_VALUE)->SetValue((CK_VOID_PTR)(CFDataGetBytePtr(&cfKeyData) + (keySizeInBits * 2)),
+                                        keySizeInBits);
     }
     CATCH_EXCEPTION
 }
 
-CK_RV osx::RsaPrivateKey::GetValue
+CK_RV osx::EcPrivateKey::GetValue
 (
  CK_ATTRIBUTE_PTR attr
  )
 {
     try {
         switch (attr->type) {
-            case CKA_MODULUS:
-            case CKA_PUBLIC_EXPONENT:
-            {
+            case CKA_EC_PARAMS:
                 if (ItemByType(attr->type)->IsEmpty()) {
                     FillPublicKeyStruct();
                 }
                 break;
-            }
-            case CKA_PRIME_1:
-            case CKA_PRIME_2:
-            case CKA_EXPONENT_1:
-            case CKA_EXPONENT_2:
-            case CKA_PRIVATE_EXPONENT:
-            {
+            case CKA_VALUE:
                 if (ItemByType(attr->type)->IsEmpty()) {
                     FillPrivateKeyStruct();
                 }
                 break;
-            }
             default:
-                return core::RsaPrivateKey::GetValue(attr);
+                return core::EcPrivateKey::GetValue(attr);
         }
         
         return CKR_OK;
@@ -306,7 +267,7 @@ CK_RV osx::RsaPrivateKey::GetValue
 
 // RsaPublicKey
 
-CK_RV osx::RsaPublicKey::CreateValues
+CK_RV osx::EcPublicKey::CreateValues
 (
  CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
  CK_ULONG          ulCount     /* attributes in template */
@@ -318,7 +279,7 @@ CK_RV osx::RsaPublicKey::CreateValues
     CATCH_EXCEPTION
 }
 
-CK_RV osx::RsaPublicKey::CopyValues
+CK_RV osx::EcPublicKey::CopyValues
 (
  Scoped<core::Object>    object,     /* the object which must be copied */
  CK_ATTRIBUTE_PTR        pTemplate,  /* specifies attributes */
@@ -331,7 +292,7 @@ CK_RV osx::RsaPublicKey::CopyValues
     CATCH_EXCEPTION
 }
 
-CK_RV osx::RsaPublicKey::Destroy()
+CK_RV osx::EcPublicKey::Destroy()
 {
     try {
         THROW_PKCS11_FUNCTION_NOT_SUPPORTED();
@@ -339,7 +300,7 @@ CK_RV osx::RsaPublicKey::Destroy()
     CATCH_EXCEPTION
 }
 
-void osx::RsaPublicKey::Assign(SecKeyRef key)
+void osx::EcPublicKey::Assign(SecKeyRef key)
 {
     try {
         if (key == NULL) {
@@ -371,7 +332,7 @@ void osx::RsaPublicKey::Assign(SecKeyRef key)
     CATCH_EXCEPTION
 }
 
-void osx::RsaPublicKey::FillKeyStruct()
+void osx::EcPublicKey::FillKeyStruct()
 {
     try {
         CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(&value);
@@ -387,58 +348,55 @@ void osx::RsaPublicKey::FillKeyStruct()
                                                                         );
         }
         
-        // Get public key SEQUENCE
+        CFNumberRef cfKeySizeInBits = (CFNumberRef)CFDictionaryGetValue(&cfAttributes, kSecAttrKeySizeInBits);
+        if (!cfKeySizeInBits) {
+            THROW_EXCEPTION("Cannot get size of key");
+        }
+        CK_ULONG keySizeInBits = 0;
+        CFNumberGetValue(cfKeySizeInBits, kCFNumberSInt64Type, &keySizeInBits);
         CFRef<CFDataRef> cfKeyData = SecKeyCopyExternalRepresentation(&value, NULL);
         if (cfKeyData.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyExternalRepresentation");
         }
         
-        // Init ASN1 coder
-        SecAsn1CoderRef coder = NULL;
-        SecAsn1CoderCreate(&coder);
-        if (!coder) {
-            THROW_EXCEPTION("Error on SecAsn1CoderCreate");
+        auto propPoint = Scoped<std::string>(new std::string(""));
+        switch (keySizeInBits) {
+            case 256:
+                ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P256_BLOB, sizeof(core::EC_P256_BLOB) - 1);
+                *propPoint += std::string("\x04\x41");
+                break;
+            case 384:
+                ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P384_BLOB, sizeof(core::EC_P384_BLOB) - 1);
+                *propPoint += std::string("\x04\x61");
+                break;
+            case 521:
+                ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P521_BLOB, sizeof(core::EC_P521_BLOB) - 1);
+                *propPoint += std::string("\x04\x81\x85");
+                break;
+            default:
+                THROW_EXCEPTION("Unsuported size of key");
         }
-        
-        ASN1_RSA_PUBLIC_KEY asn1PublicKey;
-        OSStatus status = SecAsn1Decode(coder,
-                                        CFDataGetBytePtr(&cfKeyData),
-                                        CFDataGetLength(&cfKeyData),
-                                        kRsaPublicKeyTemplate,
-                                        &asn1PublicKey);
-        if (status) {
-            SecAsn1CoderRelease(coder);
-            THROW_EXCEPTION("Error on SecAsn1Decode");
-        }
-        
-        ItemByType(CKA_MODULUS_BITS)->To<core::AttributeNumber>()->Set(asn1PublicKey.modulus.Length * 8);
-        
-        ItemByType(CKA_MODULUS)->SetValue(asn1PublicKey.modulus.Data,
-                                          asn1PublicKey.modulus.Length);
-        
-        ItemByType(CKA_PUBLIC_EXPONENT)->SetValue(asn1PublicKey.publicExponent.Data,
-                                                  asn1PublicKey.publicExponent.Length);
-        
-        SecAsn1CoderRelease(coder);
+        *propPoint += std::string((char*)CFDataGetBytePtr(&cfKeyData), CFDataGetLength(&cfKeyData));
+        ItemByType(CKA_EC_POINT)->SetValue((CK_BYTE_PTR)propPoint->c_str(), propPoint->length() );
     }
     CATCH_EXCEPTION
 }
 
-CK_RV osx::RsaPublicKey::GetValue
+CK_RV osx::EcPublicKey::GetValue
 (
  CK_ATTRIBUTE_PTR  attr
  )
 {
     try {
         switch (attr->type) {
-            case CKA_MODULUS:
-            case CKA_MODULUS_BITS:
-            case CKA_PUBLIC_EXPONENT: {
+            case CKA_EC_PARAMS:
+            case CKA_EC_POINT:
                 if (ItemByType(attr->type)->IsEmpty()) {
                     FillKeyStruct();
                 }
                 break;
-            }
+            default:
+                return core::EcPublicKey::GetValue(attr);
         }
         
         return CKR_OK;

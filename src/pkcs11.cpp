@@ -20,7 +20,7 @@ static auto fEnvError = std::getenv(PV_ENV_ERROR);
 static auto fEnvError = getenv(PV_ENV_ERROR);
 #endif // _WIN32
 */
-static char* fEnvError = "true";
+static const char* fEnvError = "true";
 
 #define CATCH(functionName)                                     \
     catch (Scoped<core::Exception> e) {                         \

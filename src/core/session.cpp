@@ -231,9 +231,6 @@ CK_RV Session::FindObjects
         if (pulObjectCount == NULL_PTR) {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pulObjectCount");
         }
-        if (ulMaxObjectCount < 0) {
-            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "ulMaxObjectCount must be more than 0");
-        }
 
         *pulObjectCount = 0;
         CK_RV res;

@@ -5,6 +5,7 @@
 #include "crypto.h"
 #include "aes.h"
 #include "rsa.h"
+#include "ec.h"
 
 #include "certificate.h"
 #include "x509_template.h"
@@ -236,13 +237,13 @@ CK_RV osx::Session::GenerateKeyPair
                                            privateTemplate
                                            );
                 break;
-                // case CKM_ECDSA_KEY_PAIR_GEN:
-                //     keyPair = EcKey::Generate(
-                //         pMechanism,
-                //         publicTemplate,
-                //         privateTemplate
-                //     );
-                //     break;
+            case CKM_ECDSA_KEY_PAIR_GEN:
+                keyPair = EcKey::Generate(
+                                          pMechanism,
+                                          publicTemplate,
+                                          privateTemplate
+                                          );
+                break;
             default:
                 THROW_PKCS11_MECHANISM_INVALID();
         }

@@ -792,7 +792,7 @@ Scoped<Slot> Module::getSlot(
 )
 {
     try {
-        if (!(slotID >= 0 && slotID < slots.count())) {
+        if (!(slotID < slots.count())) {
             THROW_PKCS11_EXCEPTION(CKR_SLOT_ID_INVALID, "Cannot get Slot by ID");
         }
         return slots.items(slotID);

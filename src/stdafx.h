@@ -39,7 +39,7 @@ using Buffer = std::vector<CK_BYTE>;
 /**
  * Set padded string for PKCS#11 structures
  */
-void SET_STRING(CK_UTF8CHAR* storage, char* data, int size);
+void SET_STRING(CK_UTF8CHAR* storage, const char* data, int size);
 
 // check incoming argument, if argument is NULL returns CKR_ARGUMENTS_BAD
 #define CHECK_ARGUMENT_NULL(name)				\
