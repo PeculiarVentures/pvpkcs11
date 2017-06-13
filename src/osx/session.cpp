@@ -8,6 +8,7 @@
 
 #include "certificate.h"
 #include "x509_template.h"
+#include "helper.h"
 #include <Security/SecAsn1Coder.h>
 #include <Security/SecAsn1Templates.h>
 
@@ -15,8 +16,8 @@ using namespace osx;
 
 Scoped<core::Object> osx::Session::CreateObject
 (
-    CK_ATTRIBUTE_PTR        pTemplate,   /* the object's template */
-    CK_ULONG                ulCount      /* attributes in template */
+ CK_ATTRIBUTE_PTR        pTemplate,   /* the object's template */
+ CK_ULONG                ulCount      /* attributes in template */
 )
 {
     try {
@@ -46,64 +47,63 @@ Scoped<core::Object> osx::Session::CreateObject
 
 Scoped<core::Object> osx::Session::CopyObject
 (
-    Scoped<core::Object>       object,      /* the object for copying */
-    CK_ATTRIBUTE_PTR     pTemplate,   /* template for new object */
-    CK_ULONG             ulCount      /* attributes in template */
+ Scoped<core::Object>       object,      /* the object for copying */
+ CK_ATTRIBUTE_PTR     pTemplate,   /* template for new object */
+ CK_ULONG             ulCount      /* attributes in template */
 )
 {
     try {
-
+        
     }
     CATCH_EXCEPTION
 }
 
 CK_RV osx::Session::Open
 (
-    CK_FLAGS              flags,         /* from CK_SESSION_INFO */
-    CK_VOID_PTR           pApplication,  /* passed to callback */
-    CK_NOTIFY             Notify,        /* callback function */
-    CK_SESSION_HANDLE_PTR phSession      /* gets session handle */
+ CK_FLAGS              flags,         /* from CK_SESSION_INFO */
+ CK_VOID_PTR           pApplication,  /* passed to callback */
+ CK_NOTIFY             Notify,        /* callback function */
+ CK_SESSION_HANDLE_PTR phSession      /* gets session handle */
 )
 {
     try {
         core::Session::Open(
-            flags,       
-            pApplication,
-            Notify,      
-            phSession    
-        );
+                            flags,
+                            pApplication,
+                            Notify,
+                            phSession
+                            );
         
         digest = Scoped<CryptoDigest>(new CryptoDigest());
         encrypt = Scoped<core::CryptoEncrypt>(new core::CryptoEncrypt(CRYPTO_ENCRYPT));
         decrypt = Scoped<core::CryptoEncrypt>(new core::CryptoEncrypt(CRYPTO_DECRYPT));
+        sign = Scoped<core::CryptoSign>(new core::CryptoSign(CRYPTO_SIGN));
+        verify = Scoped<core::CryptoSign>(new core::CryptoSign(CRYPTO_VERIFY));
         
         OSStatus status;
         
-        CFMutableDictionaryRef matchAttr = CFDictionaryCreateMutable(
-                                                                          kCFAllocatorDefault,
-                                                                          0,
-                                                                          &kCFTypeDictionaryKeyCallBacks,
-                                                                          &kCFTypeDictionaryValueCallBacks);
-        CFDictionaryAddValue(matchAttr, kSecClass, kSecClassCertificate);
-        CFDictionaryAddValue(matchAttr, kSecMatchLimit, kSecMatchLimitAll);
-//         CFDictionaryAddValue(matchAttr, kSecReturnAttributes, kCFBooleanTrue); // returns CFDictinoryRef
-        // CFArrayRef certList = CFArrayCreate(NULL, , <#const void **values#>, <#CFIndex numValues#>, kCFTypeArrayCallBacks);
-        // CFDictionaryAddValue(matchAttr, kSecMatchItemList, certList);
-        CFDictionaryAddValue(matchAttr, kSecReturnRef, kCFBooleanTrue);
+        CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(
+                                                                            kCFAllocatorDefault,
+                                                                            0,
+                                                                            &kCFTypeDictionaryKeyCallBacks,
+                                                                            &kCFTypeDictionaryValueCallBacks);
+        CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassCertificate);
+        CFDictionaryAddValue(&matchAttr, kSecMatchLimit, kSecMatchLimitAll);
+        CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
         
-        CFArrayRef result = NULL;
-        status = SecItemCopyMatching(matchAttr, (CFTypeRef*)&result);
+        CFArrayRef result;
+        status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&result);
         if (status) {
             THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Error on SecItemCopyMatching");
         }
-        
+        CFRef<CFArrayRef> scopedResult(result);
         auto certCount = CFArrayGetCount(result);
         
         CFIndex index = 0;
         while (index < certCount) {
             SecCertificateRef cert = (SecCertificateRef)CFArrayGetValueAtIndex(result, index++);
-            CFDataRef certData = SecCertificateCopyData(cert);
-            SecCertificateRef certCopy = SecCertificateCreateWithData(NULL, certData);
+            CFRef<CFDataRef> certData = SecCertificateCopyData(cert);
+            SecCertificateRef certCopy = SecCertificateCreateWithData(NULL, &certData);
             
             Scoped<X509Certificate> x509(new X509Certificate);
             x509->Assign(certCopy);
@@ -112,17 +112,15 @@ CK_RV osx::Session::Open
             auto publicKey = x509->GetPublicKey();
             publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
             
+            if (x509->HasPrivateKey()) {
+                Scoped<core::PrivateKey> privateKey = x509->GetPrivateKey();
+                privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                objects.add(privateKey);
+            }
+            
             objects.add(x509);
             objects.add(publicKey);
-//            CFStringRef commonName = NULL;
-//            SecCertificateCopyCommonName(x509, &commonName);
-//            
-//            fprintf(stdout, "Certificate: %s\n", CFStringGetCStringPtr(commonName, kCFStringEncodingUTF8));
         }
-        
-        CFRelease(matchAttr);
-        CFRelease(result);
-        
         return CKR_OK;
     }
     CATCH_EXCEPTION
@@ -137,16 +135,16 @@ CK_RV osx::Session::Close()
 }
 
 CK_RV osx::Session::GenerateRandom(
-    CK_BYTE_PTR       pPart,     /* data to be digested */
-    CK_ULONG          ulPartLen  /* bytes of data to be digested */
-) 
+                                   CK_BYTE_PTR       pPart,     /* data to be digested */
+                                   CK_ULONG          ulPartLen  /* bytes of data to be digested */
+)
 {
     try {
         core::Session::GenerateRandom(
-            pPart,   
-            ulPartLen
-        );
-
+                                      pPart,
+                                      ulPartLen
+                                      );
+        
         FILE *fp = fopen("/dev/random", "r");
         if (!fp) {
             THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Cannot get /dev/random");
@@ -157,7 +155,7 @@ CK_RV osx::Session::GenerateRandom(
         }
         
         fclose(fp);
-
+        
         return CKR_OK;
     }
     CATCH_EXCEPTION
@@ -165,37 +163,37 @@ CK_RV osx::Session::GenerateRandom(
 
 CK_RV osx::Session::GenerateKey
 (
-    CK_MECHANISM_PTR     pMechanism,  /* key generation mech. */
-    CK_ATTRIBUTE_PTR     pTemplate,   /* template for new key */
-    CK_ULONG             ulCount,     /* # of attrs in template */
-    CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
+ CK_MECHANISM_PTR     pMechanism,  /* key generation mech. */
+ CK_ATTRIBUTE_PTR     pTemplate,   /* template for new key */
+ CK_ULONG             ulCount,     /* # of attrs in template */
+ CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
 )
 {
     try {
         core::Session::GenerateKey(
-            pMechanism,
-            pTemplate,
-            ulCount,
-            phKey
-        );
-
+                                   pMechanism,
+                                   pTemplate,
+                                   ulCount,
+                                   phKey
+                                   );
+        
         Scoped<core::Template> tmpl(new core::Template(pTemplate, ulCount));
-
+        
         Scoped<core::SecretKey> key;
         switch (pMechanism->mechanism) {
-        case CKM_AES_KEY_GEN:
-            key = AesKey::Generate(
-                pMechanism,
-                tmpl
-            );
-            break;
-        default:
-            THROW_PKCS11_MECHANISM_INVALID();
+            case CKM_AES_KEY_GEN:
+                key = AesKey::Generate(
+                                       pMechanism,
+                                       tmpl
+                                       );
+                break;
+            default:
+                THROW_PKCS11_MECHANISM_INVALID();
         }
-
+        
         // add key to session's objects
         objects.add(key);
-
+        
         // set handles for keys
         *phKey = key->handle;
         
@@ -206,57 +204,57 @@ CK_RV osx::Session::GenerateKey
 
 CK_RV osx::Session::GenerateKeyPair
 (
-    CK_MECHANISM_PTR     pMechanism,                  /* key-gen mechanism */
-    CK_ATTRIBUTE_PTR     pPublicKeyTemplate,          /* template for pub. key */
-    CK_ULONG             ulPublicKeyAttributeCount,   /* # pub. attributes */
-    CK_ATTRIBUTE_PTR     pPrivateKeyTemplate,         /* template for private key */
-    CK_ULONG             ulPrivateKeyAttributeCount,  /* # private attributes */
-    CK_OBJECT_HANDLE_PTR phPublicKey,                 /* gets pub. key handle */
-    CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
+ CK_MECHANISM_PTR     pMechanism,                  /* key-gen mechanism */
+ CK_ATTRIBUTE_PTR     pPublicKeyTemplate,          /* template for pub. key */
+ CK_ULONG             ulPublicKeyAttributeCount,   /* # pub. attributes */
+ CK_ATTRIBUTE_PTR     pPrivateKeyTemplate,         /* template for private key */
+ CK_ULONG             ulPrivateKeyAttributeCount,  /* # private attributes */
+ CK_OBJECT_HANDLE_PTR phPublicKey,                 /* gets pub. key handle */
+ CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
 )
 {
     try {
         core::Session::GenerateKeyPair(
-            pMechanism,
-            pPublicKeyTemplate,
-            ulPublicKeyAttributeCount,
-            pPrivateKeyTemplate,
-            ulPrivateKeyAttributeCount,
-            phPublicKey,
-            phPrivateKey
-        );
-
+                                       pMechanism,
+                                       pPublicKeyTemplate,
+                                       ulPublicKeyAttributeCount,
+                                       pPrivateKeyTemplate,
+                                       ulPrivateKeyAttributeCount,
+                                       phPublicKey,
+                                       phPrivateKey
+                                       );
+        
         Scoped<core::Template> publicTemplate(new core::Template(pPublicKeyTemplate, ulPublicKeyAttributeCount));
         Scoped<core::Template> privateTemplate(new core::Template(pPrivateKeyTemplate, ulPrivateKeyAttributeCount));
-
+        
         Scoped<core::KeyPair> keyPair;
         switch (pMechanism->mechanism) {
-        case CKM_RSA_PKCS_KEY_PAIR_GEN:
-            keyPair = RsaKey::Generate(
-                pMechanism,
-                publicTemplate,
-                privateTemplate
-            );
-            break;
-        // case CKM_ECDSA_KEY_PAIR_GEN:
-        //     keyPair = EcKey::Generate(
-        //         pMechanism,
-        //         publicTemplate,
-        //         privateTemplate
-        //     );
-        //     break;
-        default:
-            THROW_PKCS11_MECHANISM_INVALID();
+            case CKM_RSA_PKCS_KEY_PAIR_GEN:
+                keyPair = RsaKey::Generate(
+                                           pMechanism,
+                                           publicTemplate,
+                                           privateTemplate
+                                           );
+                break;
+                // case CKM_ECDSA_KEY_PAIR_GEN:
+                //     keyPair = EcKey::Generate(
+                //         pMechanism,
+                //         publicTemplate,
+                //         privateTemplate
+                //     );
+                //     break;
+            default:
+                THROW_PKCS11_MECHANISM_INVALID();
         }
-
+        
         // add key to session's objects
         objects.add(keyPair->publicKey);
         objects.add(keyPair->privateKey);
-
+        
         // set handles for keys
         *phPublicKey = keyPair->publicKey->handle;
         *phPrivateKey = keyPair->privateKey->handle;
-
+        
         return CKR_OK;
     }
     CATCH_EXCEPTION;
@@ -264,68 +262,136 @@ CK_RV osx::Session::GenerateKeyPair
 
 CK_RV osx::Session::EncryptInit
 (
-    CK_MECHANISM_PTR  pMechanism,  /* the encryption mechanism */
-    CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
+ CK_MECHANISM_PTR  pMechanism,  /* the encryption mechanism */
+ CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
 )
 {
     try {
         core::Session::EncryptInit(
-            pMechanism,
-            hKey
-        );
-
+                                   pMechanism,
+                                   hKey
+                                   );
+        
         if (encrypt->IsActive()) {
             THROW_PKCS11_OPERATION_ACTIVE();
         }
-
+        
         switch (pMechanism->mechanism) {
-        case CKM_AES_CBC:
-        case CKM_AES_CBC_PAD:
-        case CKM_AES_ECB:
-            encrypt = Scoped<CryptoAesEncrypt>(new CryptoAesEncrypt(CRYPTO_ENCRYPT));
-            break;
-        default:
-            THROW_PKCS11_MECHANISM_INVALID();
+            case CKM_AES_CBC:
+            case CKM_AES_CBC_PAD:
+            case CKM_AES_ECB:
+                encrypt = Scoped<CryptoAesEncrypt>(new CryptoAesEncrypt(CRYPTO_ENCRYPT));
+                break;
+            default:
+                THROW_PKCS11_MECHANISM_INVALID();
         }
-
+        
         return encrypt->Init(
-            pMechanism,
-            GetObject(hKey)
-        );
+                             pMechanism,
+                             GetObject(hKey)
+                             );
     }
     CATCH_EXCEPTION;
 }
 
 CK_RV osx::Session::DecryptInit
 (
-    CK_MECHANISM_PTR  pMechanism,
-    CK_OBJECT_HANDLE  hKey       
-)
+ CK_MECHANISM_PTR  pMechanism,
+ CK_OBJECT_HANDLE  hKey
+ )
 {
     try {
         core::Session::DecryptInit(
-            pMechanism,
-            hKey
-        );
-
+                                   pMechanism,
+                                   hKey
+                                   );
+        
         if (decrypt->IsActive()) {
             THROW_PKCS11_OPERATION_ACTIVE();
         }
-
+        
         switch (pMechanism->mechanism) {
-        case CKM_AES_CBC:
-        case CKM_AES_CBC_PAD:
-        case CKM_AES_ECB:
-            decrypt = Scoped<CryptoAesEncrypt>(new CryptoAesEncrypt(CRYPTO_DECRYPT));
-            break;
-        default:
-            THROW_PKCS11_MECHANISM_INVALID();
+            case CKM_AES_CBC:
+            case CKM_AES_CBC_PAD:
+            case CKM_AES_ECB:
+                decrypt = Scoped<CryptoAesEncrypt>(new CryptoAesEncrypt(CRYPTO_DECRYPT));
+                break;
+            default:
+                THROW_PKCS11_MECHANISM_INVALID();
         }
-
+        
         return decrypt->Init(
-            pMechanism,
-            GetObject(hKey)
-        );
+                             pMechanism,
+                             GetObject(hKey)
+                             );
+    }
+    CATCH_EXCEPTION;
+}
+
+CK_RV osx::Session::SignInit
+(
+ CK_MECHANISM_PTR  pMechanism,
+ CK_OBJECT_HANDLE  hKey
+ )
+{
+    try {
+        core::Session::SignInit(
+                                pMechanism,
+                                hKey
+                                );
+        
+        if (decrypt->IsActive()) {
+            THROW_PKCS11_OPERATION_ACTIVE();
+        }
+        
+        switch (pMechanism->mechanism) {
+            case CKM_SHA1_RSA_PKCS:
+            case CKM_SHA256_RSA_PKCS:
+            case CKM_SHA384_RSA_PKCS:
+            case CKM_SHA512_RSA_PKCS:
+                sign = Scoped<RsaPKCS1Sign>(new RsaPKCS1Sign(CRYPTO_SIGN));
+                break;
+            default:
+                THROW_PKCS11_MECHANISM_INVALID();
+        }
+        
+        return sign->Init(
+                          pMechanism,
+                          GetObject(hKey));
+    }
+    CATCH_EXCEPTION;
+}
+
+CK_RV osx::Session::VerifyInit
+(
+ CK_MECHANISM_PTR  pMechanism,
+ CK_OBJECT_HANDLE  hKey
+ )
+{
+    try {
+        core::Session::VerifyInit(
+                                pMechanism,
+                                hKey
+                                );
+        
+        if (decrypt->IsActive()) {
+            THROW_PKCS11_OPERATION_ACTIVE();
+        }
+        
+        switch (pMechanism->mechanism) {
+            case CKM_SHA1_RSA_PKCS:
+            case CKM_SHA256_RSA_PKCS:
+            case CKM_SHA384_RSA_PKCS:
+            case CKM_SHA512_RSA_PKCS:
+                verify = Scoped<RsaPKCS1Sign>(new RsaPKCS1Sign(CRYPTO_VERIFY));
+                break;
+            default:
+                THROW_PKCS11_MECHANISM_INVALID();
+        }
+        
+        return verify->Init(
+                            pMechanism,
+                            GetObject(hKey));
     }
     CATCH_EXCEPTION;
 }

@@ -5,6 +5,8 @@
 #include "../core/keypair.h"
 #include "../core/objects/rsa_private_key.h"
 #include "../core/objects/rsa_public_key.h"
+#include "helper.h"
+#include "key.h"
 
 #include <Security/Security.h>
 
@@ -19,11 +21,9 @@ namespace osx {
         );
     };
     
-    class RsaPrivateKey : public core::RsaPrivateKey {
+    class RsaPrivateKey : public core::RsaPrivateKey, public Key {
     public:
-        RsaPrivateKey() :
-        core::RsaPrivateKey()
-        {};
+        void Assign(SecKeyRef key);
         
         CK_RV CopyValues(
                          Scoped<core::Object>    object,     /* the object which must be copied */
@@ -32,8 +32,6 @@ namespace osx {
         );
         
         CK_RV Destroy();
-        
-        void OnKeyAssigned();
         
     protected:
         void FillPublicKeyStruct();
@@ -44,14 +42,8 @@ namespace osx {
                        );
     };
     
-    class RsaPublicKey : public core::RsaPublicKey {
+    class RsaPublicKey : public core::RsaPublicKey, public Key {
     public:
-        RsaPublicKey() :
-        core::RsaPublicKey()
-        {};
-        
-        void Dispose();
-        
         void Assign(SecKeyRef key);
         
         CK_RV CreateValues(
@@ -68,8 +60,6 @@ namespace osx {
         CK_RV Destroy();
         
     protected:
-        SecKeyRef value;
-        
         void FillKeyStruct();
         
         CK_RV GetValue

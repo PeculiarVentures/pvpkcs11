@@ -126,8 +126,10 @@
                     },
                     'sources': [
                         # osx
+                        'src/osx/helper.cpp',
                         'src/osx/slot.cpp',
                         'src/osx/session.cpp',
+                        'src/osx/key.cpp',
                         # crypto
                         'src/osx/crypto/digest.cpp',
                         'src/osx/crypto/aes.cpp',

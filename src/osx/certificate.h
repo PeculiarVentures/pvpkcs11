@@ -3,6 +3,7 @@
 #include "../stdafx.h"
 #include "../core/objects/x509_certificate.h"
 #include "../core/objects/public_key.h"
+#include "../core/objects/private_key.h"
 
 #include <Security.h>
 
@@ -38,6 +39,8 @@ namespace osx {
         CK_RV Destroy();
         
         Scoped<core::PublicKey> GetPublicKey();
+        Scoped<core::PrivateKey> GetPrivateKey();
+        bool HasPrivateKey();
 
     protected:
         SecCertificateRef value;

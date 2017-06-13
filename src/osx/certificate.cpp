@@ -3,6 +3,7 @@
 #include <Security/SecAsn1Coder.h>
 #include <CommonCrypto/CommonDigest.h>
 #include "x509_template.h"
+#include "helper.h"
 
 #include "rsa.h"
 
@@ -233,15 +234,14 @@ Scoped<core::PublicKey> osx::X509Certificate::GetPublicKey()
             THROW_EXCEPTION("Cannot get public key");
         }
 
-        CFDictionaryRef cfAttributes = SecKeyCopyAttributes(secPublicKey);
-        if (!cfAttributes) {
+        CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(secPublicKey);
+        if (!&cfAttributes) {
             CFRelease(secPublicKey);
             THROW_EXCEPTION("Error on SecKeyCopyAttributes");
         }
-        Scoped<void> attributes((void*)cfAttributes, CFRelease);
         
         Scoped<core::PublicKey> res;
-        CFStringRef cfKeyType = static_cast<CFStringRef>(CFDictionaryGetValue(cfAttributes, kSecAttrKeyType));
+        CFStringRef cfKeyType = static_cast<CFStringRef>(CFDictionaryGetValue(&cfAttributes, kSecAttrKeyType));
         if (!CFStringCompare(kSecAttrKeyTypeRSA, cfKeyType, kCFCompareCaseInsensitive)) {
             Scoped<RsaPublicKey> rsaKey(new RsaPublicKey);
             rsaKey->Assign(secPublicKey);
@@ -254,6 +254,57 @@ Scoped<core::PublicKey> osx::X509Certificate::GetPublicKey()
         res->ItemByType(CKA_ID)->SetValue(certId->data(), certId->size());
         
         return res;
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<core::PrivateKey> osx::X509Certificate::GetPrivateKey()
+{
+    try {
+        SecIdentityRef identity = NULL;
+        SecIdentityCreateWithCertificate(NULL, value, &identity);
+        if (!identity) {
+            THROW_EXCEPTION("Error on SecIdentityCreateWithCertificate");
+        }
+        CFRef<SecIdentityRef> scopedIdentity = identity;
+
+        SecKeyRef privateKey = NULL;
+        SecIdentityCopyPrivateKey(identity, &privateKey);
+        if (!privateKey) {
+            THROW_EXCEPTION("Cannot get private key");
+        }
+        
+        CFRef<CFDictionaryRef> attributes = SecKeyCopyAttributes(privateKey);
+        
+        CFStringRef cfKeyType = static_cast<CFStringRef>(CFDictionaryGetValue(&attributes, kSecAttrKeyType));
+        Scoped<core::PrivateKey> res;
+        if (!CFStringCompare(kSecAttrKeyTypeRSA, cfKeyType, kCFCompareCaseInsensitive)) {
+            Scoped<RsaPrivateKey> rsaKey(new RsaPrivateKey);
+            rsaKey->Assign(privateKey);
+            res = rsaKey;
+        } else {
+            CFRelease(privateKey);
+            THROW_EXCEPTION("Unsupported key type");
+        }
+        
+        auto certId = ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
+        res->ItemByType(CKA_ID)->SetValue(certId->data(), certId->size());
+        
+        return res;
+    }
+    CATCH_EXCEPTION
+}
+
+bool osx::X509Certificate::HasPrivateKey()
+{
+    try {
+        SecIdentityRef identity = NULL;
+        SecIdentityCreateWithCertificate(NULL, value, &identity);
+        if (!identity) {
+            return false;
+        }
+        CFRelease(identity);
+        return true;
     }
     CATCH_EXCEPTION
 }
