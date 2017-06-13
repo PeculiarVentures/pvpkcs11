@@ -16,6 +16,13 @@ namespace osx {
          Scoped<core::Template> publicTemplate,
          Scoped<core::Template> privateTemplate
          );
+        
+        static Scoped<core::Object> DeriveKey
+        (
+         CK_MECHANISM_PTR        pMechanism,
+         Scoped<core::Object>    baseKey,
+         Scoped<core::Template>  tmpl
+         );
     };
     
     class EcPrivateKey : public core::EcPrivateKey, public Key {

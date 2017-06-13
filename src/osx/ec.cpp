@@ -4,6 +4,7 @@
 #include <Security/SecAsn1Coder.h>
 #include <Security/SecAsn1Templates.h>
 #include <Security/SecAsn1Types.h>
+#include "aes.h"
 #include "helper.h"
 
 using namespace osx;
@@ -90,6 +91,95 @@ Scoped<core::KeyPair> osx::EcKey::Generate
         privateKey->Assign(pPrivateKey);
         
         return Scoped<core::KeyPair>(new core::KeyPair(privateKey, publicKey));
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<core::Object> EcKey::DeriveKey
+(
+ CK_MECHANISM_PTR        pMechanism,
+ Scoped<core::Object>    baseKey,
+ Scoped<core::Template>  tmpl
+ )
+{
+    try {
+        EcPrivateKey* ecPrivateKey = dynamic_cast<EcPrivateKey*>(baseKey.get());
+        if (!ecPrivateKey) {
+            THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "baseKey is not EC key");
+        }
+        
+        if (pMechanism == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
+        }
+        if (pMechanism->mechanism != CKM_ECDH1_DERIVE) {
+            THROW_PKCS11_EXCEPTION(CKR_MECHANISM_INVALID, "pMechanism->mechanism is not CKM_ECDH1_DERIVE");
+        }
+        if (pMechanism->pParameter == NULL_PTR) {
+            THROW_PKCS11_EXCEPTION(CKR_MECHANISM_PARAM_INVALID, "pMechanism->pParameter is NULL");
+        }
+        CK_ECDH1_DERIVE_PARAMS_PTR params = static_cast<CK_ECDH1_DERIVE_PARAMS_PTR>(pMechanism->pParameter);
+        if (!params) {
+            THROW_PKCS11_EXCEPTION(CKR_MECHANISM_PARAM_INVALID, "pMechanism->pParameter is not CK_ECDH1_DERIVE_PARAMS");
+        }
+        
+        Key* privateKey = dynamic_cast<Key*>(baseKey.get());
+        if (!privateKey) {
+            THROW_EXCEPTION("Cannot get SecKeyRef from Object");
+        }
+        
+        // Create public key from public data
+        SecAsn1CoderRef coder;
+        SecAsn1CoderCreate(&coder);
+        
+        SecAsn1Item publicData;
+        if (SecAsn1Decode(coder,
+                          params->pPublicData,
+                          params->ulPublicDataLen,
+                          kSecAsn1OctetStringTemplate,
+                          &publicData)) {
+            SecAsn1CoderRelease(coder);
+            THROW_PKCS11_EXCEPTION(CKR_MECHANISM_PARAM_INVALID, "Cannot decode public data");
+        }
+        CFDataRef keyData = CFDataCreate(NULL, publicData.Data, publicData.Length);
+        CFRef<CFMutableDictionaryRef> keyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                                                          0,
+                                                                          &kCFTypeDictionaryKeyCallBacks,
+                                                                          &kCFTypeDictionaryValueCallBacks);
+        CFDictionarySetValue(&keyAttr, kSecAttrKeyType, kSecAttrKeyTypeEC);
+        // SecItemDelete(<#CFDictionaryRef  _Nonnull query#>)
+
+        {
+            puts("KeyData");
+            auto data = CFDataGetBytePtr(keyData);
+            for (int i = 0; i < CFDataGetLength(keyData); i++) {
+                fprintf(stdout, "%02X", data[i]);
+            }
+            puts("");
+        }
+        
+        SecKeyRef publicKey = SecKeyCreateFromData(&keyAttr,
+                                                   keyData,
+                                                   NULL);
+        SecAsn1CoderRelease(coder);
+
+        CFRef<CFDataRef> derivedData = SecKeyCopyKeyExchangeResult(privateKey->Get(),
+                                                            kSecKeyAlgorithmECDHKeyExchangeStandard,
+                                                            publicKey,
+                                                            NULL,
+                                                            NULL);
+        
+        if (derivedData.IsEmpty()) {
+            THROW_EXCEPTION("Error on SecKeyCopyKeyExchangeResult");
+        }
+        
+        puts("Derived");
+        auto data = CFDataGetBytePtr(&derivedData);
+        for (int i = 0; i < CFDataGetLength(&derivedData); i++) {
+            fprintf(stdout, "%02X", data[i]);
+        }
+        puts("");
+        
+        THROW_EXCEPTION("Not finished");
     }
     CATCH_EXCEPTION
 }
@@ -207,15 +297,6 @@ void osx::EcPrivateKey::FillPrivateKeyStruct()
         if (cfKeyData.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyExternalRepresentation");
         }
-        
-        auto data = CFDataGetBytePtr(&cfKeyData);
-        auto dataLen = CFDataGetLength(&cfKeyData);
-        
-        puts("Public key EC:");
-        for (int i = 0; i < dataLen; i++) {
-            fprintf(stdout, "%02X", data[i]);
-        }
-        puts("");
         
         // Get attributes of key
         CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(&value);
