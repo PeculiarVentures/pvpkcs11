@@ -348,12 +348,14 @@ void osx::EcPublicKey::FillKeyStruct()
                                                                         );
         }
         
+        // Get key size
         CFNumberRef cfKeySizeInBits = (CFNumberRef)CFDictionaryGetValue(&cfAttributes, kSecAttrKeySizeInBits);
         if (!cfKeySizeInBits) {
             THROW_EXCEPTION("Cannot get size of key");
         }
         CK_ULONG keySizeInBits = 0;
         CFNumberGetValue(cfKeySizeInBits, kCFNumberSInt64Type, &keySizeInBits);
+        
         CFRef<CFDataRef> cfKeyData = SecKeyCopyExternalRepresentation(&value, NULL);
         if (cfKeyData.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyExternalRepresentation");

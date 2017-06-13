@@ -352,6 +352,12 @@ CK_RV osx::Session::SignInit
             case CKM_SHA512_RSA_PKCS:
                 sign = Scoped<RsaPKCS1Sign>(new RsaPKCS1Sign(CRYPTO_SIGN));
                 break;
+            case CKM_ECDSA_SHA1:
+            case CKM_ECDSA_SHA256:
+            case CKM_ECDSA_SHA384:
+            case CKM_ECDSA_SHA512:
+                sign = Scoped<EcDsaSign>(new EcDsaSign(CRYPTO_SIGN));
+                break;
             default:
                 THROW_PKCS11_MECHANISM_INVALID();
         }
@@ -385,6 +391,12 @@ CK_RV osx::Session::VerifyInit
             case CKM_SHA384_RSA_PKCS:
             case CKM_SHA512_RSA_PKCS:
                 verify = Scoped<RsaPKCS1Sign>(new RsaPKCS1Sign(CRYPTO_VERIFY));
+                break;
+            case CKM_ECDSA_SHA1:
+            case CKM_ECDSA_SHA256:
+            case CKM_ECDSA_SHA384:
+            case CKM_ECDSA_SHA512:
+                verify = Scoped<EcDsaSign>(new EcDsaSign(CRYPTO_VERIFY));
                 break;
             default:
                 THROW_PKCS11_MECHANISM_INVALID();

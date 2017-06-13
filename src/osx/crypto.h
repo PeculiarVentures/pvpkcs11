@@ -125,4 +125,45 @@ namespace osx {
         Key*            key;
     };
     
+    class EcDsaSign : public core::CryptoSign {
+    public:
+        EcDsaSign(CK_BBOOL type);
+        
+        CK_RV Init
+        (
+         CK_MECHANISM_PTR        pMechanism,  /* the signature mechanism */
+         Scoped<core::Object>    key          /* signature key */
+        );
+        
+        CK_RV Update
+        (
+         CK_BYTE_PTR       pPart,     /* the data to sign/verify */
+         CK_ULONG          ulPartLen  /* count of bytes to sign/verify */
+        );
+        
+        /**
+         * C_SignFinal finishes a multiple-part signature operation,
+         * returning the signature.
+         */
+        CK_RV Final
+        (
+         CK_BYTE_PTR       pSignature,      /* gets the signature */
+         CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
+        );
+        
+        /**
+         * C_VerifyFinal finishes a multiple-part verification
+         * operation, checking the signature.
+         */
+        CK_RV Final
+        (
+         CK_BYTE_PTR       pSignature,     /* signature to verify */
+         CK_ULONG          ulSignatureLen  /* signature length */
+        );
+        
+    protected:
+        CryptoDigest    digest;
+        Key*            key;
+    };
+    
 }
