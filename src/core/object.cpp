@@ -258,7 +258,6 @@ CK_RV Object::CopyValues
             // Check for properties which can be changed during copying
             auto attribute = ItemByType(pAttribute->type);
             if (!(attribute->flags & PVF_8 || attribute->flags & PVF_13)) {
-                puts(attribute->Name().c_str());
                 THROW_PKCS11_TEMPLATE_INCOMPLETE();
             }
             CopyValue(pAttribute);

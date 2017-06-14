@@ -160,14 +160,17 @@ Scoped<core::Object> EcKey::DeriveKey
         SecKeyRef publicKey = SecKeyCreateFromData(&keyAttr,
                                                    keyData,
                                                    NULL);
-        SecAsn1CoderRelease(coder);
-
+        CFRef<CFMutableDictionaryRef> parameters = CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                                                          0,
+                                                                          &kCFTypeDictionaryKeyCallBacks,
+                                                                          &kCFTypeDictionaryValueCallBacks);
         CFRef<CFDataRef> derivedData = SecKeyCopyKeyExchangeResult(privateKey->Get(),
-                                                            kSecKeyAlgorithmECDHKeyExchangeStandard,
-                                                            publicKey,
-                                                            NULL,
-                                                            NULL);
+                                                                   kSecKeyAlgorithmECDHKeyExchangeStandard,
+                                                                   publicKey,
+                                                                   &parameters,
+                                                                   NULL);
         
+        SecAsn1CoderRelease(coder);
         if (derivedData.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyKeyExchangeResult");
         }

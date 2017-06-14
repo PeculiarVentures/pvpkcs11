@@ -6,15 +6,13 @@
 #include "../core/objects/private_key.h"
 
 #include <Security.h>
+#include "helper.h"
 
 namespace osx {
 
     class X509Certificate : public core::X509Certificate {
     public:
         X509Certificate(): value(NULL){}
-        ~X509Certificate();
-        
-        void Dispose();
         
         void Assign(
             SecCertificateRef        cert
@@ -43,7 +41,7 @@ namespace osx {
         bool HasPrivateKey();
 
     protected:
-        SecCertificateRef value;
+        CFRef<SecCertificateRef> value;
         
         void AddToMyStorage();
     };

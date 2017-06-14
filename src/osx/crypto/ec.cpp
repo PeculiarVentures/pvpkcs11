@@ -300,7 +300,8 @@ CK_RV osx::EcDsaSign::Final
         digest.Final(hash, &hashLen);
         
         CFRef<CFDataRef> cfHash = CFDataCreate(NULL, hash, hashLen);
-        Scoped<Buffer> derSignature = ConvertSignatureFromWebcrypto(CFDataCreate(NULL, pSignature, ulSignatureLen));
+        CFRef<CFDataRef> cfWebcryptoSignature = CFDataCreate(NULL, pSignature, ulSignatureLen);
+        Scoped<Buffer> derSignature = ConvertSignatureFromWebcrypto(&cfWebcryptoSignature);
         CFRef<CFDataRef> cfSignature = CFDataCreate(NULL, derSignature->data(), derSignature->size());
         
         Boolean ok = SecKeyVerifySignature(key->Get(),

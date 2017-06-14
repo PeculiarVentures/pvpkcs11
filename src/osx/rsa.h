@@ -46,15 +46,17 @@ namespace osx {
     public:
         void Assign(SecKeyRef key);
         
-        CK_RV CreateValues(
-                           CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
-                           CK_ULONG          ulCount     /* attributes in template */
+        CK_RV CreateValues
+        (
+         CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+         CK_ULONG          ulCount     /* attributes in template */
         );
         
-        CK_RV CopyValues(
-                         Scoped<core::Object>    object,     /* the object which must be copied */
-                         CK_ATTRIBUTE_PTR        pTemplate,  /* specifies attributes */
-                         CK_ULONG                ulCount     /* attributes in template */
+        CK_RV CopyValues
+        (
+         Scoped<core::Object>    object,     /* the object which must be copied */
+         CK_ATTRIBUTE_PTR        pTemplate,  /* specifies attributes */
+         CK_ULONG                ulCount     /* attributes in template */
         );
         
         CK_RV Destroy();

@@ -9,30 +9,16 @@
 
 using namespace osx;
 
-osx::X509Certificate::~X509Certificate()
-{
-    Dispose();
-}
-
-void osx::X509Certificate::Dispose()
-{
-    if (value) {
-        CFRelease(value);
-        value = NULL;
-    }
-}
-
 void osx::X509Certificate::Assign(
     SecCertificateRef        cert
 )
 {
     try {
-        Dispose();
         value = cert;
 
         // CKA_SUBJECT
         {
-            CFDataRef cfSubjectName = SecCertificateCopyNormalizedSubjectSequence(value);
+            CFDataRef cfSubjectName = SecCertificateCopyNormalizedSubjectSequence(&value);
             Scoped<Buffer> subjectName(new Buffer(0));
             subjectName->resize((CK_ULONG)CFDataGetLength(cfSubjectName));
             CFDataGetBytes(cfSubjectName, CFRangeMake(0, subjectName->size()), subjectName->data());
@@ -44,7 +30,7 @@ void osx::X509Certificate::Assign(
         }
         // CKA_ISSUER
         {
-            CFDataRef cfIssuerName = SecCertificateCopyNormalizedIssuerSequence(value);
+            CFDataRef cfIssuerName = SecCertificateCopyNormalizedIssuerSequence(&value);
             Scoped<Buffer> issuerName(new Buffer(0));
             issuerName->resize((CK_ULONG)CFDataGetLength(cfIssuerName));
             CFDataGetBytes(cfIssuerName, CFRangeMake(0, issuerName->size()), issuerName->data());
@@ -56,7 +42,7 @@ void osx::X509Certificate::Assign(
         }
         // CKA_VALUE
         {
-            CFDataRef cfValue = SecCertificateCopyData(value);
+            CFDataRef cfValue = SecCertificateCopyData(&value);
             Scoped<Buffer> value(new Buffer(0));
             value->resize((CK_ULONG)CFDataGetLength(cfValue));
             CFDataGetBytes(cfValue, CFRangeMake(0, value->size()), value->data());
@@ -81,7 +67,7 @@ void osx::X509Certificate::Assign(
         }
         // CKA_SERIAL_NUMBER
         {
-            CFDataRef cfSerialNumber = SecCertificateCopySerialNumber(value, NULL);
+            CFDataRef cfSerialNumber = SecCertificateCopySerialNumber(&value, NULL);
             Scoped<Buffer> serialNumber(new Buffer(0));
             serialNumber->resize((CK_ULONG)CFDataGetLength(cfSerialNumber));
             CFDataGetBytes(cfSerialNumber, CFRangeMake(0, serialNumber->size()), serialNumber->data());
@@ -165,16 +151,23 @@ CK_RV osx::X509Certificate::CreateValues(
         );
 
         core::Template tmpl(pTemplate, ulCount);
-
-//        Scoped<crypt::Certificate> cert(new crypt::Certificate());
-//        auto encoded = tmpl.GetBytes(CKA_VALUE, true);
-//        cert->Import(encoded->data(), encoded->size());
-//        Assign(cert);
-//
-//        if (tmpl.GetBool(CKA_TOKEN, false, false)) {
-//            AddToMyStorage();
-//        }
-
+        
+        Scoped<Buffer> derCert = tmpl.GetBytes(CKA_VALUE, true);
+        
+        CFRef<CFDataRef> data = CFDataCreate(NULL, derCert->data(), derCert->size());
+        if (data.IsEmpty()) {
+            THROW_EXCEPTION("Error on CFDataCreate");
+        }
+        SecCertificateRef cert = SecCertificateCreateWithData(NULL, &data);
+        if (!cert) {
+            THROW_EXCEPTION("Cannot create Certificate from CKA_VALUE");
+        }
+        
+        Assign(cert);
+        
+        if (tmpl.GetBool(CKA_TOKEN, false, false)) {
+            AddToMyStorage();
+        }
         return CKR_OK;
     }
     CATCH_EXCEPTION
@@ -192,17 +185,18 @@ CK_RV osx::X509Certificate::CopyValues(
             pTemplate,
             ulCount
         );
-
         core::Template tmpl(pTemplate, ulCount);
 
-//        X509Certificate* original = dynamic_cast<X509Certificate*>(object.get());
-//        
-//        auto cert = original->value->Duplicate();
-//        Assign(cert);
-//
-//        if (tmpl.GetBool(CKA_TOKEN, false, false)) {
-//            AddToMyStorage();
-//        }
+        X509Certificate* original = dynamic_cast<X509Certificate*>(object.get());
+        
+        CFRef<CFDataRef> certData = SecCertificateCopyData(&original->value);
+        
+        SecCertificateRef cert = SecCertificateCreateWithData(NULL, &certData);
+        Assign(cert);
+
+        if (tmpl.GetBool(CKA_TOKEN, false, false)) {
+            AddToMyStorage();
+        }
 
         return CKR_OK;
     }
@@ -212,7 +206,7 @@ CK_RV osx::X509Certificate::CopyValues(
 void osx::X509Certificate::AddToMyStorage()
 {
     try {
-        THROW_PKCS11_FUNCTION_NOT_SUPPORTED();
+        SecCertificateAddToKeychain(&value, NULL);
     }
     CATCH_EXCEPTION
 }
@@ -229,7 +223,7 @@ Scoped<core::PublicKey> osx::X509Certificate::GetPublicKey()
 {
     try {
         SecKeyRef secPublicKey = NULL;
-        SecCertificateCopyPublicKey(value, &secPublicKey);
+        SecCertificateCopyPublicKey(&value, &secPublicKey);
         if (!secPublicKey) {
             THROW_EXCEPTION("Cannot get public key");
         }
@@ -262,7 +256,7 @@ Scoped<core::PrivateKey> osx::X509Certificate::GetPrivateKey()
 {
     try {
         SecIdentityRef identity = NULL;
-        SecIdentityCreateWithCertificate(NULL, value, &identity);
+        SecIdentityCreateWithCertificate(NULL, &value, &identity);
         if (!identity) {
             THROW_EXCEPTION("Error on SecIdentityCreateWithCertificate");
         }
@@ -299,7 +293,7 @@ bool osx::X509Certificate::HasPrivateKey()
 {
     try {
         SecIdentityRef identity = NULL;
-        SecIdentityCreateWithCertificate(NULL, value, &identity);
+        SecIdentityCreateWithCertificate(NULL, &value, &identity);
         if (!identity) {
             return false;
         }

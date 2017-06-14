@@ -114,7 +114,9 @@ Scoped<core::KeyPair> osx::RsaKey::Generate
         
         
         publicKey->Assign(pPublicKey);
+        publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
         privateKey->Assign(pPrivateKey);
+        privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
         
         return Scoped<core::KeyPair>(new core::KeyPair(privateKey, publicKey));
     }
@@ -313,7 +315,47 @@ CK_RV osx::RsaPublicKey::CreateValues
 )
 {
     try {
-        THROW_PKCS11_FUNCTION_NOT_SUPPORTED();
+        core::RsaPublicKey::CreateValues(pTemplate, ulCount);
+        
+        core::Template tmpl(pTemplate, ulCount);
+        
+        ASN1_RSA_PUBLIC_KEY asn1Key;
+        // Modulus
+        Scoped<Buffer> modulus = tmpl.GetBytes(CKA_MODULUS, true);
+        asn1Key.modulus.Data = modulus->data();
+        asn1Key.modulus.Length = modulus->size();
+        // Public exponent
+        Scoped<Buffer> publicExponent = tmpl.GetBytes(CKA_PUBLIC_EXPONENT, true);
+        asn1Key.publicExponent.Data = publicExponent->data();
+        asn1Key.publicExponent.Length = publicExponent->size();
+        
+        SecAsn1CoderRef coder = NULL;
+        SecAsn1CoderCreate(&coder);
+        if (!coder) {
+            THROW_EXCEPTION("Error on SecAsn1CoderCreate");
+        }
+        
+        SecAsn1Item derKey;
+        if (SecAsn1EncodeItem(coder, &asn1Key, kRsaPublicKeyTemplate, &derKey)) {
+            SecAsn1CoderRelease(coder);
+            THROW_EXCEPTION("Error onSecAsn1EncodeItem");
+        }
+        CFMutableDictionaryRef keyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                                                   0,
+                                                                   &kCFTypeDictionaryKeyCallBacks,
+                                                                   &kCFTypeDictionaryValueCallBacks);
+        CFDictionaryAddValue(keyAttr, kSecAttrKeyType, kSecAttrKeyTypeRSA);
+        CFDictionaryAddValue(keyAttr, kSecAttrKeyClass, kSecAttrKeyClassPublic);
+        CFRef<CFDataRef> derKeyData = CFDataCreate(NULL, derKey.Data, derKey.Length);
+        CFErrorRef error = NULL;
+        SecKeyRef key = SecKeyCreateFromData(keyAttr, &derKeyData, &error);
+        if (error) {
+            CFRef<CFStringRef> errorText = CFErrorCopyDescription(error);
+            THROW_EXCEPTION(CFStringGetCStringPtr(&errorText, kCFStringEncodingUTF8));
+        }
+        SecAsn1CoderRelease(coder);
+
+        Assign(key);
     }
     CATCH_EXCEPTION
 }
@@ -343,16 +385,13 @@ void osx::RsaPublicKey::Assign(SecKeyRef key)
 {
     try {
         if (key == NULL) {
-            THROW_EXCEPTION("SecKeyRef is empty");
+            THROW_EXCEPTION("key is NULL");
         }
-        
         value = key;
-        
         CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(&value);
-        if (!&cfAttributes) {
+        if (cfAttributes.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyAttributes");
         }
-        
         CFBooleanRef cfVerify = (CFBooleanRef)CFDictionaryGetValue(&cfAttributes, kSecAttrCanVerify);
         if (CFBooleanGetValue(cfVerify)) {
             ItemByType(CKA_VERIFY)->To<core::AttributeBool>()->Set(true);

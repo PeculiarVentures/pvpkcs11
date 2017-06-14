@@ -35,6 +35,26 @@ Scoped<core::Object> osx::Session::CreateObject
                         THROW_PKCS11_TEMPLATE_INCOMPLETE();
                 }
                 break;
+            case CKO_PUBLIC_KEY: {
+                switch (tmpl.GetNumber(CKA_KEY_TYPE, true)) {
+                    case CKK_RSA:
+                        object = Scoped<RsaPublicKey>(new RsaPublicKey);
+                        break;
+                    default:
+                        THROW_PKCS11_TEMPLATE_INCOMPLETE();
+                }
+                break;
+            }
+            case CKO_CERTIFICATE: {
+                switch (tmpl.GetNumber(CKA_CERTIFICATE_TYPE, true)) {
+                    case CKC_X_509:
+                        object = Scoped<X509Certificate>(new X509Certificate);
+                        break;
+                    default:
+                        THROW_PKCS11_TEMPLATE_INCOMPLETE();
+                }
+                break;
+            }
             default:
                 THROW_PKCS11_TEMPLATE_INCOMPLETE();
         }
@@ -48,13 +68,22 @@ Scoped<core::Object> osx::Session::CreateObject
 
 Scoped<core::Object> osx::Session::CopyObject
 (
- Scoped<core::Object>       object,      /* the object for copying */
+ Scoped<core::Object> object,      /* the object for copying */
  CK_ATTRIBUTE_PTR     pTemplate,   /* template for new object */
  CK_ULONG             ulCount      /* attributes in template */
 )
 {
     try {
+        Scoped<core::Object> copy;
+        if (dynamic_cast<X509Certificate*>(object.get())) {
+            copy = Scoped<X509Certificate>(new X509Certificate());
+        }
+        else {
+            THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Object is not copyable");
+        }
         
+        copy->CopyValues(object, pTemplate, ulCount);
+        return copy;
     }
     CATCH_EXCEPTION
 }

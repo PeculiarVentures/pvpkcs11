@@ -75,7 +75,6 @@ CK_RV osx::CryptoDigest::Final(
 
         CK_ULONG ulDigestLen = GetDigestLength(mechType);
         if (!pDigest) {
-            puts("get size");
             *pulDigestLen = ulDigestLen;
         } else if (*pulDigestLen < ulDigestLen) {
             THROW_PKCS11_BUFFER_TOO_SMALL();
