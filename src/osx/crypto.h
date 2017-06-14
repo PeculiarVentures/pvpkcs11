@@ -84,6 +84,48 @@ namespace osx {
         CCCryptorRef        cryptor;
     };
     
+    class CryptoAesGCMEncrypt : public core::CryptoEncrypt {
+    public:
+        CryptoAesGCMEncrypt(
+                            CK_BBOOL type
+                            );
+        
+        CK_RV Init
+        (
+         CK_MECHANISM_PTR        pMechanism,
+         Scoped<core::Object>    hKey
+         );
+        
+        CK_RV Once
+        (
+         CK_BYTE_PTR       pData,
+         CK_ULONG          ulDataLen,
+         CK_BYTE_PTR       pEncryptedData,
+         CK_ULONG_PTR      pulEncryptedDataLen
+         );
+        
+        CK_RV Update
+        (
+         CK_BYTE_PTR       pPart,
+         CK_ULONG          ulPartLen,
+         CK_BYTE_PTR       pEncryptedPart,
+         CK_ULONG_PTR      pulEncryptedPartLen
+         );
+        
+        CK_RV Final
+        (
+         CK_BYTE_PTR       pLastEncryptedPart,
+         CK_ULONG_PTR      pulLastEncryptedPartLen
+         );
+        
+    protected:
+        AesKey*                key;
+        Scoped<std::string>    iv;
+        Scoped<std::string>    aad;
+        CK_ULONG               tagLength;
+        CK_ULONG               blockLength;
+    };
+    
     class RsaPKCS1Sign : public core::CryptoSign {
     public:
         RsaPKCS1Sign(CK_BBOOL type);

@@ -149,7 +149,6 @@ CK_RV osx::X509Certificate::CreateValues(
             pTemplate,
             ulCount
         );
-
         core::Template tmpl(pTemplate, ulCount);
         
         Scoped<Buffer> derCert = tmpl.GetBytes(CKA_VALUE, true);
