@@ -477,7 +477,7 @@ CK_RV C_DestroyObject
     )
 {
     try {
-        pkcs11.DestroyObject(
+        return pkcs11.DestroyObject(
             hSession,
             hObject
         );

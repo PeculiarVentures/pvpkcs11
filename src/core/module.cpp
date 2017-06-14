@@ -953,7 +953,6 @@ CK_RV Module::DestroyObject(
         auto object = session->GetObject(hObject);
 
         object->Destroy();
-
         session->objects.remove(object);
 
         return CKR_OK;
