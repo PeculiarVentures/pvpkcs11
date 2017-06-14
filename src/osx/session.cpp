@@ -139,17 +139,23 @@ CK_RV osx::Session::Open
             x509->Assign(certCopy);
             x509->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
             
-            auto publicKey = x509->GetPublicKey();
-            publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-            
-            if (x509->HasPrivateKey()) {
-                Scoped<core::PrivateKey> privateKey = x509->GetPrivateKey();
-                privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                objects.add(privateKey);
+            try {
+                
+                auto publicKey = x509->GetPublicKey();
+                publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                
+                if (x509->HasPrivateKey()) {
+                    Scoped<core::PrivateKey> privateKey = x509->GetPrivateKey();
+                    privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                    objects.add(privateKey);
+                }
+                
+                objects.add(x509);
+                objects.add(publicKey);
             }
-            
-            objects.add(x509);
-            objects.add(publicKey);
+            catch(...) {
+                puts("Error: Cannot get keys for certificate");
+            }
         }
         return CKR_OK;
     }

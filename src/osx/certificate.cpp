@@ -6,6 +6,7 @@
 #include "helper.h"
 
 #include "rsa.h"
+#include "ec.h"
 
 using namespace osx;
 
@@ -254,6 +255,10 @@ Scoped<core::PublicKey> osx::X509Certificate::GetPublicKey()
             Scoped<RsaPublicKey> rsaKey(new RsaPublicKey);
             rsaKey->Assign(secPublicKey);
             res = rsaKey;
+        } else if (!CFStringCompare(kSecAttrKeyTypeEC, cfKeyType, kCFCompareCaseInsensitive)) {
+            Scoped<EcPublicKey> ecKey(new EcPublicKey);
+            ecKey->Assign(secPublicKey);
+            res = ecKey;
         } else {
             THROW_EXCEPTION("Unsupported key type");
         }
@@ -290,6 +295,10 @@ Scoped<core::PrivateKey> osx::X509Certificate::GetPrivateKey()
             Scoped<RsaPrivateKey> rsaKey(new RsaPrivateKey);
             rsaKey->Assign(privateKey);
             res = rsaKey;
+        } else if (!CFStringCompare(kSecAttrKeyTypeEC, cfKeyType, kCFCompareCaseInsensitive)) {
+            Scoped<EcPrivateKey> ecKey(new EcPrivateKey);
+            ecKey->Assign(privateKey);
+            res = ecKey;
         } else {
             CFRelease(privateKey);
             THROW_EXCEPTION("Unsupported key type");
