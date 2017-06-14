@@ -9,6 +9,136 @@
 
 using namespace osx;
 
+typedef struct {
+    SecAsn1Item     algorithm;
+    SecAsn1Item     namedCurve;
+} ASN1_EC_ALGORITHM_IDENTIFIER;
+
+const SecAsn1Template kEcAlgorithmIdTemplate[] = {
+    {SEC_ASN1_SEQUENCE, 0, NULL, sizeof(ASN1_EC_ALGORITHM_IDENTIFIER)},
+    {SEC_ASN1_OBJECT_ID, offsetof(ASN1_EC_ALGORITHM_IDENTIFIER, algorithm)},
+    {SEC_ASN1_OBJECT_ID, offsetof(ASN1_EC_ALGORITHM_IDENTIFIER, namedCurve)},
+    {0}
+};
+
+typedef struct {
+    ASN1_EC_ALGORITHM_IDENTIFIER    algorithm;
+    SecAsn1Item                     publicKey;
+} ASN1_EC_PUBLIC_KEY;
+
+const SecAsn1Template kEcPublicKeyTemplate[] = {
+    {SEC_ASN1_SEQUENCE, 0, NULL, sizeof(ASN1_EC_PUBLIC_KEY)},
+    {SEC_ASN1_INLINE, offsetof(ASN1_EC_PUBLIC_KEY, algorithm), kEcAlgorithmIdTemplate},
+    {SEC_ASN1_BIT_STRING , offsetof(ASN1_EC_PUBLIC_KEY, publicKey)},
+    {0}
+};
+
+CFDataRef GetKeyDataFromOctetString(CFDataRef octetString)
+{
+    SecAsn1CoderRef coder;
+    SecAsn1CoderCreate(&coder);
+    
+    SecAsn1Item keyData;
+    const UInt8* data = CFDataGetBytePtr(octetString);
+    CFIndex dataLen = CFDataGetLength(octetString);
+    OSStatus status = SecAsn1Decode(coder, data, dataLen, kSecAsn1OctetStringTemplate, &keyData);
+    if (status) {
+        SecAsn1CoderRelease(coder);
+        return NULL;
+    }
+    
+    CFDataRef res = CFDataCreate(kCFAllocatorDefault, keyData.Data, keyData.Length);
+    
+    SecAsn1CoderRelease(coder);
+    
+    return res;
+}
+
+CFDataRef CopyKeyDataToOctetString(UInt8* data, CFIndex dataLen)
+{
+    SecAsn1CoderRef coder;
+    SecAsn1CoderCreate(&coder);
+    
+    SecAsn1Item octetString;
+    octetString.Data = data;
+    octetString.Length = dataLen;
+    SecAsn1Item keyData;
+    OSStatus status = SecAsn1EncodeItem(coder, &octetString, kSecAsn1OctetStringTemplate, &keyData);
+    if (status) {
+        SecAsn1CoderRelease(coder);
+        return NULL;
+    }
+    
+    CFDataRef res = CFDataCreate(kCFAllocatorDefault, keyData.Data, keyData.Length);
+    
+    SecAsn1CoderRelease(coder);
+    
+    return res;
+}
+
+CK_ULONG GetKeySize(UInt8* data, CFIndex dataLen) {
+    if (data && dataLen && data[0] == 4) {
+        switch ((dataLen - 1) >> 1) {
+            case 32:
+                return 256;
+            case 48:
+                return 384;
+            case 66:
+                return 521;
+        }
+    }
+    return 0;
+}
+
+CFDataRef SetKeyDataToPublicKey(UInt8* data, CFIndex dataLen)
+{
+    SecAsn1CoderRef coder;
+    SecAsn1CoderCreate(&coder);
+    
+    ASN1_EC_PUBLIC_KEY publicKey;
+    publicKey.algorithm.algorithm.Data = (unsigned char*)"\x2A\x86\x48\xCE\x3D\x02\x01"; // ecPublicKey(ANSI X9.62 public key type)
+    publicKey.algorithm.algorithm.Length = 7;
+    
+    CK_ULONG keySizeInBits = GetKeySize(data, dataLen);
+    if (!keySizeInBits) {
+        return NULL;
+    }
+    switch (keySizeInBits) {
+        case 256:
+            publicKey.algorithm.namedCurve.Data = (unsigned char*)"\x2A\x86\x48\xCE\x3D\x03\x01\x07";
+            publicKey.algorithm.namedCurve.Length = 8;
+            break;
+        case 384:
+            publicKey.algorithm.namedCurve.Data = (unsigned char*)"\x2B\x81\x04\x00\x22";
+            publicKey.algorithm.namedCurve.Length = 5;
+            break;
+        case 521:
+            publicKey.algorithm.namedCurve.Data = (unsigned char*)"\x2B\x81\x04\x00\x23";
+            publicKey.algorithm.namedCurve.Length = 5;
+            break;
+        default:
+            return NULL;
+    }
+    
+    publicKey.publicKey.Data = data;
+    publicKey.publicKey.Length = dataLen << 3;
+    fprintf(stdout, "publicKey.publicKey.Length: %lu\n", publicKey.publicKey.Length);
+    
+    SecAsn1Item keyData;
+    OSStatus status = SecAsn1EncodeItem(coder, &publicKey, kEcPublicKeyTemplate, &keyData);
+    if (status) {
+        SecAsn1CoderRelease(coder);
+        return NULL;
+    }
+    
+    CFDataRef res = CFDataCreate(kCFAllocatorDefault, keyData.Data, keyData.Length);
+    
+    SecAsn1CoderRelease(coder);
+    
+    return res;
+}
+
+
 Scoped<core::KeyPair> osx::EcKey::Generate
 (
  CK_MECHANISM_PTR       pMechanism,
@@ -88,7 +218,10 @@ Scoped<core::KeyPair> osx::EcKey::Generate
         
         
         publicKey->Assign(pPublicKey);
+        CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributes(pPublicKey);
+        publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
         privateKey->Assign(pPrivateKey);
+        privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
         
         return Scoped<core::KeyPair>(new core::KeyPair(privateKey, publicKey));
     }
@@ -128,38 +261,34 @@ Scoped<core::Object> EcKey::DeriveKey
         }
         
         // Create public key from public data
-        SecAsn1CoderRef coder;
-        SecAsn1CoderCreate(&coder);
-        
-        SecAsn1Item publicData;
-        if (SecAsn1Decode(coder,
-                          params->pPublicData,
-                          params->ulPublicDataLen,
-                          kSecAsn1OctetStringTemplate,
-                          &publicData)) {
-            SecAsn1CoderRelease(coder);
-            THROW_PKCS11_EXCEPTION(CKR_MECHANISM_PARAM_INVALID, "Cannot decode public data");
+        CFRef<CFDataRef> publicData = CFDataCreate(NULL, params->pPublicData, params->ulPublicDataLen);
+        CFRef<CFDataRef> keyData = GetKeyDataFromOctetString(&publicData);
+        if (keyData.IsEmpty()) {
+            THROW_EXCEPTION("Error on GetKeyDataFromOctetString");
         }
-        CFDataRef keyData = CFDataCreate(NULL, publicData.Data, publicData.Length);
+        const UInt8* keyDataBytes = CFDataGetBytePtr(&keyData);
+        CFIndex keyDataLength = CFDataGetLength(&keyData);
+        CFRef<CFDataRef> spki = SetKeyDataToPublicKey((UInt8*)keyDataBytes, keyDataLength);
+        if (spki.IsEmpty()) {
+            THROW_EXCEPTION("Error on SetKeyDataToPublicKey");
+        }
+        
         CFRef<CFMutableDictionaryRef> keyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
                                                                           0,
                                                                           &kCFTypeDictionaryKeyCallBacks,
                                                                           &kCFTypeDictionaryValueCallBacks);
-        CFDictionarySetValue(&keyAttr, kSecAttrKeyType, kSecAttrKeyTypeEC);
-        // SecItemDelete(<#CFDictionaryRef  _Nonnull query#>)
-
-        {
-            puts("KeyData");
-            auto data = CFDataGetBytePtr(keyData);
-            for (int i = 0; i < CFDataGetLength(keyData); i++) {
-                fprintf(stdout, "%02X", data[i]);
-            }
-            puts("");
-        }
+        CFDictionaryAddValue(&keyAttr, kSecAttrKeyType, kSecAttrKeyTypeEC);
+        CFDictionaryAddValue(&keyAttr, kSecAttrKeyClass, kSecAttrKeyClassPublic);
         
+        CFErrorRef error = NULL;
         SecKeyRef publicKey = SecKeyCreateFromData(&keyAttr,
-                                                   keyData,
-                                                   NULL);
+                                                   &spki,
+                                                   &error);
+        CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributes(publicKey);
+        CFRef<CFDataRef> blob = SecKeyCopyExternalRepresentation(publicKey, NULL);
+        if (error) {
+            THROW_EXCEPTION("Error on SecKeyCreateFromData");
+        }
         CFRef<CFMutableDictionaryRef> parameters = CFDictionaryCreateMutable(kCFAllocatorDefault,
                                                                           0,
                                                                           &kCFTypeDictionaryKeyCallBacks,
@@ -170,7 +299,6 @@ Scoped<core::Object> EcKey::DeriveKey
                                                                    &parameters,
                                                                    NULL);
         
-        SecAsn1CoderRelease(coder);
         if (derivedData.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyKeyExchangeResult");
         }
@@ -358,7 +486,51 @@ CK_RV osx::EcPublicKey::CreateValues
 )
 {
     try {
-        THROW_PKCS11_FUNCTION_NOT_SUPPORTED();
+        core::EcPublicKey::CreateValues(pTemplate, ulCount);
+        
+        core::Template tmpl(pTemplate, ulCount);
+        
+        // POINT
+        Scoped<Buffer> point = tmpl.GetBytes(CKA_EC_POINT, true);
+        // PARAMS
+        Scoped<Buffer> params = tmpl.GetBytes(CKA_EC_PARAMS, true);
+        
+        
+        CFRef<CFDataRef> publicData = CFDataCreate(NULL, point->data(), point->size());
+        CFRef<CFDataRef> keyData = GetKeyDataFromOctetString(&publicData);
+        if (keyData.IsEmpty()) {
+            THROW_EXCEPTION("Error on GetKeyDataFromOctetString");
+        }
+        const UInt8* keyDataBytes = CFDataGetBytePtr(&keyData);
+        CFIndex keyDataLength = CFDataGetLength(&keyData);
+        CFRef<CFDataRef> spki = SetKeyDataToPublicKey((UInt8*)keyDataBytes, keyDataLength);
+        if (spki.IsEmpty()) {
+            THROW_EXCEPTION("Error on SetKeyDataToPublicKey");
+        }
+        
+        CFRef<CFMutableDictionaryRef> keyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                                                          0,
+                                                                          &kCFTypeDictionaryKeyCallBacks,
+                                                                          &kCFTypeDictionaryValueCallBacks);
+        CFDictionaryAddValue(&keyAttr, kSecAttrKeyType, kSecAttrKeyTypeEC);
+        CFDictionaryAddValue(&keyAttr, kSecAttrKeyClass, kSecAttrKeyClassPublic);
+        
+        // Set key usage
+        if (tmpl.GetBool(CKA_VERIFY, false)) {
+            CFDictionaryAddValue(&keyAttr, kSecAttrCanVerify, kCFBooleanTrue);
+        }
+        
+        CFErrorRef error = NULL;
+        SecKeyRef publicKey = SecKeyCreateFromData(&keyAttr,
+                                                   &spki,
+                                                   &error);
+        if (error) {
+            CFRef<CFStringRef> errorText = CFErrorCopyDescription(error);
+            const char* text = CFStringGetCStringPtr(&errorText, kCFStringEncodingUTF8);
+            THROW_EXCEPTION(text ? text : "Error on SecKeyCreateFromData");
+        }
+        
+        Assign(publicKey);
     }
     CATCH_EXCEPTION
 }
@@ -444,7 +616,7 @@ void osx::EcPublicKey::FillKeyStruct()
         if (cfKeyData.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyExternalRepresentation");
         }
-        
+        fprintf(stdout, "keySizeInBits: %lu\n", keySizeInBits);
         auto propPoint = Scoped<std::string>(new std::string(""));
         switch (keySizeInBits) {
             case 256:

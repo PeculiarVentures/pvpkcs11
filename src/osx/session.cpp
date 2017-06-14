@@ -40,6 +40,9 @@ Scoped<core::Object> osx::Session::CreateObject
                     case CKK_RSA:
                         object = Scoped<RsaPublicKey>(new RsaPublicKey);
                         break;
+                    case CKK_EC:
+                        object = Scoped<EcPublicKey>(new EcPublicKey);
+                        break;
                     default:
                         THROW_PKCS11_TEMPLATE_INCOMPLETE();
                 }
