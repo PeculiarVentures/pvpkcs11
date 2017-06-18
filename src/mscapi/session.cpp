@@ -78,8 +78,22 @@ void Session::LoadMyStore()
                 nprov->Open(MS_KEY_STORAGE_PROVIDER, 0);
                 auto key = provider->GetUserKey(pKeyProvInfo->dwKeySpec);
 
-                auto nkey = nprov->TranslateHandle(provider->Get(), key->Get(), 0, 0);
-                // auto nkey = nprov->OpenKey(pKeyProvInfo->pwszContainerName, pKeyProvInfo->dwKeySpec, 0);
+                Scoped<ncrypt::Key> nkey;
+                try {
+                    nkey = nprov->TranslateHandle(provider->Get(), key->Get(), 0, 0);
+                }
+                catch (...) {
+                    try {
+                        // Rutoken throws C0000225 error on NCryptTranslateHandle
+                        nprov->Open(MS_SMART_CARD_KEY_STORAGE_PROVIDER, 0);
+                        nkey = nprov->OpenKey(pKeyProvInfo->pwszContainerName, pKeyProvInfo->dwKeySpec, 0);
+                    }
+                    catch (...) {
+                        // Cannot get key. May be wrong Provider
+                        // Don't use this key
+                        continue;
+                    }
+                }
 
                 switch (pKeyProvInfo->dwProvType) {
                 case PROV_RSA_SIG:
