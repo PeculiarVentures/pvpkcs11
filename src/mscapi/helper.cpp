@@ -33,6 +33,7 @@ NT_STATUS_MESSAGE NT_STATUS_MESSAGES[] = {
     { STATUS_NO_MEMORY, "A memory allocation failure occurred." },
     { STATUS_NOT_SUPPORTED, "The request is not supported." },
     { STATUS_DATA_ERROR, "An error occurred in reading or writing data." },
+    { STATUS_NOT_FOUND, "The object was not found" },
     { NTE_INVALID_HANDLE, "The supplied handle is invalid." },
     { NTE_BAD_ALGID, "Wrong algorithm identity." },
     { NTE_BAD_FLAGS, "Wrong flags value." },
