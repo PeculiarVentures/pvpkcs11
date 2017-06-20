@@ -39,3 +39,5 @@ void SET_STRING(CK_UTF8CHAR* storage, char* data, int size);
 	if (name == NULL_PTR) {						\
 		return CKR_ARGUMENTS_BAD;				\
 	}
+
+#define CKA_X509_CHAIN (CKA_VENDOR_DEFINED|0x00000101)

@@ -5,6 +5,86 @@
 
 using namespace mscapi;
 
+/*
+    Returns DER collection of certificates
+
+    CK_ULONG certSize
+    CK_BYTE certValue[certSize]
+    ...
+    CK_ULONG certSize
+    CK_BYTE certValue[certSize]
+*/
+Scoped<Buffer> GetCertificateChain
+(
+    crypt::Certificate*     cert       // certificate
+)
+{
+    try {
+        PCCERT_CHAIN_CONTEXT     pChainContext = NULL;
+        CERT_CHAIN_PARA          ChainPara;
+        ChainPara.cbSize = sizeof(CERT_CHAIN_PARA);
+        ChainPara.RequestedUsage.dwType = USAGE_MATCH_TYPE_AND;
+        ChainPara.RequestedUsage.Usage.cUsageIdentifier = 0;
+        ChainPara.RequestedUsage.Usage.rgpszUsageIdentifier = NULL;
+        DWORD                    dwFlags = 0;
+
+        if (!CertGetCertificateChain(
+            NULL,
+            cert->Get(),
+            NULL,
+            NULL,
+            &ChainPara,
+            dwFlags,
+            NULL,
+            &pChainContext))
+        {
+            THROW_MSCAPI_EXCEPTION();
+        }
+
+        if (!pChainContext) {
+            THROW_EXCEPTION("pChainContext is NULL");
+        }
+
+        std::vector<PCCERT_CONTEXT> certs(0);
+
+        if (!pChainContext->cChain) {
+            CertFreeCertificateChain(pChainContext);
+            THROW_EXCEPTION("No one simple chain context");
+        }
+        auto chain = pChainContext->rgpChain[0];
+        for (int i = 0; i < chain->cElement; i++) {
+            auto element = chain->rgpElement[i];
+            certs.push_back(element->pCertContext);
+        }
+
+        CK_ULONG ulDataLen = 0;
+        Scoped<Buffer> res(new Buffer);
+        for (int i = 0; i < certs.size(); i++) {
+            CK_ULONG start = ulDataLen;
+            auto pCert = certs.at(i);
+            // certSize
+            ulDataLen += sizeof(CK_ULONG);
+            // certValue
+            ulDataLen += pCert->cbCertEncoded;
+            res->resize(ulDataLen);
+            CK_BYTE_PTR pCertData = res->data() + start;
+            memcpy(pCertData, &pCert->cbCertEncoded, sizeof(CK_ULONG));
+            memcpy(pCertData + sizeof(CK_ULONG), pCert->pbCertEncoded, pCert->cbCertEncoded);
+        }
+
+        CertFreeCertificateChain(pChainContext);
+
+        return res;
+    }
+    CATCH_EXCEPTION
+}
+
+mscapi::X509Certificate::X509Certificate()
+    : core::X509Certificate()
+{
+    Add(core::AttributeBytes::New(CKA_X509_CHAIN, NULL, 0, PVF_2));
+}
+
 void X509Certificate::Assign(
     Scoped<crypt::Certificate>        cert
 )
@@ -127,7 +207,7 @@ CK_RV X509Certificate::CopyValues(
         core::Template tmpl(pTemplate, ulCount);
 
         X509Certificate* original = dynamic_cast<X509Certificate*>(object.get());
-        
+
         auto cert = original->value->Duplicate();
         Assign(cert);
 
@@ -168,7 +248,7 @@ void mscapi::X509Certificate::AddToMyStorage()
             ())) {
                 // Create key info
                 CRYPT_KEY_PROV_INFO keyProvInfo;
-                
+
                 keyProvInfo.pwszContainerName = provKeyName->pszName;
                 keyProvInfo.pwszProvName = MS_KEY_STORAGE_PROVIDER;
                 keyProvInfo.dwProvType = 0;
@@ -192,6 +272,27 @@ CK_RV mscapi::X509Certificate::Destroy()
 {
     try {
         value->DeleteFromStore();
+
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV mscapi::X509Certificate::GetValue
+(
+    CK_ATTRIBUTE_PTR  attr
+)
+{
+    try {
+        switch (attr->type) {
+        case CKA_X509_CHAIN: {
+            auto certs = GetCertificateChain(value.get());
+            ItemByType(CKA_X509_CHAIN)->SetValue(certs->data(), certs->size());
+            break;
+        }
+        default:
+            core::Object::GetValue(attr);
+        }
 
         return CKR_OK;
     }
