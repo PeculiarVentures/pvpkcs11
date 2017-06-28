@@ -6,6 +6,7 @@
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
+#define CERT_CHAIN_PARA_HAS_EXTRA_FIELDS
 
 #include <stdio.h>
 #include <tchar.h>
