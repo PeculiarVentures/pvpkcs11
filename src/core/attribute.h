@@ -49,9 +49,11 @@ namespace core {
     // 13
     // Attribute value can be changed on C_CopyObject
 #define PVF_13      0x00001000
-
+    
     class Attribute {
     public:
+        static std::string GetName(CK_ULONG type);
+        
         CK_ATTRIBUTE_TYPE type;
         CK_ULONG          flags;
 

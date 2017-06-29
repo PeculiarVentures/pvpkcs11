@@ -1,4 +1,5 @@
 #include "object.h"
+#include "attribute.h"
 
 using namespace core;
 
@@ -71,7 +72,7 @@ CK_RV Object::SetValues
             SetValue(pAttribute);
         }
 
-        // Set data
+        // Set data        
         for (size_t i = 0; i < ulCount; i++) {
             CK_ATTRIBUTE_PTR attr = &pTemplate[i];
             ItemByType(attr->type)->SetValue(attr->pValue, attr->ulValueLen);

@@ -136,6 +136,15 @@ std::string GetAttributeName(
     return std::string("UNKNOWN");
 }
 
+std::string Attribute::GetName(CK_ULONG type)
+{
+    try {
+        return GetAttributeName(type);
+    }
+    CATCH_EXCEPTION
+}
+
+
 std::string Attribute::Name()
 {
     try {

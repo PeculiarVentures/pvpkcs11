@@ -527,8 +527,13 @@ CK_RV C_SetAttributeValue
     CK_ULONG          ulCount     /* attributes in template */
     )
 {
-    return CKR_OK;
-    // return CKR_FUNCTION_NOT_SUPPORTED;
+    try {
+        return pkcs11.SetAttributeValue(hSession, hObject, pTemplate, ulCount);
+    }
+    CATCH(__FUNCTION__);
+    
+    return CKR_FUNCTION_FAILED;
+
 }
 
 
