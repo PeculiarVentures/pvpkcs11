@@ -6,6 +6,7 @@
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
+#define CERT_CHAIN_PARA_HAS_EXTRA_FIELDS
 
 #include <stdio.h>
 #include <tchar.h>
@@ -39,3 +40,5 @@ void SET_STRING(CK_UTF8CHAR* storage, char* data, int size);
 	if (name == NULL_PTR) {						\
 		return CKR_ARGUMENTS_BAD;				\
 	}
+
+#define CKA_X509_CHAIN (CKA_VENDOR_DEFINED|0x00000101)

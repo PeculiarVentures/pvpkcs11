@@ -8,6 +8,8 @@ namespace mscapi {
 
     class X509Certificate : public core::X509Certificate {
     public:
+        X509Certificate();
+
         void Assign(
             Scoped<crypt::Certificate>     cert
         );
@@ -32,7 +34,12 @@ namespace mscapi {
 
     protected:
         Scoped<crypt::Certificate> value;
+        
         void AddToMyStorage();
+        CK_RV GetValue
+        (
+            CK_ATTRIBUTE_PTR  attr
+        );
     };
 
 
