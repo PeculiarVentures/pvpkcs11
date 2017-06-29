@@ -74,7 +74,8 @@ namespace crypt {
 		Scoped<std::string> GetName();
 		DWORD GetType();
 		DWORD GetKeySpec();
-		std::vector<Scoped<std::string> > GetContainers();
+        Scoped<Buffer> GetSmartCardGUID();
+		std::vector<Scoped<std::string>> GetContainers();
 
         Scoped<Key> GetUserKey(
             DWORD           dwKeySpec
@@ -90,7 +91,7 @@ namespace crypt {
 			DWORD   *pdwDataLen,
 			DWORD   dwFlags
 		);
-		Scoped<std::string> GetBufferParam(
+		Scoped<Buffer> GetBufferParam(
 			DWORD   dwParam,
 			DWORD   dwFlag = 0
 		);

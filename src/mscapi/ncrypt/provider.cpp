@@ -122,7 +122,7 @@ Scoped<NCryptKeyNames> Provider::GetKeyNames(
         while (!status) {
             NCryptKeyName* pKeyName;
             status = NCryptEnumKeys(handle, NULL, &pKeyName, &ptr, dwFlags);
-            if (pKeyName) {
+            if (!status && pKeyName) {
                 res->push_back(Scoped<NCryptKeyName>(pKeyName, NCryptFreeBuffer));
             }
         }

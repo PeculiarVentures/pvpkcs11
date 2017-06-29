@@ -124,18 +124,18 @@ void Provider::GetParam(
 	CATCH_EXCEPTION;
 }
 
-Scoped<std::string> Provider::GetBufferParam(
+Scoped<Buffer> Provider::GetBufferParam(
 	DWORD   dwParam,
 	DWORD   dwFlag
 )
 {
 	try {
-		Scoped<std::string> result(new std::string());
+		Scoped<Buffer> result(new Buffer());
 		DWORD dwDataLen;
 		this->GetParam(dwParam, NULL, &dwDataLen, 0);
 		if (dwDataLen) {
 			result->resize(dwDataLen);
-			this->GetParam(dwParam, (BYTE*)result->c_str(), &dwDataLen, dwFlag);
+			this->GetParam(dwParam, result->data(), &dwDataLen, dwFlag);
 		}
 		return result;
 	}
@@ -159,7 +159,7 @@ DWORD Provider::GetNumberParam(
 Scoped<std::string> Provider::GetContainer()
 {
 	try {
-		return this->GetBufferParam(PP_CONTAINER);
+		return Scoped<std::string>(new std::string((char*)GetBufferParam(PP_CONTAINER)->data()));
 	}
 	CATCH_EXCEPTION;
 }
@@ -167,7 +167,7 @@ Scoped<std::string> Provider::GetContainer()
 Scoped<std::string> Provider::GetName()
 {
 	try {
-		return this->GetBufferParam(PP_NAME);
+		return Scoped<std::string>(new std::string((char*)GetBufferParam(PP_NAME)->data()));
 	}
 	CATCH_EXCEPTION;
 }
@@ -188,12 +188,20 @@ DWORD Provider::GetKeySpec()
 	CATCH_EXCEPTION;
 }
 
-std::vector<Scoped<std::string> > Provider::GetContainers()
+Scoped<Buffer> crypt::Provider::GetSmartCardGUID()
+{
+    try {
+        return GetBufferParam(PP_SMARTCARD_GUID, 0);
+    }
+    CATCH_EXCEPTION
+}
+
+std::vector<Scoped<std::string>> Provider::GetContainers()
 {
 	std::vector<Scoped<std::string> > res;
 	try {
 		while (true) {
-			Scoped<std::string> container = GetBufferParam(PP_ENUMCONTAINERS, res.size() ? CRYPT_NEXT : CRYPT_FIRST);
+			Scoped<std::string> container(new std::string((char*)GetBufferParam(PP_ENUMCONTAINERS, res.size() ? CRYPT_NEXT : CRYPT_FIRST)->data()));
 			res.push_back(container);
 		}
 	}

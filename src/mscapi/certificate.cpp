@@ -5,6 +5,134 @@
 
 using namespace mscapi;
 
+#define CHAIN_ITEM_TYPE_CERT                1
+#define CHAIN_ITEM_TYPE_CRL                 2
+
+/*
+    Returns DER collection of certificates
+
+    CK_ULONG itemType
+    CK_ULONG itemSize
+    CK_BYTE itemValue[certSize]
+    ...
+    CK_ULONG itemType
+    CK_ULONG itemSize
+    CK_BYTE itemValue[certSize]
+*/
+Scoped<Buffer> GetCertificateChain
+(
+    crypt::Certificate*     cert       // certificate
+)
+{
+    try {
+        PCCERT_CHAIN_CONTEXT     pChainContext = NULL;
+        CERT_CHAIN_PARA          ChainPara;
+        ChainPara.cbSize = sizeof(CERT_CHAIN_PARA);
+        ChainPara.RequestedUsage.dwType = USAGE_MATCH_TYPE_AND;
+        ChainPara.RequestedUsage.Usage.cUsageIdentifier = 0;
+        ChainPara.RequestedUsage.Usage.rgpszUsageIdentifier = NULL;
+
+        ChainPara.dwUrlRetrievalTimeout = 20000;
+        ChainPara.dwRevocationFreshnessTime = 60;
+        ChainPara.fCheckRevocationFreshnessTime = TRUE;
+        ChainPara.RequestedIssuancePolicy.dwType = USAGE_MATCH_TYPE_AND;
+        ChainPara.RequestedIssuancePolicy. Usage.cUsageIdentifier = 0;
+        ChainPara.RequestedIssuancePolicy.Usage.rgpszUsageIdentifier = NULL;
+        ChainPara.pftCacheResync = NULL;
+        ChainPara.pStrongSignPara = NULL;
+        ChainPara.dwStrongSignFlags = 0;
+
+
+        DWORD dwFlags = CERT_CHAIN_REVOCATION_CHECK_CHAIN;
+
+        if (!CertGetCertificateChain(
+            NULL,
+            cert->Get(),
+            NULL,
+            NULL,
+            &ChainPara,
+            dwFlags,
+            NULL,
+            &pChainContext))
+        {
+            THROW_MSCAPI_EXCEPTION();
+        }
+
+        if (!pChainContext) {
+            THROW_EXCEPTION("pChainContext is NULL");
+        }
+
+        std::vector<PCCERT_CONTEXT> certs(0);
+        std::vector<PCCRL_CONTEXT> crls(0);
+
+        if (!pChainContext->cChain) {
+            CertFreeCertificateChain(pChainContext);
+            THROW_EXCEPTION("No one simple chain context");
+        }
+        auto chain = pChainContext->rgpChain[0];
+        for (int i = 0; i < chain->cElement; i++) {
+            auto element = chain->rgpElement[i];
+            certs.push_back(element->pCertContext);
+
+            if (element->pRevocationInfo && element->pRevocationInfo->pCrlInfo) {
+                if (element->pRevocationInfo->pCrlInfo->pBaseCrlContext) {
+                    crls.push_back(element->pRevocationInfo->pCrlInfo->pBaseCrlContext);
+                }
+                if (element->pRevocationInfo->pCrlInfo->pDeltaCrlContext) {
+                    crls.push_back(element->pRevocationInfo->pCrlInfo->pDeltaCrlContext);
+                }
+            }
+        }
+
+        CK_ULONG ulDataLen = 0;
+        Scoped<Buffer> res(new Buffer);
+        for (int i = 0; i < certs.size(); i++) {
+            CK_ULONG start = ulDataLen;
+            auto pCert = certs.at(i);
+            // itemType
+            res->resize(++ulDataLen);
+            auto itemType = CHAIN_ITEM_TYPE_CERT;
+            // itemSize
+            ulDataLen += sizeof(CK_ULONG);
+            // itemValue
+            ulDataLen += pCert->cbCertEncoded;
+            res->resize(ulDataLen);
+            CK_BYTE_PTR pCertData = res->data() + start;
+            memcpy(pCertData, &itemType, 1);
+            memcpy(pCertData + 1, &pCert->cbCertEncoded, sizeof(CK_ULONG));
+            memcpy(pCertData + 1 + sizeof(CK_ULONG), pCert->pbCertEncoded, pCert->cbCertEncoded);
+        }
+
+        for (int i = 0; i < crls.size(); i++) {
+            CK_ULONG start = ulDataLen;
+            auto pCrl = crls.at(i);
+            // itemType
+            res->resize(++ulDataLen);
+            auto itemType = CHAIN_ITEM_TYPE_CRL;
+            // itemSize
+            ulDataLen += sizeof(CK_ULONG);
+            // itemValue
+            ulDataLen += pCrl->cbCrlEncoded;
+            res->resize(ulDataLen);
+            CK_BYTE_PTR pCrlData = res->data() + start;
+            memcpy(pCrlData, &itemType, 1);
+            memcpy(pCrlData + 1, &pCrl->cbCrlEncoded, sizeof(CK_ULONG));
+            memcpy(pCrlData + 1 + sizeof(CK_ULONG), pCrl->pbCrlEncoded, pCrl->cbCrlEncoded);
+        }
+
+        CertFreeCertificateChain(pChainContext);
+
+        return res;
+    }
+    CATCH_EXCEPTION
+}
+
+mscapi::X509Certificate::X509Certificate()
+    : core::X509Certificate()
+{
+    Add(core::AttributeBytes::New(CKA_X509_CHAIN, NULL, 0, PVF_2));
+}
+
 void X509Certificate::Assign(
     Scoped<crypt::Certificate>        cert
 )
@@ -127,7 +255,7 @@ CK_RV X509Certificate::CopyValues(
         core::Template tmpl(pTemplate, ulCount);
 
         X509Certificate* original = dynamic_cast<X509Certificate*>(object.get());
-        
+
         auto cert = original->value->Duplicate();
         Assign(cert);
 
@@ -168,7 +296,7 @@ void mscapi::X509Certificate::AddToMyStorage()
             ())) {
                 // Create key info
                 CRYPT_KEY_PROV_INFO keyProvInfo;
-                
+
                 keyProvInfo.pwszContainerName = provKeyName->pszName;
                 keyProvInfo.pwszProvName = MS_KEY_STORAGE_PROVIDER;
                 keyProvInfo.dwProvType = 0;
@@ -192,6 +320,27 @@ CK_RV mscapi::X509Certificate::Destroy()
 {
     try {
         value->DeleteFromStore();
+
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV mscapi::X509Certificate::GetValue
+(
+    CK_ATTRIBUTE_PTR  attr
+)
+{
+    try {
+        switch (attr->type) {
+        case CKA_X509_CHAIN: {
+            auto certs = GetCertificateChain(value.get());
+            ItemByType(CKA_X509_CHAIN)->SetValue(certs->data(), certs->size());
+            break;
+        }
+        default:
+            core::Object::GetValue(attr);
+        }
 
         return CKR_OK;
     }

@@ -8,6 +8,7 @@
 #include <crtdbg.h>
 
 #define WIN32_LEAN_AND_MEAN
+#define CERT_CHAIN_PARA_HAS_EXTRA_FIELDS
 
 #include <tchar.h>
 #define WIN32_NO_STATUS
@@ -46,3 +47,5 @@ void SET_STRING(CK_UTF8CHAR* storage, const char* data, int size);
 	if (name == NULL_PTR) {						\
 		return CKR_ARGUMENTS_BAD;				\
 	}
+
+#define CKA_X509_CHAIN (CKA_VENDOR_DEFINED|0x00000101)

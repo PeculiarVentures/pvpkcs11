@@ -45,12 +45,12 @@ void Session::LoadMyStore()
 
             Scoped<core::Object> privateKey;
             Scoped<core::Object> publicKey;
-            if (
-                pKeyProvInfo->dwProvType == 0 &&
-                !wmemcmp(MS_KEY_STORAGE_PROVIDER, pKeyProvInfo->pwszProvName, lstrlenW(MS_KEY_STORAGE_PROVIDER))
-                ) {
+
+            if (pKeyProvInfo->dwProvType == 0) {
                 // CNG
-                // Get all CNG keys via LoadCngKeys
+                if (!wmemcmp(MS_KEY_STORAGE_PROVIDER, pKeyProvInfo->pwszProvName, lstrlenW(MS_KEY_STORAGE_PROVIDER))) {
+                    // Get all CNG keys via LoadCngKeys
+                }
             }
             else if (
                 pKeyProvInfo->dwProvType == PROV_RSA_FULL ||
@@ -73,11 +73,27 @@ void Session::LoadMyStore()
                     // cannot get key. it can be on smart card
                     continue;
                 }
+                Scoped<ncrypt::Provider> nprov(new ncrypt::Provider());
+
+                nprov->Open(MS_KEY_STORAGE_PROVIDER, 0);
                 auto key = provider->GetUserKey(pKeyProvInfo->dwKeySpec);
 
-                Scoped<ncrypt::Provider> nprov(new ncrypt::Provider());
-                nprov->Open(MS_KEY_STORAGE_PROVIDER, 0);
-                auto nkey = nprov->TranslateHandle(provider->Get(), key->Get(), 0, 0);
+                Scoped<ncrypt::Key> nkey;
+                try {
+                    nkey = nprov->TranslateHandle(provider->Get(), key->Get(), 0, 0);
+                }
+                catch (...) {
+                    try {
+                        // Rutoken throws C0000225 error on NCryptTranslateHandle
+                        nprov->Open(MS_SMART_CARD_KEY_STORAGE_PROVIDER, 0);
+                        nkey = nprov->OpenKey(pKeyProvInfo->pwszContainerName, pKeyProvInfo->dwKeySpec, 0);
+                    }
+                    catch (...) {
+                        // Cannot get key. May be wrong Provider
+                        // Don't use this key
+                        continue;
+                    }
+                }
 
                 switch (pKeyProvInfo->dwProvType) {
                 case PROV_RSA_SIG:
@@ -182,7 +198,8 @@ void Session::LoadCngKeys()
                 rsaPublicKey->Assign(key);
                 privateKey = rsaPrivateKey;
                 publicKey = rsaPublicKey;
-            } else if (!wmemcmp(propAlgGroup->c_str(), NCRYPT_ECDH_ALGORITHM_GROUP, lstrlenW(NCRYPT_ECDH_ALGORITHM_GROUP)) ||
+            }
+            else if (!wmemcmp(propAlgGroup->c_str(), NCRYPT_ECDH_ALGORITHM_GROUP, lstrlenW(NCRYPT_ECDH_ALGORITHM_GROUP)) ||
                 !wmemcmp(propAlgGroup->c_str(), NCRYPT_ECDSA_ALGORITHM_GROUP, lstrlenW(NCRYPT_ECDSA_ALGORITHM_GROUP))) {
                 auto ecPrivateKey = Scoped<EcPrivateKey>(new EcPrivateKey());
                 ecPrivateKey->Assign(key);
@@ -223,7 +240,6 @@ CK_RV Session::Open
 )
 {
     try {
-
         CK_RV res = core::Session::Open(flags, pApplication, Notify, phSession);
 
         if (res == CKR_OK) {
@@ -579,11 +595,24 @@ Scoped<core::Object> Session::CreateObject
     try {
         core::Template tmpl(pTemplate, ulCount);
         Scoped<core::Object> object;
-        switch (tmpl.GetNumber(CKA_CLASS, true)) {
+        auto ckaClass = tmpl.GetNumber(CKA_CLASS, true);
+        switch (ckaClass) {
         case CKO_SECRET_KEY:
             switch (tmpl.GetNumber(CKA_KEY_TYPE, true)) {
             case CKK_AES:
                 object = Scoped<AesKey>(new AesKey());
+                break;
+            default:
+                THROW_PKCS11_TEMPLATE_INCOMPLETE();
+            }
+            break;
+        case CKO_PRIVATE_KEY:
+            switch (tmpl.GetNumber(CKA_KEY_TYPE, true)) {
+            case CKK_RSA:
+                object = Scoped<RsaPrivateKey>(new RsaPrivateKey());
+                break;
+            case CKK_EC:
+                object = Scoped<EcPrivateKey>(new EcPrivateKey());
                 break;
             default:
                 THROW_PKCS11_TEMPLATE_INCOMPLETE();
