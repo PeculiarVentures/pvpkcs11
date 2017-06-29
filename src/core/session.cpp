@@ -201,13 +201,7 @@ CK_RV Session::FindObjectsInit
         return CKR_OPERATION_ACTIVE;
     }
     this->find.active = true;
-    // copy template
-    this->find.pTemplate = (CK_ATTRIBUTE_PTR)malloc(sizeof(CK_ATTRIBUTE) * ulCount);
-    for (int i = 0; i < ulCount; i++) {
-        this->find.pTemplate[i];
-        // TODO: Maybe it would be better to use pointers without copying data
-        ATTRIBUTE_copy(&this->find.pTemplate[i], &pTemplate[i]);
-    }
+    this->find.pTemplate = pTemplate;
     this->find.ulTemplateSize = ulCount;
     this->find.index = 0;
 
@@ -234,10 +228,10 @@ CK_RV Session::FindObjects
 
         *pulObjectCount = 0;
         CK_RV res;
-        for (this->find.index; this->find.index < objects.count() && *pulObjectCount < ulMaxObjectCount; this->find.index++) {
-            Scoped<Object> obj = this->objects.items(this->find.index);
-            size_t i = 0;
-            for (i; i < this->find.ulTemplateSize; i++) {
+        while (this->find.index < objects.count() && *pulObjectCount < ulMaxObjectCount) {
+            Scoped<Object> obj = this->objects.items(this->find.index++);
+            size_t i;
+            for (i = 0; i < this->find.ulTemplateSize; i++) {
                 CK_ATTRIBUTE_PTR findAttr = &this->find.pTemplate[i];
                 Buffer attrValue;
                 CK_ATTRIBUTE attr = { findAttr->type , NULL_PTR, 0 };
