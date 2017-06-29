@@ -8,6 +8,7 @@
 #include "ec.h"
 
 #include "certificate.h"
+#include "data.h"
 #include "x509_template.h"
 #include "helper.h"
 #include <Security/SecAsn1Coder.h>
@@ -56,6 +57,10 @@ Scoped<core::Object> osx::Session::CreateObject
                     default:
                         THROW_PKCS11_TEMPLATE_INCOMPLETE();
                 }
+                break;
+            }
+            case CKO_DATA: {
+                object = Scoped<Data>(new Data);
                 break;
             }
             default:

@@ -105,7 +105,7 @@ CK_RV osx::RsaPKCS1Sign::Final
                 keyAlgorithm = kSecKeyAlgorithmRSASignatureDigestPKCS1v15SHA512;
                 break;
             default:
-                THROW_EXCEPTION("Wron digest mechanism type");
+                THROW_EXCEPTION("Wrong digest mechanism type");
         }
         
         if (pSignature == NULL_PTR) {
@@ -165,7 +165,7 @@ CK_RV osx::RsaPKCS1Sign::Final
                 keyAlgorithm = kSecKeyAlgorithmRSASignatureDigestPKCS1v15SHA512;
                 break;
             default:
-                THROW_EXCEPTION("Wron digest mechanism type");
+                THROW_EXCEPTION("Wrong digest mechanism type");
         }
         
         CK_BYTE hash[256] = {0};

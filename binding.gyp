@@ -134,6 +134,7 @@
                         'src/osx/rsa.cpp',
                         'src/osx/ec.cpp',
                         'src/osx/certificate.cpp',
+                        'src/osx/data.cpp',
                         # crypto
                         'src/osx/crypto/digest.cpp',
                         'src/osx/crypto/aes.cpp',
