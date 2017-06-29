@@ -215,8 +215,7 @@ CK_RV osx::X509Certificate::Destroy()
 {
     try {
         OSStatus status;
-        CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(
-                                                                            kCFAllocatorDefault,
+        CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
                                                                             0,
                                                                             &kCFTypeDictionaryKeyCallBacks,
                                                                             &kCFTypeDictionaryValueCallBacks);

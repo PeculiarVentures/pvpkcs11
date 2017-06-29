@@ -50,5 +50,7 @@ namespace osx {
         T value;
         void (*free)(const void* ref);
     };
+    
+    static CFStringRef kSecAttrLabelModule = (CFSTR("WebCrypto Local"));
 
 }

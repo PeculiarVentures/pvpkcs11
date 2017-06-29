@@ -16,6 +16,84 @@
 
 using namespace osx;
 
+/*
+ Creates copy for SecKeyRef by getting the same SecKeyRef from Keychain
+ If it cannot get SecKeyRef from chain it returns NULL
+ */
+SecKeyRef SecKeyCopyRef(SecKeyRef key) {
+    CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributes(key);
+    CFDataRef klbl = (CFDataRef)CFDictionaryGetValue(&attrs, kSecAttrApplicationLabel);
+    if (klbl == NULL) {
+        return NULL;
+    }
+    CFStringRef kcls = (CFStringRef) CFDictionaryGetValue(&attrs, kSecAttrKeyClass);
+    if (kcls == NULL) {
+        return NULL;
+    }
+    
+    // create query
+    CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                                                        0,
+                                                                        &kCFTypeDictionaryKeyCallBacks,
+                                                                        &kCFTypeDictionaryValueCallBacks);
+    CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassKey);
+    CFDictionarySetValue(&matchAttr, kSecAttrApplicationLabel, klbl);
+    CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
+    
+    SecKeyRef result = NULL;
+    OSStatus status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&result);
+    if (status) {
+        return NULL;
+    }
+    return result;
+}
+
+/*
+ Copies SecKeyRef to core::Objected
+ */
+Scoped<core::Object> SecKeyCopyObject(SecKeyRef key) {
+    try {
+        if (key == NULL) {
+            THROW_EXCEPTION("Parameter 'key' is empry");
+        }
+        Scoped<core::Object> result;
+        SecKeyRef copyKey = SecKeyCopyRef(key);
+        if (copyKey == NULL){
+            THROW_EXCEPTION("Cannot copy SekKeyRef");
+        }
+        CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributes(copyKey);
+        CFStringRef keyType  = (CFStringRef)CFDictionaryGetValue(&attrs, kSecAttrKeyType);
+        CFStringRef keyClass  = (CFStringRef)CFDictionaryGetValue(&attrs, kSecAttrKeyClass);
+        if (CFStringCompare(keyType, kSecAttrKeyTypeRSA, kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
+            if (CFStringCompare(keyClass, kSecAttrKeyClassPrivate, kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
+                Scoped<RsaPrivateKey> rsaKey(new RsaPrivateKey);
+                rsaKey->Assign(copyKey);
+                result = rsaKey;
+            } else {
+                Scoped<RsaPublicKey> rsaKey(new RsaPublicKey);
+                rsaKey->Assign(copyKey);
+                result = rsaKey;
+            }
+        } else if (CFStringCompare(keyType, kSecAttrKeyTypeEC, kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
+            if (CFStringCompare(keyClass, kSecAttrKeyClassPrivate, kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
+                Scoped<EcPrivateKey> ecKey(new EcPrivateKey);
+                ecKey->Assign(copyKey);
+                result = ecKey;
+            } else {
+                Scoped<EcPublicKey> ecKey(new EcPublicKey);
+                ecKey->Assign(copyKey);
+                result = ecKey;
+            }
+        } else {
+            THROW_EXCEPTION("Unsupported key type in use");
+        }
+        
+        return result;
+    }
+    CATCH_EXCEPTION
+}
+
+
 Scoped<core::Object> osx::Session::CreateObject
 (
  CK_ATTRIBUTE_PTR        pTemplate,   /* the object's template */
@@ -108,12 +186,10 @@ CK_RV osx::Session::Open
 )
 {
     try {
-        core::Session::Open(
-                            flags,
+        core::Session::Open(flags,
                             pApplication,
                             Notify,
-                            phSession
-                            );
+                            phSession);
         
         digest = Scoped<CryptoDigest>(new CryptoDigest());
         encrypt = Scoped<core::CryptoEncrypt>(new core::CryptoEncrypt(CRYPTO_ENCRYPT));
@@ -123,49 +199,92 @@ CK_RV osx::Session::Open
         
         OSStatus status;
         
-        CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(
-                                                                            kCFAllocatorDefault,
-                                                                            0,
-                                                                            &kCFTypeDictionaryKeyCallBacks,
-                                                                            &kCFTypeDictionaryValueCallBacks);
-        CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassCertificate);
-        CFDictionaryAddValue(&matchAttr, kSecMatchLimit, kSecMatchLimitAll);
-        CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
-        
-        CFArrayRef result;
-        status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&result);
-        if (status) {
-            THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Error on SecItemCopyMatching");
-        }
-        CFRef<CFArrayRef> scopedResult(result);
-        CFIndex certCount = CFArrayGetCount(result);
-        
-        CFIndex index = 0;
-        while (index < certCount) {
-            SecCertificateRef cert = (SecCertificateRef)CFArrayGetValueAtIndex(result, index++);
-            CFRef<CFDataRef> certData = SecCertificateCopyData(cert);
-            SecCertificateRef certCopy = SecCertificateCreateWithData(NULL, &certData);
+        // Get keychain certificates and linked keys
+        {
+            CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                                                                0,
+                                                                                &kCFTypeDictionaryKeyCallBacks,
+                                                                                &kCFTypeDictionaryValueCallBacks);
+            CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassCertificate);
+            CFDictionaryAddValue(&matchAttr, kSecMatchLimit, kSecMatchLimitAll);
+            CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
             
-            Scoped<X509Certificate> x509(new X509Certificate);
-            x509->Assign(certCopy);
-            x509->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-            
-            try {
-                
-                Scoped<core::PublicKey> publicKey = x509->GetPublicKey();
-                publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                
-                if (x509->HasPrivateKey()) {
-                    Scoped<core::PrivateKey> privateKey = x509->GetPrivateKey();
-                    privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                    objects.add(privateKey);
-                }
-                
-                objects.add(x509);
-                objects.add(publicKey);
+            CFArrayRef result;
+            status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&result);
+            if (status) {
+                THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Error on SecItemCopyMatching");
             }
-            catch(...) {
-                puts("Error: Cannot get keys for certificate");
+            CFRef<CFArrayRef> scopedResult(result);
+            CFIndex certCount = CFArrayGetCount(result);
+            
+            CFIndex index = 0;
+            while (index < certCount) {
+                SecCertificateRef cert = (SecCertificateRef)CFArrayGetValueAtIndex(result, index++);
+                CFRef<CFDataRef> certData = SecCertificateCopyData(cert);
+                SecCertificateRef certCopy = SecCertificateCreateWithData(NULL, &certData);
+                
+                Scoped<X509Certificate> x509(new X509Certificate);
+                x509->Assign(certCopy);
+                x509->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                
+                try {
+                    
+                    Scoped<core::PublicKey> publicKey = x509->GetPublicKey();
+                    
+                    // don't add keys with specific label. They will be added in the next step
+                    Key* pKey = dynamic_cast<Key*>(publicKey.get());
+                    if (pKey == NULL) {
+                        THROW_EXCEPTION("Cannot convert PublicKey to Key");
+                    }
+                    SecKeyRef secKey = pKey->Get();
+                    CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributes(secKey);
+                    CFStringRef keyLabel = (CFStringRef)CFDictionaryGetValue(&attrs, kSecAttrLabel);
+                    if (!(keyLabel &&
+                          CFStringCompare(keyLabel, kSecAttrLabelModule, kCFCompareCaseInsensitive) == kCFCompareEqualTo)) {
+                        
+                        publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                        
+                        if (x509->HasPrivateKey()) {
+                            Scoped<core::PrivateKey> privateKey = x509->GetPrivateKey();
+                            privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                            objects.add(privateKey);
+                        }
+                        objects.add(publicKey);
+                    }
+                    
+                    objects.add(x509);
+                }
+                catch(...) {
+                    puts("Error: Cannot get keys for certificate");
+                }
+            }
+        }
+        
+        // Get all keys from keychain matching to label
+        {
+            CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                                                                0,
+                                                                                &kCFTypeDictionaryKeyCallBacks,
+                                                                                &kCFTypeDictionaryValueCallBacks);
+            CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassKey);
+            CFDictionaryAddValue(&matchAttr, kSecMatchLimit, kSecMatchLimitAll);
+            CFDictionarySetValue(&matchAttr, kSecAttrLabel, kSecAttrLabelModule);
+            CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
+            
+            CFArrayRef result;
+            status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&result);
+            if (status) {
+                THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Error on SecItemCopyMatching");
+            }
+            CFRef<CFArrayRef> scopedResult(result);
+            CFIndex arrayCount = CFArrayGetCount(result);
+            
+            CFIndex index = 0;
+            while (index < arrayCount) {
+                SecKeyRef secKey = (SecKeyRef)CFArrayGetValueAtIndex(result, index++);
+                Scoped<core::Object> key = SecKeyCopyObject(secKey);
+                key->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                objects.add(key);
             }
         }
         return CKR_OK;

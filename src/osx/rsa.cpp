@@ -91,12 +91,10 @@ Scoped<core::KeyPair> osx::RsaKey::Generate
                                                           &modulusBits);
         CFDictionarySetValue(keyPairAttr, kSecAttrKeySizeInBits, &cfModulusBits);
         
-        CFRef<CFStringRef> cfPrivateLabel = CFStringCreateWithCString(NULL, "WebCrypto Local", kCFStringEncodingUTF8);
-        CFDictionarySetValue(privateKeyAttr, kSecAttrLabel, &cfPrivateLabel);
+        CFDictionarySetValue(privateKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
         CFDictionarySetValue(keyPairAttr, kSecPrivateKeyAttrs, privateKeyAttr);
         
-        CFRef<CFStringRef> cfPublicLabel = CFStringCreateWithCString(NULL, "WebCrypto Local", kCFStringEncodingUTF8);
-        CFDictionarySetValue(publicKeyAttr, kSecAttrLabel, &cfPublicLabel);
+        CFDictionarySetValue(publicKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
         CFDictionarySetValue(keyPairAttr, kSecPublicKeyAttrs, publicKeyAttr);
         
         
@@ -141,7 +139,11 @@ void osx::RsaPrivateKey::Assign(SecKeyRef key)
                                                                     CFDataGetLength(cfLabel)
                                                                     );
     }
-    
+    CFDataRef cfAppLabel = (CFDataRef)CFDictionaryGetValue(&cfAttributes, kSecAttrApplicationLabel);
+    if (cfAppLabel) {
+        ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set((CK_BYTE_PTR)CFDataGetBytePtr(cfAppLabel),
+                                                            CFDataGetLength(cfAppLabel));
+    }
     CFBooleanRef cfSign = (CFBooleanRef)CFDictionaryGetValue(&cfAttributes, kSecAttrCanSign);
     if (CFBooleanGetValue(cfSign)) {
         ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
@@ -393,6 +395,11 @@ void osx::RsaPublicKey::Assign(SecKeyRef key)
         CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(&value);
         if (cfAttributes.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyAttributes");
+        }
+        CFDataRef cfAppLabel = (CFDataRef)CFDictionaryGetValue(&cfAttributes, kSecAttrApplicationLabel);
+        if (cfAppLabel) {
+            ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set((CK_BYTE_PTR)CFDataGetBytePtr(cfAppLabel),
+                                                                CFDataGetLength(cfAppLabel));
         }
         CFBooleanRef cfVerify = (CFBooleanRef)CFDictionaryGetValue(&cfAttributes, kSecAttrCanVerify);
         if (CFBooleanGetValue(cfVerify)) {
