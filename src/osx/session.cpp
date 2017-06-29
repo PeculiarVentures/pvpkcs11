@@ -130,7 +130,7 @@ CK_RV osx::Session::Open
             THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Error on SecItemCopyMatching");
         }
         CFRef<CFArrayRef> scopedResult(result);
-        auto certCount = CFArrayGetCount(result);
+        CFIndex certCount = CFArrayGetCount(result);
         
         CFIndex index = 0;
         while (index < certCount) {
@@ -144,7 +144,7 @@ CK_RV osx::Session::Open
             
             try {
                 
-                auto publicKey = x509->GetPublicKey();
+                Scoped<core::PublicKey> publicKey = x509->GetPublicKey();
                 publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
                 
                 if (x509->HasPrivateKey()) {
@@ -315,7 +315,7 @@ CK_RV osx::Session::DeriveKey
                                  ulAttributeCount,
                                  phKey);
         
-        auto baseKey = GetObject(hBaseKey);
+        Scoped<core::Object> baseKey = GetObject(hBaseKey);
         Scoped<core::Template> tmpl(new core::Template(pTemplate, ulAttributeCount));
         
         Scoped<core::Object> derivedKey;

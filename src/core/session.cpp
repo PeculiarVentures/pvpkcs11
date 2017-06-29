@@ -472,7 +472,7 @@ Scoped<Object> Session::GetObject(
 {
     try {
         for (int i = 0; i < objects.count(); i++) {
-            auto object = objects.items(i);
+            Scoped<Object> object = objects.items(i);
             if (object->handle == hObject) {
                 return object;
             }
