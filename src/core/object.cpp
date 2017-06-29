@@ -25,7 +25,7 @@ CK_RV Object::GetValues
             CK_ATTRIBUTE_PTR pAttribute = &pTemplate[i];
 
             // Check for SENSITIVE
-            auto attribute = ItemByType(pAttribute->type);
+            Scoped<Attribute> attribute = ItemByType(pAttribute->type);
             if (attribute->flags & PVF_7 &&
                 ItemByType(CKA_SENSITIVE)->To<AttributeBool>()->ToValue() &&
                 !ItemByType(CKA_EXTRACTABLE)->To<AttributeBool>()->ToValue()
@@ -64,7 +64,7 @@ CK_RV Object::SetValues
         for (size_t i = 0; i < ulCount; i++) {
             CK_ATTRIBUTE_PTR pAttribute = &pTemplate[i];
             // Check for EDITABLE
-            auto attribute = ItemByType(pAttribute->type);
+            Scoped<Attribute> attribute = ItemByType(pAttribute->type);
             if (!(attribute->flags & PVF_8)) {
                 THROW_PKCS11_ATTRIBUTE_READ_ONLY();
             }
@@ -102,7 +102,7 @@ CK_RV Object::CreateValues
         Template tmpl(pTemplate, ulCount);
 
         for (CK_ULONG i = 0; i < Size(); i++) {
-            auto attribute = ItemByIndex(i);
+            Scoped<Attribute> attribute = ItemByIndex(i);
             if (attribute->flags & PVF_1 &&
                 !tmpl.HasAttribute(attribute->type)) {
                 THROW_PKCS11_TEMPLATE_INCOMPLETE();
@@ -160,7 +160,7 @@ CK_RV Object::GenerateValues
         Template tmpl(pTemplate, ulCount);
 
         for (CK_ULONG i = 0; i < Size(); i++) {
-            auto attribute = ItemByIndex(i);
+            Scoped<Attribute> attribute = ItemByIndex(i);
             if (attribute->flags & PVF_3 &&
                 !tmpl.HasAttribute(attribute->type)) {
                 THROW_PKCS11_TEMPLATE_INCOMPLETE();
@@ -206,7 +206,7 @@ CK_RV Object::UnwrapValues(
         Template tmpl(pTemplate, ulCount);
 
         for (CK_ULONG i = 0; i < Size(); i++) {
-            auto attribute = ItemByIndex(i);
+            Scoped<Attribute> attribute = ItemByIndex(i);
             if (attribute->flags & PVF_5 &&
                 !tmpl.HasAttribute(attribute->type)) {
                 THROW_PKCS11_TEMPLATE_INCOMPLETE();
@@ -256,7 +256,7 @@ CK_RV Object::CopyValues
         for (size_t i = 0; i < ulCount; i++) {
             CK_ATTRIBUTE_PTR pAttribute = &pTemplate[i];
             // Check for properties which can be changed during copying
-            auto attribute = ItemByType(pAttribute->type);
+            Scoped<Attribute> attribute = ItemByType(pAttribute->type);
             if (!(attribute->flags & PVF_8 || attribute->flags & PVF_13)) {
                 THROW_PKCS11_TEMPLATE_INCOMPLETE();
             }
@@ -264,7 +264,7 @@ CK_RV Object::CopyValues
         }
         // Copy data from incoming object to current
         for (CK_ULONG i = 0; i < object->Size(); i++) {
-            auto attr = object->ItemByIndex(i);
+            Scoped<Attribute> attr = object->ItemByIndex(i);
             ItemByType(attr->type)->SetValue(attr->Get(), attr->Size());
         }
         // Set data

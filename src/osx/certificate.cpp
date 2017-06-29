@@ -54,7 +54,7 @@ void osx::X509Certificate::Assign(
             CFRelease(cfValue);
         }
         // CKA_ID
-        auto hash = GetPublicKeyHash(CKM_SHA_1);
+        Scoped<Buffer> hash = GetPublicKeyHash(CKM_SHA_1);
         ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set(
             hash->data(),
             hash->size()
@@ -87,7 +87,7 @@ Scoped<Buffer> osx::X509Certificate::GetPublicKeyHash(
 )
 {
     try {
-        auto der = ItemByType(CKA_VALUE)->To<core::AttributeBytes>()->ToValue();
+        Scoped<Buffer> der = ItemByType(CKA_VALUE)->To<core::AttributeBytes>()->ToValue();
 
         SecAsn1CoderRef coder = NULL;
         SecAsn1CoderCreate(&coder);
@@ -263,7 +263,7 @@ Scoped<core::PublicKey> osx::X509Certificate::GetPublicKey()
             THROW_EXCEPTION("Unsupported key type");
         }
         
-        auto certId = ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
+        Scoped<Buffer> certId = ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
         res->ItemByType(CKA_ID)->SetValue(certId->data(), certId->size());
         
         return res;
@@ -304,7 +304,7 @@ Scoped<core::PrivateKey> osx::X509Certificate::GetPrivateKey()
             THROW_EXCEPTION("Unsupported key type");
         }
         
-        auto certId = ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
+        Scoped<Buffer> certId = ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
         res->ItemByType(CKA_ID)->SetValue(certId->data(), certId->size());
         
         return res;

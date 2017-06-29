@@ -39,7 +39,7 @@ CK_ATTRIBUTE_PTR Template::GetAttributeByType(CK_ULONG ulType)
 CK_ULONG Template::GetNumber(CK_ULONG ulType, CK_BBOOL bRequired, CK_ULONG ulDefaulValue)
 {
     try {
-        auto attr = GetAttributeByType(ulType);
+        CK_ATTRIBUTE_PTR attr = GetAttributeByType(ulType);
         if (bRequired) {
             if (!attr) {
                 std::string message = "Cannot get required attribute (" + std::to_string(ulType) + ")";
@@ -66,7 +66,7 @@ CK_ULONG Template::GetNumber(CK_ULONG ulType, CK_BBOOL bRequired, CK_ULONG ulDef
 CK_BBOOL Template::GetBool(CK_ULONG ulType, CK_BBOOL bRequired, CK_BBOOL bDefaulValue)
 {
     try {
-        auto attr = GetAttributeByType(ulType);
+        CK_ATTRIBUTE_PTR attr = GetAttributeByType(ulType);
         if (bRequired) {
             if (!attr) {
                 std::string message = "Cannot get required attribute (" + std::to_string(ulType) + ")";
@@ -93,7 +93,7 @@ CK_BBOOL Template::GetBool(CK_ULONG ulType, CK_BBOOL bRequired, CK_BBOOL bDefaul
 Scoped<Buffer> Template::GetBytes(CK_ULONG ulType, CK_BBOOL bRequired, const char* cDefaultValue)
 {
     try {
-        auto attr = GetAttributeByType(ulType);
+        CK_ATTRIBUTE_PTR attr = GetAttributeByType(ulType);
         if (bRequired) {
             if (!attr) {
                 std::string message = "Cannot get required attribute (" + std::to_string(ulType) + ")";

@@ -86,6 +86,9 @@ Scoped<core::Object> osx::Session::CopyObject
         if (dynamic_cast<X509Certificate*>(object.get())) {
             copy = Scoped<X509Certificate>(new X509Certificate());
         }
+        else if (dynamic_cast<Data*>(object.get())) {
+            copy = Scoped<Data>(new Data());
+        }
         else {
             THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Object is not copyable");
         }

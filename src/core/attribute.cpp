@@ -15,9 +15,8 @@ struct AttributeInfo {
 #define PVT_ATTRIBUTE_BYTES             3
 #define PVT_ATTRIBUTE_UTF8_STRING       4
 
-std::vector<AttributeInfo> attr_info;
-
-/*
+AttributeInfo pAttrInfo[] = {
+    { CKA_CLASS, "CKA_CLASS", PVT_ATTRIBUTE_ULONG },
     { CKA_CLASS, "CKA_CLASS", PVT_ATTRIBUTE_ULONG },
     { CKA_TOKEN, "CKA_TOKEN", PVT_ATTRIBUTE_BBOOL },
     { CKA_PRIVATE, "CKA_PRIVATE", PVT_ATTRIBUTE_BBOOL },
@@ -122,14 +121,14 @@ std::vector<AttributeInfo> attr_info;
     { CKA_DEFAULT_CMS_ATTRIBUTES, "CKA_DEFAULT_CMS_ATTRIBUTES", PVT_ATTRIBUTE_BYTES },
     { CKA_SUPPORTED_CMS_ATTRIBUTES, "CKA_SUPPORTED_CMS_ATTRIBUTES", PVT_ATTRIBUTE_BYTES },
     { CKA_ALLOWED_MECHANISMS, "CKA_ALLOWED_MECHANISMS", PVT_ATTRIBUTE_BYTES },
-    */
+};
 
 std::string GetAttributeName(
     CK_ATTRIBUTE_TYPE   type
 )
 {
-    for (CK_ULONG i = 0; i < attr_info.size(); i++) {
-        auto item = &attr_info[i];
+    for (CK_ULONG i = 0; i < sizeof(pAttrInfo); i++) {
+        AttributeInfo* item = &pAttrInfo[i];
         if (item->type == type) {
             return std::string(item->name);
         }
@@ -183,7 +182,7 @@ Scoped<Buffer> Attribute::ToBytes()
 std::string Attribute::ToString()
 {
     try {
-        auto bytes = To<AttributeBytes>()->ToValue();
+        Scoped<Buffer> bytes = To<AttributeBytes>()->ToValue();
         return std::string((char*)bytes->data(), bytes->size());
     }
     CATCH_EXCEPTION;
@@ -349,7 +348,7 @@ Scoped<Attribute> Attributes::ItemByType(
 )
 {
     for (CK_ULONG i = 0; i < Size(); i++) {
-        auto item = ItemByIndex(i);
+        Scoped<Attribute> item = ItemByIndex(i);
         if (item->type == type) {
             return item;
         }
@@ -372,7 +371,7 @@ bool Attributes::HasAttribute(
 )
 {
     for (CK_ULONG i = 0; i < Size(); i++) {
-        auto item = ItemByIndex(i);
+        Scoped<Attribute> item = ItemByIndex(i);
         if (item->type == type) {
             return true;
         }

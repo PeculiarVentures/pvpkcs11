@@ -101,7 +101,7 @@ Scoped<core::KeyPair> osx::RsaKey::Generate
         
         
         // Public exponent
-        auto publicExponent = publicTemplate->GetBytes(CKA_PUBLIC_EXPONENT, true);
+        Scoped<Buffer> publicExponent = publicTemplate->GetBytes(CKA_PUBLIC_EXPONENT, true);
         char PUBLIC_EXPONENT_65537[3] = { 1,0,1 };
         if (!(publicExponent->size() == 3 && !memcmp(publicExponent->data(), PUBLIC_EXPONENT_65537, 3))) {
             THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, "Public exponent must be 65537 only");
@@ -356,6 +356,8 @@ CK_RV osx::RsaPublicKey::CreateValues
         SecAsn1CoderRelease(coder);
 
         Assign(key);
+
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }

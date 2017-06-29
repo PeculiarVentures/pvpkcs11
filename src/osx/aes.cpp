@@ -57,7 +57,7 @@ Scoped<core::SecretKey> osx::AesKey::Generate(
         }
 
         // Generate random data for symmetric key
-        auto buffer = GenerateRandom(ulKeyLength);
+        Scoped<Buffer> buffer = GenerateRandom(ulKeyLength);
                   
         aesKey->ItemByType(CKA_VALUE)->To<core::AttributeBytes>()->Set(buffer->data(), buffer->size());
 
@@ -80,7 +80,7 @@ CK_RV osx::AesKey::CreateValues(
         core::AesKey::CreateValues(pTemplate, ulCount);
         
 
-        auto value = tmpl.GetBytes(CKA_VALUE, true, "");
+        Scoped<Buffer> value = tmpl.GetBytes(CKA_VALUE, true, "");
         switch (value->size()) {
         case 16:
         case 24:

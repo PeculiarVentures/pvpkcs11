@@ -122,7 +122,6 @@ CFDataRef SetKeyDataToPublicKey(UInt8* data, CFIndex dataLen)
     
     publicKey.publicKey.Data = data;
     publicKey.publicKey.Length = dataLen << 3;
-    fprintf(stdout, "publicKey.publicKey.Length: %lu\n", publicKey.publicKey.Length);
     
     SecAsn1Item keyData;
     OSStatus status = SecAsn1EncodeItem(coder, &publicKey, kEcPublicKeyTemplate, &keyData);
@@ -176,7 +175,7 @@ Scoped<core::KeyPair> osx::EcKey::Generate
         SecKeyRef pPrivateKey = NULL;
         SecKeyRef pPublicKey = NULL;
         
-        auto params = publicTemplate->GetBytes(CKA_EC_PARAMS, true, "");
+        Scoped<Buffer> params = publicTemplate->GetBytes(CKA_EC_PARAMS, true, "");
         unsigned int keySizeInBits = 0;
         
 #define POINT_COMPARE(curve) memcmp(core::EC_##curve##_BLOB, params->data(), sizeof(core::EC_##curve##_BLOB)-1 ) == 0
@@ -304,7 +303,7 @@ Scoped<core::Object> EcKey::DeriveKey
         }
         
         puts("Derived");
-        auto data = CFDataGetBytePtr(&derivedData);
+        const UInt8* data = CFDataGetBytePtr(&derivedData);
         for (int i = 0; i < CFDataGetLength(&derivedData); i++) {
             fprintf(stdout, "%02X", data[i]);
         }
@@ -402,7 +401,7 @@ void osx::EcPrivateKey::FillPublicKeyStruct()
             THROW_EXCEPTION("Error on SecKeyCopyExternalRepresentation");
         }
         
-        auto propPoint = Scoped<std::string>(new std::string(""));
+        Scoped<std::string> propPoint(new std::string(""));
         switch (keySizeInBits) {
             case 256:
                 ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P256_BLOB, sizeof(core::EC_P256_BLOB) - 1);
@@ -531,6 +530,8 @@ CK_RV osx::EcPublicKey::CreateValues
         }
         
         Assign(publicKey);
+        
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -616,8 +617,8 @@ void osx::EcPublicKey::FillKeyStruct()
         if (cfKeyData.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyExternalRepresentation");
         }
-        fprintf(stdout, "keySizeInBits: %lu\n", keySizeInBits);
-        auto propPoint = Scoped<std::string>(new std::string(""));
+
+        Scoped<std::string> propPoint(new std::string(""));
         switch (keySizeInBits) {
             case 256:
                 ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P256_BLOB, sizeof(core::EC_P256_BLOB) - 1);

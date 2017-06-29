@@ -48,7 +48,7 @@ CK_RV osx::CryptoAesEncrypt::Init
                 THROW_PKCS11_MECHANISM_INVALID();
         }
         
-        auto keyData = key->ItemByType(CKA_VALUE)->To<core::AttributeBytes>()->ToValue();
+        Scoped<Buffer> keyData = key->ItemByType(CKA_VALUE)->To<core::AttributeBytes>()->ToValue();
         CCCryptorStatus status = CCCryptorCreateWithMode(
             this->type ? kCCDecrypt : kCCEncrypt,
             mode,
