@@ -259,7 +259,7 @@ CK_RV osx::Session::Open
                 }
             }
         }
-        
+
         // Get all keys from keychain matching to label
         {
             CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,

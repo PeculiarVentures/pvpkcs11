@@ -10,6 +10,20 @@
 
 using namespace osx;
 
+#define CHAIN_ITEM_TYPE_CERT                1
+#define CHAIN_ITEM_TYPE_CRL                 2
+
+osx::X509Certificate::X509Certificate()
+: core::X509Certificate(), value(NULL)
+{
+    Add(core::AttributeBytes::New(CKA_X509_CHAIN, NULL, 0, PVF_2));
+}
+
+SecCertificateRef osx::X509Certificate::Get()
+{
+    return this->value.Get();
+}
+
 void osx::X509Certificate::Assign(
     SecCertificateRef        cert
 )
@@ -19,39 +33,36 @@ void osx::X509Certificate::Assign(
 
         // CKA_SUBJECT
         {
-            CFDataRef cfSubjectName = SecCertificateCopyNormalizedSubjectSequence(&value);
+            CFRef<CFDataRef> cfSubjectName = SecCertificateCopyNormalizedSubjectSequence(&value);
             Scoped<Buffer> subjectName(new Buffer(0));
-            subjectName->resize((CK_ULONG)CFDataGetLength(cfSubjectName));
-            CFDataGetBytes(cfSubjectName, CFRangeMake(0, subjectName->size()), subjectName->data());
+            subjectName->resize((CK_ULONG)CFDataGetLength(&cfSubjectName));
+            CFDataGetBytes(&cfSubjectName, CFRangeMake(0, subjectName->size()), subjectName->data());
             ItemByType(CKA_SUBJECT)->To<core::AttributeBytes>()->Set(
                 subjectName->data(),
                 subjectName->size()
             );
-            CFRelease(cfSubjectName);
         }
         // CKA_ISSUER
         {
-            CFDataRef cfIssuerName = SecCertificateCopyNormalizedIssuerSequence(&value);
+            CFRef<CFDataRef> cfIssuerName = SecCertificateCopyNormalizedIssuerSequence(&value);
             Scoped<Buffer> issuerName(new Buffer(0));
-            issuerName->resize((CK_ULONG)CFDataGetLength(cfIssuerName));
-            CFDataGetBytes(cfIssuerName, CFRangeMake(0, issuerName->size()), issuerName->data());
+            issuerName->resize((CK_ULONG)CFDataGetLength(&cfIssuerName));
+            CFDataGetBytes(&cfIssuerName, CFRangeMake(0, issuerName->size()), issuerName->data());
             ItemByType(CKA_ISSUER)->To<core::AttributeBytes>()->Set(
                 issuerName->data(),
                 issuerName->size()
             );
-            CFRelease(cfIssuerName);
         }
         // CKA_VALUE
         {
-            CFDataRef cfValue = SecCertificateCopyData(&value);
+            CFRef<CFDataRef> cfValue = SecCertificateCopyData(&value);
             Scoped<Buffer> value(new Buffer(0));
-            value->resize((CK_ULONG)CFDataGetLength(cfValue));
-            CFDataGetBytes(cfValue, CFRangeMake(0, value->size()), value->data());
+            value->resize((CK_ULONG)CFDataGetLength(&cfValue));
+            CFDataGetBytes(&cfValue, CFRangeMake(0, value->size()), value->data());
             ItemByType(CKA_VALUE)->To<core::AttributeBytes>()->Set(
                                                                    value->data(),
                                                                    value->size()
                                                                    );
-            CFRelease(cfValue);
         }
         // CKA_ID
         Scoped<Buffer> hash = GetPublicKeyHash(CKM_SHA_1);
@@ -68,15 +79,14 @@ void osx::X509Certificate::Assign(
         }
         // CKA_SERIAL_NUMBER
         {
-            CFDataRef cfSerialNumber = SecCertificateCopySerialNumber(&value, NULL);
+            CFRef<CFDataRef> cfSerialNumber = SecCertificateCopySerialNumber(&value, NULL);
             Scoped<Buffer> serialNumber(new Buffer(0));
-            serialNumber->resize((CK_ULONG)CFDataGetLength(cfSerialNumber));
-            CFDataGetBytes(cfSerialNumber, CFRangeMake(0, serialNumber->size()), serialNumber->data());
+            serialNumber->resize((CK_ULONG)CFDataGetLength(&cfSerialNumber));
+            CFDataGetBytes(&cfSerialNumber, CFRangeMake(0, serialNumber->size()), serialNumber->data());
             ItemByType(CKA_SERIAL_NUMBER)->To<core::AttributeBytes>()->Set(
                 serialNumber->data(),
                 serialNumber->size()
             );
-            CFRelease(cfSerialNumber);
         }
     }
     CATCH_EXCEPTION
@@ -321,6 +331,133 @@ bool osx::X509Certificate::HasPrivateKey()
         }
         CFRelease(identity);
         return true;
+    }
+    CATCH_EXCEPTION
+}
+
+static CFStringRef kSecTrustResultDetails = (CFSTR("TrustResultDetails"));
+static CFStringRef kSecTrustResultDetailsTitle = (CFSTR("title"));
+
+/*
+ Returns DER collection of certificates
+ 
+ CK_ULONG itemType
+ CK_ULONG itemSize
+ CK_BYTE itemValue[certSize]
+ ...
+ CK_ULONG itemType
+ CK_ULONG itemSize
+ CK_BYTE itemValue[certSize]
+ */
+Scoped<Buffer> GetCertificateChain
+(
+ SecCertificateRef     cert       // certificate
+)
+{
+    try {
+        SecTrustRef trust;
+        OSStatus status = 0;
+        status = SecTrustCreateWithCertificates(cert, NULL, &trust);
+        if (status) {
+            THROW_EXCEPTION("Error on SecTrustCreateWithCertificates");
+        }
+        CFRef<SecTrustRef> scopedTrust = trust;
+        
+        status = SecTrustEvaluate(trust, NULL);
+        if (status) {
+            THROW_EXCEPTION("Error on SecTrustEvaluate");
+        }
+        
+        // Get trust resul
+        CFRef<CFDictionaryRef> result = SecTrustCopyResult(trust);
+        //        CFShow(&result);
+        
+        CFArrayRef anchorCertificates = NULL;
+        status = SecTrustCopyAnchorCertificates(&anchorCertificates);
+        if (status) {
+            THROW_EXCEPTION("Error on SecTrustCopyAnchorCertificates");
+        }
+        CFRef<CFArrayRef> scopedAnchorCertificates = anchorCertificates;
+        
+        std::vector<SecCertificateRef> certs;
+        // osx chain doesn't show entry certificate
+        certs.push_back(cert);
+        CFRef<CFArrayRef> props = SecTrustCopyProperties(trust); // contains info about checked certificates
+        CFShow(&props);
+        
+        for (CFIndex i =0; i < CFArrayGetCount(&props); i++) {
+            // NOTE: each item has 'title' property whish is `label` of certificate
+            CFDictionaryRef prop = (CFDictionaryRef)CFArrayGetValueAtIndex(&props, i);
+            CFStringRef propTitle = (CFStringRef)CFDictionaryGetValue(prop, kSecTrustResultDetailsTitle);
+            
+            // get anchor certificates with the same `title`
+            CFIndex j;
+            for (j = 0; j < CFArrayGetCount(anchorCertificates); j++) {
+                SecCertificateRef anchorCert = (SecCertificateRef)CFArrayGetValueAtIndex(anchorCertificates, j);
+                
+                CFErrorRef error = NULL;
+                CFRef<CFStringRef> anchorCertLabel = SecCertificateCopyShortDescription(NULL, anchorCert, &error);
+                CFRef<CFErrorRef> scopedError = error;
+                if (CFStringCompare(&anchorCertLabel, propTitle, 0) == kCFCompareEqualTo) {
+                    // certificate has the same 'label'
+                    certs.push_back(anchorCert);
+                    break;
+                }
+            }
+
+            if (j == CFArrayGetCount(anchorCertificates)) {
+                printf("Anchor certificate with label(%s) is not found\n", CFStringGetCStringPtr(propTitle, kCFStringEncodingUTF8));
+            }
+            
+        }
+        
+        printf("Certificates: %lu\n", certs.size());
+        
+        CK_ULONG ulDataLen = 0;
+        Scoped<Buffer> res(new Buffer);
+        for (int i = 0; i < certs.size(); i++) {
+            CK_ULONG start = ulDataLen;
+            SecCertificateRef pCert = certs.at(i);
+            CFRef<CFDataRef> cfCertValue = SecCertificateCopyData(pCert);
+            CK_ULONG cfCertValueLen = (CK_ULONG)CFDataGetLength(&cfCertValue);
+            CK_BYTE_PTR cfCertValuePtr = (CK_BYTE_PTR)CFDataGetBytePtr(&cfCertValue);
+
+            // itemType
+            res->resize(++ulDataLen);
+            auto itemType = CHAIN_ITEM_TYPE_CERT;
+            // itemSize
+            ulDataLen += sizeof(CK_ULONG);
+            // itemValue
+            ulDataLen += cfCertValueLen;
+            res->resize(ulDataLen);
+            CK_BYTE_PTR pCertData = res->data() + start;
+            memcpy(pCertData, &itemType, 1);
+            memcpy(pCertData + 1, &cfCertValueLen, sizeof(CK_ULONG));
+            memcpy(pCertData + 1 + sizeof(CK_ULONG), cfCertValuePtr, cfCertValueLen);
+        }
+        
+        return res;
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV osx::X509Certificate::GetValue
+(
+ CK_ATTRIBUTE_PTR  attr
+ )
+{
+    try {
+        switch (attr->type) {
+            case CKA_X509_CHAIN: {
+                auto certs = GetCertificateChain(this->Get());
+                ItemByType(CKA_X509_CHAIN)->SetValue(certs->data(), certs->size());
+                break;
+            }
+            default:
+                core::Object::GetValue(attr);
+        }
+        
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
