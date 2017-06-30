@@ -380,12 +380,11 @@ Scoped<Buffer> GetCertificateChain
         CFRef<CFArrayRef> scopedAnchorCertificates = anchorCertificates;
         
         std::vector<SecCertificateRef> certs;
-        // osx chain doesn't show entry certificate
         certs.push_back(cert);
         CFRef<CFArrayRef> props = SecTrustCopyProperties(trust); // contains info about checked certificates
-        CFShow(&props);
         
-        for (CFIndex i =0; i < CFArrayGetCount(&props); i++) {
+        // start read props from secind item. First is entry cert
+        for (CFIndex i = 1; i < CFArrayGetCount(&props); i++) {
             // NOTE: each item has 'title' property whish is `label` of certificate
             CFDictionaryRef prop = (CFDictionaryRef)CFArrayGetValueAtIndex(&props, i);
             CFStringRef propTitle = (CFStringRef)CFDictionaryGetValue(prop, kSecTrustResultDetailsTitle);
@@ -410,8 +409,6 @@ Scoped<Buffer> GetCertificateChain
             }
             
         }
-        
-        printf("Certificates: %lu\n", certs.size());
         
         CK_ULONG ulDataLen = 0;
         Scoped<Buffer> res(new Buffer);
