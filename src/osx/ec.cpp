@@ -210,7 +210,7 @@ Scoped<core::KeyPair> osx::EcKey::Generate
         
         OSStatus status = SecKeyGeneratePair(keyPairAttr, &pPublicKey, &pPrivateKey);
         if (status) {
-            THROW_EXCEPTION("Error on SecKeyGeneratePair");
+            THROW_OSX_EXCEPTION(status, "SecKeyGeneratePair");
         }
         
         

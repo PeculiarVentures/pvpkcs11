@@ -212,7 +212,7 @@ CK_RV osx::Session::Open
             CFArrayRef result;
             status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&result);
             if (status) {
-                THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Error on SecItemCopyMatching");
+                THROW_OSX_EXCEPTION(status, "SecItemCopyMatching");
             }
             CFRef<CFArrayRef> scopedResult(result);
             CFIndex certCount = CFArrayGetCount(result);
@@ -243,7 +243,7 @@ CK_RV osx::Session::Open
                           CFStringCompare(keyLabel, kSecAttrLabelModule, kCFCompareCaseInsensitive) == kCFCompareEqualTo)) {
                         
                         publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                        
+                    
                         if (x509->HasPrivateKey()) {
                             Scoped<core::PrivateKey> privateKey = x509->GetPrivateKey();
                             privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
@@ -273,18 +273,17 @@ CK_RV osx::Session::Open
             
             CFArrayRef result;
             status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&result);
-            if (status) {
-                THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Error on SecItemCopyMatching");
-            }
-            CFRef<CFArrayRef> scopedResult(result);
-            CFIndex arrayCount = CFArrayGetCount(result);
-            
-            CFIndex index = 0;
-            while (index < arrayCount) {
-                SecKeyRef secKey = (SecKeyRef)CFArrayGetValueAtIndex(result, index++);
-                Scoped<core::Object> key = SecKeyCopyObject(secKey);
-                key->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                objects.add(key);
+            if (!status) {
+                CFRef<CFArrayRef> scopedResult(result);
+                CFIndex arrayCount = CFArrayGetCount(result);
+                
+                CFIndex index = 0;
+                while (index < arrayCount) {
+                    SecKeyRef secKey = (SecKeyRef)CFArrayGetValueAtIndex(result, index++);
+                    Scoped<core::Object> key = SecKeyCopyObject(secKey);
+                    key->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                    objects.add(key);
+                }
             }
         }
         return CKR_OK;

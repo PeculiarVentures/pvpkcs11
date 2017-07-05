@@ -107,7 +107,7 @@ Scoped<core::KeyPair> osx::RsaKey::Generate
         
         OSStatus status = SecKeyGeneratePair(keyPairAttr, &pPublicKey, &pPrivateKey);
         if (status) {
-            THROW_EXCEPTION("Error on SecKeyGeneratePair");
+            THROW_OSX_EXCEPTION(status, "SecKeyGeneratePair");
         }
         
         
@@ -209,7 +209,7 @@ void osx::RsaPrivateKey::FillPublicKeyStruct()
                                         &asn1PublicKey);
         if (status) {
             SecAsn1CoderRelease(coder);
-            THROW_EXCEPTION("Error on SecAsn1Decode");
+            THROW_OSX_EXCEPTION(status, "SecAsn1Decode");
         }
         
         ItemByType(CKA_MODULUS)->SetValue(asn1PublicKey.modulus.Data,
@@ -247,7 +247,7 @@ void osx::RsaPrivateKey::FillPrivateKeyStruct()
                                         &asn1PrivateKey);
         if (status) {
             SecAsn1CoderRelease(coder);
-            THROW_EXCEPTION("Error on SecAsn1Decode");
+            THROW_OSX_EXCEPTION(status, "SecAsn1Decode");
         }
         
         ItemByType(CKA_PRIVATE_EXPONENT)->SetValue(asn1PrivateKey.privateExponent.Data,
@@ -456,7 +456,7 @@ void osx::RsaPublicKey::FillKeyStruct()
                                         &asn1PublicKey);
         if (status) {
             SecAsn1CoderRelease(coder);
-            THROW_EXCEPTION("Error on SecAsn1Decode");
+            THROW_OSX_EXCEPTION(status, "SecAsn1Decode");
         }
         
         ItemByType(CKA_MODULUS_BITS)->To<core::AttributeNumber>()->Set(asn1PublicKey.modulus.Length * 8);

@@ -115,7 +115,7 @@ Scoped<Buffer> osx::X509Certificate::GetPublicKeyHash(
                       );
         if (status) {
             SecAsn1CoderRelease(coder);
-            THROW_EXCEPTION("Cannot decode ASN1 with X509 schema");
+            THROW_OSX_EXCEPTION(status, "SecAsn1Decode");
         }
         
         Scoped<Buffer> spki(new Buffer);
@@ -235,7 +235,7 @@ CK_RV osx::X509Certificate::Destroy()
         CFDictionaryAddValue(&matchAttr, kSecMatchItemList, &itemList);
         
         if ((status = SecItemDelete(&matchAttr))) {
-            THROW_EXCEPTION("Error on SecItemDelete");
+            THROW_OSX_EXCEPTION(status, "SecItemDelete");
         }
         
         return CKR_OK;
@@ -359,13 +359,13 @@ Scoped<Buffer> GetCertificateChain
         OSStatus status = 0;
         status = SecTrustCreateWithCertificates(cert, NULL, &trust);
         if (status) {
-            THROW_EXCEPTION("Error on SecTrustCreateWithCertificates");
+            THROW_OSX_EXCEPTION(status, "SecTrustCreateWithCertificates");
         }
         CFRef<SecTrustRef> scopedTrust = trust;
         
         status = SecTrustEvaluate(trust, NULL);
         if (status) {
-            THROW_EXCEPTION("Error on SecTrustEvaluate");
+            THROW_OSX_EXCEPTION(status, "SecTrustEvaluate");
         }
         
         // Get trust resul
@@ -375,7 +375,7 @@ Scoped<Buffer> GetCertificateChain
         CFArrayRef anchorCertificates = NULL;
         status = SecTrustCopyAnchorCertificates(&anchorCertificates);
         if (status) {
-            THROW_EXCEPTION("Error on SecTrustCopyAnchorCertificates");
+            THROW_OSX_EXCEPTION(status, "SecTrustCopyAnchorCertificates");
         }
         CFRef<CFArrayRef> scopedAnchorCertificates = anchorCertificates;
         
