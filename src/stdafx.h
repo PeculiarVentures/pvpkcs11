@@ -5,8 +5,6 @@
 
 #ifdef _WIN32
 
-#include <crtdbg.h>
-
 #define WIN32_LEAN_AND_MEAN
 #define CERT_CHAIN_PARA_HAS_EXTRA_FIELDS
 
