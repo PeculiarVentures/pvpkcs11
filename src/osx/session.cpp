@@ -268,7 +268,7 @@ CK_RV osx::Session::Open
                                                                                 &kCFTypeDictionaryValueCallBacks);
             CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassKey);
             CFDictionaryAddValue(&matchAttr, kSecMatchLimit, kSecMatchLimitAll);
-            CFDictionarySetValue(&matchAttr, kSecAttrLabel, kSecAttrLabelModule);
+            CFDictionaryAddValue(&matchAttr, kSecAttrLabel, kSecAttrLabelModule);
             CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
             
             CFArrayRef result;
