@@ -45,7 +45,7 @@ With this one library you will be able to access many different underlying crypt
 To build you need Visual Studio and you follow the following steps:
 
 - build.bat
-- open build/binding.snl
+- open build/binding.sln
 - Run build
 
 ### Testing

@@ -1,0 +1,1 @@
+python ~/github/gyp/gyp_main.py binding.gyp -f xcode --depth=. --generator-output ./build

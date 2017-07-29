@@ -4,7 +4,12 @@
   "description": "[![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat)](https://raw.githubusercontent.com/PeculiarVentures/2key-ratchet/master/LICENSE.md)",
   "main": "index.js",
   "scripts": {
-    "test": "mocha test"
+    "test": "mocha test",
+    "build": "npm run build:dx64",
+    "build:rx86": "ninja -C out/Release",
+    "build:rx64": "ninja -C out/Release_x64",
+    "build:dx86": "ninja -C out/Debug",
+    "build:dx64": "ninja -C out/Debug_x64"
   },
   "repository": {
     "type": "git",
@@ -19,9 +24,10 @@
   "homepage": "https://github.com/PeculiarVentures/pvpkcs11#readme",
   "devDependencies": {
     "@types/mocha": "^2.2.41",
-    "node-webcrypto-ossl": "^1.0.21",
-    "node-webcrypto-p11": "^1.1.8",
-    "pkcs11js": "^1.0.8",
+    "graphene-pk11": "^2.0.25",
+    "node-webcrypto-ossl": "^1.0.27",
+    "node-webcrypto-p11": "^1.1.15",
+    "pkcs11js": "^1.0.9",
     "pvtsutils": "^1.0.2"
   }
 }
