@@ -39,7 +39,7 @@ namespace core {
         Scoped<CryptoEncrypt> encrypt;
         Scoped<CryptoEncrypt> decrypt;
 
-        Collection<Scoped<Object>> objects;
+        Collection<Scoped<Object> > objects;
 
         // find
         OBJECT_FIND           find;

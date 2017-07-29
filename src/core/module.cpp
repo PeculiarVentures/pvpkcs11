@@ -56,11 +56,13 @@ CK_RV Module::GetInfo(
     CHECK_INITIALIZED();
     CHECK_ARGUMENT_NULL(pInfo);
 
-    pInfo->cryptokiVersion = { CRYPTOKI_VERSION_MAJOR, CRYPTOKI_VERSION_MINOR };
+    pInfo->cryptokiVersion.major = CRYPTOKI_VERSION_MAJOR;
+    pInfo->cryptokiVersion.minor = CRYPTOKI_VERSION_MINOR;
     pInfo->flags = 0;
     SET_STRING(pInfo->manufacturerID, "Module", 32);
     SET_STRING(pInfo->libraryDescription, "Windows CryptoAPI", 32);
-    pInfo->libraryVersion = { 0, 1 };
+    pInfo->libraryVersion.major = 0;
+    pInfo->libraryVersion.minor = 1;
 
     return CKR_OK;
 }
@@ -98,7 +100,7 @@ CK_RV Module::GetSlotInfo(
     try {
         CHECK_INITIALIZED();
 
-        auto slot = getSlot(slotID);
+        Scoped<Slot> slot = getSlot(slotID);
 
         return slot->GetSlotInfo(pInfo);
     }
@@ -116,7 +118,7 @@ CK_RV Module::GetTokenInfo
     try {
         CHECK_INITIALIZED();
 
-        auto slot = getSlot(slotID);
+        Scoped<Slot> slot = getSlot(slotID);
 
         return slot->GetTokenInfo(pInfo);
     }
@@ -203,7 +205,7 @@ CK_RV Module::CloseSession
     CHECK_INITIALIZED();
     Scoped<Slot> slot = this->getSlotBySession(hSession);
 
-    if (slot == NULL_PTR) {
+    if (!(slot && slot.get())) {
         return CKR_SESSION_HANDLE_INVALID;
     }
 
@@ -218,7 +220,7 @@ Scoped<Slot> Module::getSlotBySession(CK_SESSION_HANDLE hSession)
             return slot;
         }
     }
-    return NULL_PTR;
+    THROW_PKCS11_EXCEPTION(CKR_SESSION_HANDLE_INVALID, "Session handle invalid");
 }
 
 Scoped<Session> Module::getSession(CK_SESSION_HANDLE hSession)
@@ -348,7 +350,7 @@ CK_RV Module::DigestInit
     try {
         CHECK_INITIALIZED();
 
-        auto session = getSession(hSession);
+        Scoped<Session> session = getSession(hSession);
 
         if (pMechanism == NULL) {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
@@ -372,7 +374,7 @@ CK_RV Module::Digest
     try {
         CHECK_INITIALIZED();
 
-        auto session = getSession(hSession);
+        Scoped<Session> session = getSession(hSession);
 
         return session->digest->Once(
             pData,
@@ -394,7 +396,7 @@ CK_RV Module::DigestUpdate
     try {
         CHECK_INITIALIZED();
 
-        auto session = getSession(hSession);
+        Scoped<Session> session = getSession(hSession);
 
         return session->digest->Update(
             pPart,
@@ -413,8 +415,8 @@ CK_RV Module::DigestKey
     try {
         CHECK_INITIALIZED();
 
-        auto session = getSession(hSession);
-        auto object = session->GetObject(hKey);
+        Scoped<Session> session = getSession(hSession);
+        Scoped<Object> object = session->GetObject(hKey);
 
         return session->digest->Key(
             object
@@ -433,7 +435,7 @@ CK_RV Module::DigestFinal
     try {
         CHECK_INITIALIZED();
 
-        auto session = getSession(hSession);
+        Scoped<Session> session = getSession(hSession);
 
         return session->digest->Final(
             pDigest,
@@ -790,7 +792,7 @@ Scoped<Slot> Module::getSlot(
 )
 {
     try {
-        if (!(slotID >= 0 && slotID < slots.count())) {
+        if (!(slotID < slots.count())) {
             THROW_PKCS11_EXCEPTION(CKR_SLOT_ID_INVALID, "Cannot get Slot by ID");
         }
         return slots.items(slotID);
@@ -807,7 +809,7 @@ CK_RV Module::SeedRandom(
     try {
         CHECK_INITIALIZED();
 
-        auto session = getSession(hSession);
+        Scoped<Session> session = getSession(hSession);
 
         return session->SeedRandom(pSeed, ulSeedLen);
     }
@@ -824,7 +826,7 @@ CK_RV Module::GenerateRandom(
     try {
         CHECK_INITIALIZED();
 
-        auto session = getSession(hSession);
+        Scoped<Session> session = getSession(hSession);
 
         return session->GenerateRandom(pRandomData, ulRandomLen);
     }
@@ -844,7 +846,7 @@ CK_RV Module::DeriveKey
     try {
         CHECK_INITIALIZED();
 
-        auto session = getSession(hSession);
+        Scoped<Session> session = getSession(hSession);
 
         return session->DeriveKey(
             pMechanism,
@@ -868,7 +870,7 @@ CK_RV Module::CreateObject
     try {
         CHECK_INITIALIZED();
 
-        auto session = getSession(hSession);
+        Scoped<Session> session = getSession(hSession);
 
         if (pTemplate == NULL_PTR) {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pTemplate is NULL");
@@ -878,7 +880,7 @@ CK_RV Module::CreateObject
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "phObject is NULL");
         }
 
-        auto object = session->CreateObject(
+        Scoped<Object> object = session->CreateObject(
             pTemplate,
             ulCount
         );
@@ -908,7 +910,7 @@ CK_RV Module::CopyObject
     try {
         CHECK_INITIALIZED();
 
-        auto session = getSession(hSession);
+        Scoped<Session> session = getSession(hSession);
 
         if (pTemplate == NULL_PTR) {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pTemplate is NULL");
@@ -918,9 +920,9 @@ CK_RV Module::CopyObject
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "phObject is NULL");
         }
 
-        auto object = session->GetObject(hObject);
+        Scoped<Object> object = session->GetObject(hObject);
 
-        auto newObject = session->CopyObject(
+        Scoped<Object> newObject = session->CopyObject(
             object,
             pTemplate,
             ulCount
@@ -947,11 +949,10 @@ CK_RV Module::DestroyObject(
     try {
         CHECK_INITIALIZED();
 
-        auto session = getSession(hSession);
-        auto object = session->GetObject(hObject);
+        Scoped<Session> session = getSession(hSession);
+        Scoped<Object> object = session->GetObject(hObject);
 
         object->Destroy();
-
         session->objects.remove(object);
 
         return CKR_OK;

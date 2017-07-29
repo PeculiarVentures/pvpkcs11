@@ -40,7 +40,7 @@ namespace core {
         );
 
     protected:
-        static Scoped<Buffer> EcUtils::getData(
+        static Scoped<Buffer> getData(
             Scoped<Buffer>          data
         );
 

@@ -38,8 +38,8 @@ With this one library you will be able to access many different underlying crypt
 ## Using
 
 ### Building
-- At this time only MSCAPI support is implemented. 
-- At this time only Windows is supported.
+- At this time only MSCAPI and CommonCrypto (OSX) support is implemented. 
+- At this time only building on Windows and OSX is supported.
 - The package does not have a build script at this time. 
 
 To build you need Visual Studio and you follow the following steps:
@@ -78,6 +78,15 @@ npm test
 | Hash       | SHA1; SHA2; SHA384; SHA512                                                          |
 | Sign       | RSA /w SHA1; RSA PKCS1 /w SHA1, SHA2;  RSA PSS /w SHA1, SHA2;  ECDSA /w SHA1, SHA2  |
 | Exchange   | ~~ECDH /w SHA1~~                                                                    |
+| Encryption | RSA OAEP; AES modes CBC, CBC-PAD, GCM, and ECB                                      |
+
+#### OSX
+
+| Function   | Algorithms                                                                          |
+|------------|-------------------------------------------------------------------------------------|
+| Hash       | SHA1; SHA2; SHA384; SHA512                                                          |
+| Sign       | RSA /w SHA1; RSA PKCS1 /w SHA1, SHA2;  RSA PSS /w SHA1, SHA2;  ECDSA /w SHA1, SHA2  |
+| Exchange   | ECDH /w SHA1                                                                        |
 | Encryption | RSA OAEP; AES modes CBC, CBC-PAD, GCM, and ECB                                      |
 
 ## Related

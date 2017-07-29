@@ -178,7 +178,7 @@ namespace crypt {
 		CertStore();
 		~CertStore();
 
-		std::vector<Scoped<Certificate>> GetCertificates();
+		std::vector<Scoped<Certificate> > GetCertificates();
         void AddCertificate(
             Scoped<Certificate> context,
             ULONG               dwFlags

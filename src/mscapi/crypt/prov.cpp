@@ -198,7 +198,7 @@ Scoped<Buffer> crypt::Provider::GetSmartCardGUID()
 
 std::vector<Scoped<std::string>> Provider::GetContainers()
 {
-	std::vector<Scoped<std::string>> res;
+	std::vector<Scoped<std::string> > res;
 	try {
 		while (true) {
 			Scoped<std::string> container(new std::string((char*)GetBufferParam(PP_ENUMCONTAINERS, res.size() ? CRYPT_NEXT : CRYPT_FIRST)->data()));

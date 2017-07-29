@@ -22,6 +22,8 @@ namespace core {
             int                line
         );
 
+        ~Exception() throw() {}
+
         virtual char const* what();
         void push(
             Scoped<Exception> item

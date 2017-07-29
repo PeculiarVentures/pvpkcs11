@@ -49,9 +49,11 @@ namespace core {
     // 13
     // Attribute value can be changed on C_CopyObject
 #define PVF_13      0x00001000
-
+    
     class Attribute {
     public:
+        static std::string GetName(CK_ULONG type);
+        
         CK_ATTRIBUTE_TYPE type;
         CK_ULONG          flags;
 
@@ -102,7 +104,7 @@ namespace core {
             CK_ULONG            flags
         ) :
             Attribute(type, flags),
-            value(Scoped<std::vector<T>>(new std::vector<T>))
+            value(Scoped<std::vector<T> >(new std::vector<T>))
         {
             try {
                 SetValue(pData, ulDataLen);
@@ -151,7 +153,7 @@ namespace core {
             return value->empty();
         }
     protected:
-        Scoped<std::vector<T>> value;
+        Scoped<std::vector<T> > value;
     };
 
     class AttributeBytes : public AttributeTemplate<CK_BYTE> {
@@ -244,7 +246,7 @@ namespace core {
         );
         CK_ULONG Size();
     protected:
-        std::vector<Scoped<Attribute>> items;
+        std::vector<Scoped<Attribute> > items;
 
         void Add(
             Scoped<Attribute> item

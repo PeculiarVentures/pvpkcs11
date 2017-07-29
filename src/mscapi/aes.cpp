@@ -66,8 +66,6 @@ CK_RV AesKey::CreateValues(
         NTSTATUS status;
         Scoped<Buffer> buffer(new Buffer);
 
-
-        // Named curve
         auto value = tmpl.GetBytes(CKA_VALUE, true, "");
 
         buffer->resize(sizeof(BCRYPT_KEY_DATA_BLOB_HEADER));
@@ -355,7 +353,7 @@ CK_RV CryptoAesGCMEncrypt::Init
         }
 
         // tagLength
-        tagLength = params->ulTagBits >> 3;
+        tagLength = params->ulTagBits > > 3;
 
         this->key->SetParam(BCRYPT_CHAINING_MODE, (PUCHAR)BCRYPT_CHAIN_MODE_GCM, lstrlenW(BCRYPT_CHAIN_MODE_GCM));
 

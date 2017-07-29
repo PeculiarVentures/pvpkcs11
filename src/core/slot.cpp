@@ -195,7 +195,7 @@ Scoped<Session> Slot::getSession(CK_SESSION_HANDLE hSession)
             return session;
         }
     }
-    return NULL_PTR;
+    THROW_PKCS11_EXCEPTION(CKR_SLOT_ID_INVALID, "Slot ID invalid");
 }
 
 CK_RV Slot::CloseAllSessions()

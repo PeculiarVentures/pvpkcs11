@@ -88,8 +88,8 @@ Scoped<Buffer> EcUtils::EncodePoint(
 )
 {
     try {
-        auto xb = PadZeroes(x, size);
-        auto yb = PadZeroes(y, size);
+        Scoped<Buffer> xb = PadZeroes(x, size);
+        Scoped<Buffer> yb = PadZeroes(y, size);
         if ((xb->size() > size) || (yb->size() > size)) {
             THROW_EXCEPTION("Point coordinates do not match field size");
         }

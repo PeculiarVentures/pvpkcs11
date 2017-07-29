@@ -64,9 +64,9 @@ void CertStore::Close()
     CATCH_EXCEPTION;
 }
 
-std::vector<Scoped<Certificate>> CertStore::GetCertificates()
+std::vector<Scoped<Certificate> > CertStore::GetCertificates()
 {
-    std::vector<Scoped<Certificate>> certs;
+    std::vector<Scoped<Certificate> > certs;
     // get certificates
     PCCERT_CONTEXT hCert = NULL;
     while (true)

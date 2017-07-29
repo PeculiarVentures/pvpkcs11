@@ -2,13 +2,12 @@
 
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
-#include <crtdbg.h>
 
 #ifdef _WIN32
+
 #define WIN32_LEAN_AND_MEAN
 #define CERT_CHAIN_PARA_HAS_EXTRA_FIELDS
 
-#include <stdio.h>
 #include <tchar.h>
 #define WIN32_NO_STATUS
 #include <windows.h>
@@ -17,9 +16,15 @@
 
 #endif // _WIN32
 
+#ifdef _WIN32
 #pragma pack(push, cryptoki, 1)
+#endif // _WIN32
+
 #include "./pkcs11.h"
+
+#ifdef _WIN32
 #pragma pack(pop, cryptoki)
+#endif // _WIN32
 
 #include <stdio.h>
 #include <memory>
@@ -33,7 +38,7 @@ using Buffer = std::vector<CK_BYTE>;
 /**
  * Set padded string for PKCS#11 structures
  */
-void SET_STRING(CK_UTF8CHAR* storage, char* data, int size);
+void SET_STRING(CK_UTF8CHAR* storage, const char* data, int size);
 
 // check incoming argument, if argument is NULL returns CKR_ARGUMENTS_BAD
 #define CHECK_ARGUMENT_NULL(name)				\

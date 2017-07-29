@@ -1,5 +1,11 @@
-build
 .vscode
 node_modules
 
 test*.js
+
+# out
+build
+out
+
+# mac
+.DS_Store

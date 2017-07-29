@@ -1,22 +1,38 @@
 #include "stdafx.h"
 #include "core/module.h"
 #include "core/excep.h"
+
+#ifdef _WIN32
 #include "mscapi/slot.h"
+#endif // _WIN32
+
+#ifdef __APPLE__
+// #ifdef TARGET_OS_MAC
+#include "osx/slot.h"
+// #endif // TARGET_OS_MAC
+#endif // __APPLE__
 
 #define PV_ENV_ERROR "PV_PKCS11_ERROR"
-
+/*
+#ifdef _WIN32
 static auto fEnvError = std::getenv(PV_ENV_ERROR);
+#else
+static auto fEnvError = getenv(PV_ENV_ERROR);
+#endif // _WIN32
+*/
+static const char* fEnvError = "true";
 
 #define CATCH(functionName)                                     \
     catch (Scoped<core::Exception> e) {                         \
-		core::Pkcs11Exception* exception;                       \
+		core::Pkcs11Exception* exception = dynamic_cast<core::Pkcs11Exception*>(e.get()); \
         if (fEnvError) {                                        \
             fprintf(stdout, "Error: %s\n", functionName);       \
             puts(e->what());                                    \
         }                                                       \
-		if (exception = dynamic_cast<core::Pkcs11Exception*>(e.get())) { \
+		if (exception) {                                        \
 			return strcmp(exception->name.c_str(), PKCS11_EXCEPTION_NAME) ? CKR_FUNCTION_FAILED : exception->code;\
 		}                                                       \
+        return CKR_FUNCTION_FAILED;                             \
     }                                                           \
 	catch (const std::exception &e) {                           \
 		if (fEnvError) {                                        \
@@ -112,9 +128,18 @@ core::Module pkcs11 = core::Module();
 class App {
 public:
     App() {
+#ifdef _WIN32
         Scoped<core::Slot> mscapiSlot(new mscapi::Slot());
         pkcs11.slots.add(mscapiSlot);
         mscapiSlot->slotID = pkcs11.slots.count() - 1;
+#endif // _WIN32
+#ifdef __APPLE__
+// #ifdef TARGET_OS_MAC
+        Scoped<core::Slot> osxSlot(new osx::Slot());
+        pkcs11.slots.add(osxSlot);
+        osxSlot->slotID = pkcs11.slots.count() - 1;
+// #endif // TARGET_OS_MAC
+#endif // __APPLE__
     }
 };
 
@@ -126,6 +151,7 @@ CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList)
         CHECK_ARGUMENT_NULL(ppFunctionList);
 
         *ppFunctionList = &functionList;
+
         return CKR_OK;
     }
     CATCH("C_GetFunctionList");
@@ -451,7 +477,7 @@ CK_RV C_DestroyObject
     )
 {
     try {
-        pkcs11.DestroyObject(
+        return pkcs11.DestroyObject(
             hSession,
             hObject
         );
@@ -501,8 +527,13 @@ CK_RV C_SetAttributeValue
     CK_ULONG          ulCount     /* attributes in template */
     )
 {
-    return CKR_OK;
-    // return CKR_FUNCTION_NOT_SUPPORTED;
+    try {
+        return pkcs11.SetAttributeValue(hSession, hObject, pTemplate, ulCount);
+    }
+    CATCH(__FUNCTION__);
+    
+    return CKR_FUNCTION_FAILED;
+
 }
 
 
@@ -1250,7 +1281,7 @@ CK_RV C_SeedRandom
     )
 {
     try {
-        pkcs11.SeedRandom(hSession, pSeed, ulSeedLen);
+        return pkcs11.SeedRandom(hSession, pSeed, ulSeedLen);
     }
     CATCH(__FUNCTION__);
 }
@@ -1265,7 +1296,7 @@ CK_RV C_GenerateRandom
     )
 {
     try {
-        pkcs11.GenerateRandom(hSession, RandomData, ulRandomLen);
+        return pkcs11.GenerateRandom(hSession, RandomData, ulRandomLen);
     }
     CATCH(__FUNCTION__);
 }

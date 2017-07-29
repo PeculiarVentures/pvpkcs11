@@ -12,6 +12,7 @@ static CK_ATTRIBUTE_PTR ATTRIBUTE_new()
     attr->type = 0;
     attr->pValue = NULL_PTR;
     attr->ulValueLen = 0;
+    return attr;
 }
 
 static void ATTRIBUTE_free(CK_ATTRIBUTE_PTR attr)
@@ -48,9 +49,10 @@ Session::Session()
     this->Application = NULL_PTR;
     this->Notify = NULL_PTR;
 
-    this->find = {
-        false, NULL_PTR, 0, 0
-    };
+    this->find.active = false;
+    this->find.pTemplate = NULL;
+    this->find.ulTemplateSize = 0;
+    this->find.index = 0;
 }
 
 Session::~Session()
@@ -186,7 +188,7 @@ CK_RV Session::SetAttributeValue
 }
 
 Scoped<Object> GetObject(CK_OBJECT_HANDLE hObject) {
-    return NULL_PTR;
+    THROW_PKCS11_EXCEPTION(CKR_GENERAL_ERROR, "Function is not implemented");
 }
 
 CK_RV Session::FindObjectsInit
@@ -202,7 +204,6 @@ CK_RV Session::FindObjectsInit
     // copy template
     this->find.pTemplate = (CK_ATTRIBUTE_PTR)malloc(sizeof(CK_ATTRIBUTE) * ulCount);
     for (int i = 0; i < ulCount; i++) {
-        this->find.pTemplate[i];
         // TODO: Maybe it would be better to use pointers without copying data
         ATTRIBUTE_copy(&this->find.pTemplate[i], &pTemplate[i]);
     }
@@ -229,16 +230,13 @@ CK_RV Session::FindObjects
         if (pulObjectCount == NULL_PTR) {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pulObjectCount");
         }
-        if (ulMaxObjectCount < 0) {
-            THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "ulMaxObjectCount must be more than 0");
-        }
 
         *pulObjectCount = 0;
         CK_RV res;
-        for (this->find.index; this->find.index < objects.count() && *pulObjectCount < ulMaxObjectCount; this->find.index++) {
-            Scoped<Object> obj = this->objects.items(this->find.index);
-            size_t i = 0;
-            for (i; i < this->find.ulTemplateSize; i++) {
+        while (this->find.index < objects.count() && *pulObjectCount < ulMaxObjectCount) {
+            Scoped<Object> obj = this->objects.items(this->find.index++);
+            size_t i;
+            for (i = 0; i < this->find.ulTemplateSize; i++) {
                 CK_ATTRIBUTE_PTR findAttr = &this->find.pTemplate[i];
                 Buffer attrValue;
                 CK_ATTRIBUTE attr = { findAttr->type , NULL_PTR, 0 };
@@ -479,7 +477,7 @@ Scoped<Object> Session::GetObject(
 {
     try {
         for (int i = 0; i < objects.count(); i++) {
-            auto object = objects.items(i);
+            Scoped<Object> object = objects.items(i);
             if (object->handle == hObject) {
                 return object;
             }
