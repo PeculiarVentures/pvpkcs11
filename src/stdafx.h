@@ -35,6 +35,8 @@ template <typename T>
 using Scoped = std::shared_ptr<T>;
 using Buffer = std::vector<CK_BYTE>;
 
+static FILE* pvlog = NULL;
+
 /**
  * Set padded string for PKCS#11 structures
  */

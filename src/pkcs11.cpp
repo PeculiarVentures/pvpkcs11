@@ -20,14 +20,30 @@ static auto fEnvError = std::getenv(PV_ENV_ERROR);
 static auto fEnvError = getenv(PV_ENV_ERROR);
 #endif // _WIN32
 */
+
+#ifdef _WIN32
+#define LOG_FILE "/PVPKCS11.log"
+#else
+#define LOG_FILE "/tmp/PVPKCS11.log"
+#endif // _WIN32
+
+
 static const char* fEnvError = "true";
+
+void INIT_LOG()
+{
+    if (pvlog == NULL) {
+        pvlog = fopen(LOG_FILE, "a+");
+    }
+}
 
 #define CATCH(functionName)                                     \
     catch (Scoped<core::Exception> e) {                         \
 		core::Pkcs11Exception* exception = dynamic_cast<core::Pkcs11Exception*>(e.get()); \
         if (fEnvError) {                                        \
-            fprintf(stdout, "Error: %s\n", functionName);       \
-            puts(e->what());                                    \
+            fprintf(pvlog, "Error: %s\n", functionName);        \
+            fprintf(pvlog, "%s\n", e->what());                  \
+            fflush(pvlog);                                      \
         }                                                       \
 		if (exception) {                                        \
 			return strcmp(exception->name.c_str(), PKCS11_EXCEPTION_NAME) ? CKR_FUNCTION_FAILED : exception->code;\
@@ -35,15 +51,17 @@ static const char* fEnvError = "true";
         return CKR_FUNCTION_FAILED;                             \
     }                                                           \
 	catch (const std::exception &e) {                           \
-		if (fEnvError) {                                        \
-            fprintf(stdout, "Error: %s\n", functionName);       \
-            puts(e.what());                                     \
+        if (fEnvError) {                                        \
+            fprintf(pvlog, "Error: %s\n", functionName);        \
+            fprintf(pvlog, "%s\n", e.what());                   \
+            fflush(pvlog);                                      \
         }                                                       \
         return CKR_FUNCTION_FAILED;                             \
 	}                                                           \
 	catch (...) {                                               \
 		if (fEnvError) {                                        \
-            fprintf(stdout, "Error: %s\n", functionName);       \
+            fprintf(pvlog, "Error: %s\n", functionName);        \
+            fflush(pvlog);                                      \
         }                                                       \
         return CKR_FUNCTION_FAILED;                             \
 	}
@@ -147,6 +165,7 @@ App app = App();
 
 CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList)
 {
+    INIT_LOG();
     try {
         CHECK_ARGUMENT_NULL(ppFunctionList);
 
@@ -162,6 +181,7 @@ CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList)
 // PKCS #11 initialization function
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
 {
+    INIT_LOG();
     try {
         return pkcs11.Initialize(pInitArgs);
     }
@@ -173,6 +193,7 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
 // PKCS #11 finalization function
 CK_RV C_Finalize(CK_VOID_PTR pReserved)
 {
+    INIT_LOG();
     try {
         return pkcs11.Finalize(pReserved);
     }
@@ -183,6 +204,7 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved)
 
 CK_RV C_GetInfo(CK_INFO_PTR pInfo)
 {
+    INIT_LOG();
     try
     {
         return pkcs11.GetInfo(pInfo);
@@ -198,6 +220,7 @@ CK_RV C_GetSlotList(
     CK_ULONG_PTR   pulCount       /* receives number of slots */
 )
 {
+    INIT_LOG();
     try
     {
         return pkcs11.GetSlotList(tokenPresent, pSlotList, pulCount);
@@ -212,6 +235,7 @@ CK_RV C_GetSlotInfo(
     CK_SLOT_INFO_PTR pInfo    /* receives the slot information */
 )
 {
+    INIT_LOG();
     try
     {
         return pkcs11.GetSlotInfo(slotID, pInfo);
@@ -227,6 +251,7 @@ CK_RV C_GetTokenInfo
     CK_TOKEN_INFO_PTR pInfo    /* receives the token information */
 )
 {
+    INIT_LOG();
     try
     {
         return pkcs11.GetTokenInfo(slotID, pInfo);
@@ -243,6 +268,7 @@ CK_RV C_GetMechanismList
     CK_ULONG_PTR          pulCount         /* gets # of mechanisms */
 )
 {
+    INIT_LOG();
     try
     {
         return pkcs11.GetMechanismList(slotID, pMechanismList, pulCount);
@@ -259,6 +285,7 @@ CK_RV C_GetMechanismInfo
     CK_MECHANISM_INFO_PTR pInfo    /* receives mechanism info */
 )
 {
+    INIT_LOG();
     try
     {
         return pkcs11.GetMechanismInfo(slotID, type, pInfo);
@@ -276,6 +303,7 @@ CK_RV C_InitToken
     CK_UTF8CHAR_PTR pLabel     /* 32-byte token label (blank padded) */
 )
 {
+    INIT_LOG();
     try
     {
         return pkcs11.InitToken(slotID, pPin, ulPinLen, pLabel);
@@ -292,6 +320,7 @@ CK_RV C_InitPIN
     CK_ULONG          ulPinLen   /* length in bytes of the PIN */
 )
 {
+    INIT_LOG();
     try
     {
         return pkcs11.InitPIN(hSession, pPin, ulPinLen);
@@ -310,6 +339,7 @@ CK_RV C_SetPIN
     CK_ULONG          ulNewLen   /* length of the new PIN */
 )
 {
+    INIT_LOG();
     try
     {
         // return pkcs11.SetPIN(hSession, pOldPin, ulOldLen, pNewPin, ulNewLen);
@@ -328,6 +358,7 @@ CK_RV C_OpenSession
     CK_SESSION_HANDLE_PTR phSession      /* gets session handle */
 )
 {
+    INIT_LOG();
     try
     {
         return pkcs11.OpenSession(slotID, flags, pApplication, Notify, phSession);
@@ -342,6 +373,7 @@ CK_RV C_CloseSession
     CK_SESSION_HANDLE hSession  /* the session's handle */
 )
 {
+    INIT_LOG();
     try
     {
         return pkcs11.CloseSession(hSession);
@@ -356,6 +388,7 @@ CK_RV C_CloseAllSessions
     CK_SLOT_ID     slotID  /* the token's slot */
 )
 {
+    INIT_LOG();
     try
     {
         return pkcs11.CloseAllSessions(slotID);
@@ -371,6 +404,7 @@ CK_RV C_GetSessionInfo
     CK_SESSION_INFO_PTR pInfo      /* receives session info */
 )
 {
+    INIT_LOG();
     try
     {
         return pkcs11.GetSessionInfo(hSession, pInfo);
@@ -387,6 +421,7 @@ CK_RV C_GetOperationState
     CK_ULONG_PTR      pulOperationStateLen  /* gets state length */
 )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -399,6 +434,7 @@ CK_RV C_SetOperationState
     CK_OBJECT_HANDLE hAuthenticationKey    /* sign/verify key */
 )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -410,6 +446,7 @@ CK_RV C_Login
     CK_ULONG          ulPinLen   /* the length of the PIN */
 )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -419,6 +456,7 @@ CK_RV C_Logout
     CK_SESSION_HANDLE hSession  /* the session's handle */
 )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -433,6 +471,7 @@ CK_RV C_CreateObject
     CK_OBJECT_HANDLE_PTR phObject  /* gets new object's handle. */
 )
 {
+    INIT_LOG();
     try {
         return pkcs11.CreateObject(
             hSession,
@@ -456,6 +495,7 @@ CK_RV C_CopyObject
     CK_OBJECT_HANDLE_PTR phNewObject  /* receives handle of copy */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.CopyObject(
             hSession,
@@ -476,6 +516,7 @@ CK_RV C_DestroyObject
     CK_OBJECT_HANDLE  hObject    /* the object's handle */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.DestroyObject(
             hSession,
@@ -494,6 +535,7 @@ CK_RV C_GetObjectSize
     CK_ULONG_PTR      pulSize    /* receives size of object */
     )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -508,6 +550,7 @@ CK_RV C_GetAttributeValue
     CK_ULONG          ulCount     /* attributes in template */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.GetAttributeValue(hSession, hObject, pTemplate, ulCount);
     }
@@ -527,6 +570,7 @@ CK_RV C_SetAttributeValue
     CK_ULONG          ulCount     /* attributes in template */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.SetAttributeValue(hSession, hObject, pTemplate, ulCount);
     }
@@ -546,6 +590,7 @@ CK_RV C_FindObjectsInit
     CK_ULONG          ulCount     /* attributes in search template */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.FindObjectsInit(hSession, pTemplate, ulCount);
     }
@@ -566,6 +611,7 @@ CK_RV C_FindObjects
     CK_ULONG_PTR         pulObjectCount     /* actual # returned */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.FindObjects(hSession, phObject, ulMaxObjectCount, pulObjectCount);
     }
@@ -582,6 +628,7 @@ CK_RV C_FindObjectsFinal
     CK_SESSION_HANDLE hSession  /* the session's handle */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.FindObjectsFinal(hSession);
     }
@@ -602,6 +649,7 @@ CK_RV C_EncryptInit
     CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.EncryptInit(hSession, pMechanism, hKey);
     }
@@ -621,6 +669,7 @@ CK_RV C_Encrypt
     CK_ULONG_PTR      pulEncryptedDataLen  /* gets c-text size */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.Encrypt(
             hSession,
@@ -647,6 +696,7 @@ CK_RV C_EncryptUpdate
     CK_ULONG_PTR      pulEncryptedPartLen /* gets c-text size */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.EncryptUpdate(
             hSession,
@@ -671,6 +721,7 @@ CK_RV C_EncryptFinal
     CK_ULONG_PTR      pulLastEncryptedPartLen  /* gets last size */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.EncryptFinal(
             hSession,
@@ -692,6 +743,7 @@ CK_RV C_DecryptInit
     CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.DecryptInit(
             hSession,
@@ -715,6 +767,7 @@ CK_RV C_Decrypt
     CK_ULONG_PTR      pulDataLen          /* gets p-text size */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.Decrypt(
             hSession,
@@ -741,6 +794,7 @@ CK_RV C_DecryptUpdate
     CK_ULONG_PTR      pulPartLen           /* p-text size */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.DecryptUpdate(
             hSession,
@@ -765,6 +819,7 @@ CK_RV C_DecryptFinal
     CK_ULONG_PTR      pulLastPartLen  /* p-text size */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.DecryptFinal(
             hSession,
@@ -786,6 +841,7 @@ CK_RV C_DigestInit
     CK_MECHANISM_PTR  pMechanism  /* the digesting mechanism */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.DigestInit(hSession, pMechanism);
     }
@@ -805,6 +861,7 @@ CK_RV C_Digest
     CK_ULONG_PTR      pulDigestLen  /* gets digest length */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.Digest(hSession, pData, ulDataLen, pDigest, pulDigestLen);
     }
@@ -823,6 +880,7 @@ CK_RV C_DigestUpdate
     CK_ULONG          ulPartLen  /* bytes of data to be digested */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.DigestUpdate(hSession, pPart, ulPartLen);
     }
@@ -841,6 +899,7 @@ CK_RV C_DigestKey
     CK_OBJECT_HANDLE  hKey       /* secret key to digest */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.DigestKey(hSession, hKey);
     }
@@ -859,6 +918,7 @@ CK_RV C_DigestFinal
     CK_ULONG_PTR      pulDigestLen  /* gets byte count of digest */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.DigestFinal(hSession, pDigest, pulDigestLen);
     }
@@ -882,6 +942,7 @@ CK_RV C_SignInit
     CK_OBJECT_HANDLE  hKey         /* handle of signature key */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.SignInit(hSession, pMechanism, hKey);
     }
@@ -903,6 +964,7 @@ CK_RV C_Sign
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.Sign(hSession, pData, ulDataLen, pSignature, pulSignatureLen);
     }
@@ -922,6 +984,7 @@ CK_RV C_SignUpdate
     CK_ULONG          ulPartLen  /* count of bytes to sign */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.SignUpdate(hSession, pPart, ulPartLen);
     }
@@ -940,6 +1003,7 @@ CK_RV C_SignFinal
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.SignFinal(hSession, pSignature, pulSignatureLen);
     }
@@ -958,6 +1022,7 @@ CK_RV C_SignRecoverInit
     CK_OBJECT_HANDLE  hKey        /* handle of the signature key */
     )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -973,6 +1038,7 @@ CK_RV C_SignRecover
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
     )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -990,6 +1056,7 @@ CK_RV C_VerifyInit
     CK_OBJECT_HANDLE  hKey         /* verification key */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.VerifyInit(hSession, pMechanism, hKey);
     }
@@ -1011,6 +1078,7 @@ CK_RV C_Verify
     CK_ULONG          ulSignatureLen  /* signature length*/
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.Verify(hSession, pData, ulDataLen, pSignature, ulSignatureLen);
     }
@@ -1030,6 +1098,7 @@ CK_RV C_VerifyUpdate
     CK_ULONG          ulPartLen  /* length of signed data */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.VerifyUpdate(hSession, pPart, ulPartLen);
     }
@@ -1048,6 +1117,7 @@ CK_RV C_VerifyFinal
     CK_ULONG          ulSignatureLen  /* signature length */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.VerifyFinal(hSession, pSignature, ulSignatureLen);
     }
@@ -1066,6 +1136,7 @@ CK_RV C_VerifyRecoverInit
     CK_OBJECT_HANDLE  hKey         /* verification key */
     )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1081,6 +1152,7 @@ CK_RV C_VerifyRecover
     CK_ULONG_PTR      pulDataLen       /* gets signed data length */
     )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1099,6 +1171,7 @@ CK_RV C_DigestEncryptUpdate
     CK_ULONG_PTR      pulEncryptedPartLen  /* gets c-text length */
     )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1114,6 +1187,7 @@ CK_RV C_DecryptDigestUpdate
     CK_ULONG_PTR      pulPartLen           /* gets plaintext length */
     )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1129,6 +1203,7 @@ CK_RV C_SignEncryptUpdate
     CK_ULONG_PTR      pulEncryptedPartLen  /* gets c-text length */
     )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1144,6 +1219,7 @@ CK_RV C_DecryptVerifyUpdate
     CK_ULONG_PTR      pulPartLen           /* gets p-text length */
     )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1162,6 +1238,7 @@ CK_RV C_GenerateKey
     CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.GenerateKey(
             hSession,
@@ -1191,6 +1268,7 @@ CK_RV C_GenerateKeyPair
     CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.GenerateKeyPair(
             hSession,
@@ -1220,6 +1298,7 @@ CK_RV C_WrapKey
     CK_ULONG_PTR      pulWrappedKeyLen /* gets wrapped key size */
     )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1238,6 +1317,7 @@ CK_RV C_UnwrapKey
     CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
     )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1254,6 +1334,7 @@ CK_RV C_DeriveKey
     CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.DeriveKey(
             hSession,
@@ -1280,6 +1361,7 @@ CK_RV C_SeedRandom
     CK_ULONG          ulSeedLen  /* length of seed material */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.SeedRandom(hSession, pSeed, ulSeedLen);
     }
@@ -1295,6 +1377,7 @@ CK_RV C_GenerateRandom
     CK_ULONG          ulRandomLen  /* # of bytes to generate */
     )
 {
+    INIT_LOG();
     try {
         return pkcs11.GenerateRandom(hSession, RandomData, ulRandomLen);
     }
@@ -1313,6 +1396,7 @@ CK_RV C_GetFunctionStatus
     CK_SESSION_HANDLE hSession  /* the session's handle */
     )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1324,6 +1408,7 @@ CK_RV C_CancelFunction
     CK_SESSION_HANDLE hSession  /* the session's handle */
     )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1340,5 +1425,6 @@ CK_RV C_WaitForSlotEvent
     CK_VOID_PTR pRserved   /* reserved.  Should be NULL_PTR */
     )
 {
+    INIT_LOG();
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
