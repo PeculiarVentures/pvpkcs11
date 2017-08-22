@@ -295,7 +295,6 @@ Scoped<core::Object> EcKey::DeriveKey
                                                                    publicKey,
                                                                    &parameters,
                                                                    NULL);
-        
         if (derivedData.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyKeyExchangeResult");
         }
@@ -303,7 +302,7 @@ Scoped<core::Object> EcKey::DeriveKey
         puts("Derived");
         const UInt8* data = CFDataGetBytePtr(&derivedData);
         for (int i = 0; i < CFDataGetLength(&derivedData); i++) {
-            fprintf(stdout, "%02X", data[i]);
+            printf("%02X", data[i]);
         }
         puts("");
         
@@ -379,6 +378,10 @@ void osx::EcPrivateKey::FillPublicKeyStruct()
 {
     try {
         CFRef<SecKeyRef> publicKey = SecKeyCopyPublicKey(&value);
+        
+        if (publicKey.IsEmpty()) {
+            THROW_EXCEPTION("Error on SecKeyCopyPublicKey");
+        }
         
         CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(&publicKey);
         if (!&cfAttributes) {

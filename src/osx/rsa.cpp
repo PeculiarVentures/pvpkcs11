@@ -186,7 +186,12 @@ CK_RV osx::RsaPrivateKey::Destroy()
 void osx::RsaPrivateKey::FillPublicKeyStruct()
 {
     try {
+        CFShow(&value);
         CFRef<SecKeyRef> publicKey = SecKeyCopyPublicKey(&value);
+        
+        if (publicKey.IsEmpty()) {
+            THROW_EXCEPTION("Error on SecKeyCopyPublicKey");
+        }
         
         // Get public key SEQUENCE
         CFRef<CFDataRef> cfKeyData = SecKeyCopyExternalRepresentation(&publicKey, NULL);
