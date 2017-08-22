@@ -370,7 +370,7 @@ Scoped<Buffer> GetCertificateChain
         
         // Get trust resul
         CFRef<CFDictionaryRef> result = SecTrustCopyResult(trust);
-        //        CFShow(&result);
+//        CFShow(&result);
         
         CFArrayRef anchorCertificates = NULL;
         status = SecTrustCopyAnchorCertificates(&anchorCertificates);
@@ -380,34 +380,10 @@ Scoped<Buffer> GetCertificateChain
         CFRef<CFArrayRef> scopedAnchorCertificates = anchorCertificates;
         
         std::vector<SecCertificateRef> certs;
-        certs.push_back(cert);
-        CFRef<CFArrayRef> props = SecTrustCopyProperties(trust); // contains info about checked certificates
         
-        // start read props from secind item. First is entry cert
-        for (CFIndex i = 1; i < CFArrayGetCount(&props); i++) {
-            // NOTE: each item has 'title' property whish is `label` of certificate
-            CFDictionaryRef prop = (CFDictionaryRef)CFArrayGetValueAtIndex(&props, i);
-            CFStringRef propTitle = (CFStringRef)CFDictionaryGetValue(prop, kSecTrustResultDetailsTitle);
-            
-            // get anchor certificates with the same `title`
-            CFIndex j;
-            for (j = 0; j < CFArrayGetCount(anchorCertificates); j++) {
-                SecCertificateRef anchorCert = (SecCertificateRef)CFArrayGetValueAtIndex(anchorCertificates, j);
-                
-                CFErrorRef error = NULL;
-                CFRef<CFStringRef> anchorCertLabel = SecCertificateCopyShortDescription(NULL, anchorCert, &error);
-                CFRef<CFErrorRef> scopedError = error;
-                if (CFStringCompare(&anchorCertLabel, propTitle, 0) == kCFCompareEqualTo) {
-                    // certificate has the same 'label'
-                    certs.push_back(anchorCert);
-                    break;
-                }
-            }
-
-            if (j == CFArrayGetCount(anchorCertificates)) {
-                printf("Anchor certificate with label(%s) is not found\n", CFStringGetCStringPtr(propTitle, kCFStringEncodingUTF8));
-            }
-            
+        for (CFIndex i = 0; i < SecTrustGetCertificateCount(trust); i++) {
+            SecCertificateRef chainCert = SecTrustGetCertificateAtIndex(trust, i);
+            certs.push_back(chainCert);
         }
         
         CK_ULONG ulDataLen = 0;
