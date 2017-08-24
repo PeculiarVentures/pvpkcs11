@@ -16,4 +16,6 @@ namespace osx {
         CFRef<SecKeyRef> value;
     };
     
+    SecKeyRef SecKeyCopyPublicKeyEx(SecKeyRef key);
+    
 }

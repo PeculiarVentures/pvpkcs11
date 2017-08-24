@@ -377,10 +377,11 @@ CK_RV osx::EcPrivateKey::Destroy()
 void osx::EcPrivateKey::FillPublicKeyStruct()
 {
     try {
-        CFRef<SecKeyRef> publicKey = SecKeyCopyPublicKey(&value);
+        CFRef<SecKeyRef> publicKey = SecKeyCopyPublicKeyEx(&value);
         
         if (publicKey.IsEmpty()) {
-            THROW_EXCEPTION("Error on SecKeyCopyPublicKey");
+            // Cannot contain a public key or no public key can be computed from this private key
+            THROW_EXCEPTION("Error on SecKeyCopyPublicKeyEx");
         }
         
         CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(&publicKey);
