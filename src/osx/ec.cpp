@@ -251,7 +251,7 @@ Scoped<core::Object> EcKey::DeriveKey
         if (!params) {
             THROW_PKCS11_EXCEPTION(CKR_MECHANISM_PARAM_INVALID, "pMechanism->pParameter is not CK_ECDH1_DERIVE_PARAMS");
         }
-        
+
         Key* privateKey = dynamic_cast<Key*>(baseKey.get());
         if (!privateKey) {
             THROW_EXCEPTION("Cannot get SecKeyRef from Object");

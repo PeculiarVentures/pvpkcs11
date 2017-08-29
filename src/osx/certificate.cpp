@@ -127,19 +127,19 @@ Scoped<Buffer> osx::X509Certificate::GetPublicKeyHash(
         switch (mechType) {
             case CKM_SHA_1:
                 res->resize(CC_SHA1_DIGEST_LENGTH);
-                CC_SHA1(spki->data(), spki->size(), res->data());
+                CC_SHA1(spki->data(), (CC_LONG)spki->size(), res->data());
                 break;
             case CKM_SHA256:
                 res->resize(CC_SHA256_DIGEST_LENGTH);
-                CC_SHA256(spki->data(), spki->size(), res->data());
+                CC_SHA256(spki->data(), (CC_LONG)spki->size(), res->data());
                 break;
             case CKM_SHA384:
                 res->resize(CC_SHA384_DIGEST_LENGTH);
-                CC_SHA384(spki->data(), spki->size(), res->data());
+                CC_SHA384(spki->data(), (CC_LONG)spki->size(), res->data());
                 break;
             case CKM_SHA512:
                 res->resize(CC_SHA512_DIGEST_LENGTH);
-                CC_SHA512(spki->data(), spki->size(), res->data());
+                CC_SHA512(spki->data(), (CC_LONG)spki->size(), res->data());
                 break;
             default:
                 THROW_EXCEPTION("Invalid mechanism type must be CKM_SHA_1, CKM_SHA256, CKM_SHA384 or CKM_SHA512");
@@ -334,9 +334,6 @@ bool osx::X509Certificate::HasPrivateKey()
     }
     CATCH_EXCEPTION
 }
-
-static CFStringRef kSecTrustResultDetails = (CFSTR("TrustResultDetails"));
-static CFStringRef kSecTrustResultDetailsTitle = (CFSTR("title"));
 
 /*
  Returns DER collection of certificates

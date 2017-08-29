@@ -85,7 +85,7 @@ Scoped<core::KeyPair> osx::RsaKey::Generate
         SecKeyRef pPublicKey = NULL;
         
         CFDictionarySetValue(keyPairAttr, kSecAttrKeyType, kSecAttrKeyTypeRSA);
-        int32_t modulusBits = publicTemplate->GetNumber(CKA_MODULUS_BITS, true);
+        int32_t modulusBits = (int32_t)publicTemplate->GetNumber(CKA_MODULUS_BITS, true);
         CFRef<CFNumberRef> cfModulusBits = CFNumberCreate(kCFAllocatorDefault,
                                                           kCFNumberSInt32Type,
                                                           &modulusBits);

@@ -45,16 +45,16 @@ CK_RV osx::CryptoDigest::Update(
 
         switch (mechType) {
         case CKM_SHA_1:
-            CC_SHA1_Update(&sha1Alg, pPart, ulPartLen);
+            CC_SHA1_Update(&sha1Alg, pPart, (CC_LONG)ulPartLen);
             break;
         case CKM_SHA256:
-            CC_SHA256_Update(&sha256Alg, pPart, ulPartLen);
+            CC_SHA256_Update(&sha256Alg, pPart, (CC_LONG)ulPartLen);
             break;
         case CKM_SHA384:
-            CC_SHA384_Update(&sha512Alg, pPart, ulPartLen);
+            CC_SHA384_Update(&sha512Alg, pPart, (CC_LONG)ulPartLen);
             break;
         case CKM_SHA512:
-            CC_SHA512_Update(&sha512Alg, pPart, ulPartLen);
+            CC_SHA512_Update(&sha512Alg, pPart, (CC_LONG)ulPartLen);
             break;
         default:
             THROW_PKCS11_EXCEPTION(CKR_MECHANISM_INVALID, "Unsupported mechanism in use.");

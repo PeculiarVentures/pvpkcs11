@@ -450,6 +450,7 @@ CK_RV osx::Session::DeriveKey
                 derivedKey = EcKey::DeriveKey(pMechanism,
                                               baseKey,
                                               tmpl);
+                break;
             }
             default:
                 THROW_PKCS11_MECHANISM_INVALID();
