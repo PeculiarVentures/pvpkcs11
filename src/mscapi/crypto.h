@@ -234,7 +234,7 @@ namespace mscapi {
 
     protected:
         CryptoKey*          key;
-
+        LPWSTR              digestAlg;
     };
 
 }
