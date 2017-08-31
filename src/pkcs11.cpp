@@ -21,19 +21,22 @@ static auto fEnvError = getenv(PV_ENV_ERROR);
 #endif // _WIN32
 */
 
-#ifdef _WIN32
-#define LOG_FILE "/PVPKCS11.log"
-#else
-#define LOG_FILE "/tmp/PVPKCS11.log"
-#endif // _WIN32
-
+#define LOG_FILE "PVPKCS11.log"
 
 static const char* fEnvError = "true";
 
 void INIT_LOG()
 {
     if (pvlog == NULL) {
-        pvlog = fopen(LOG_FILE, "a+");
+        std::string path("");
+#ifdef _WIN32
+        path += std::getenv("TMP");
+        path += "\\";
+#else
+        path += "/tmp/";
+#endif // _WIN32
+        path += LOG_FILE;
+        pvlog = fopen(path.c_str(), "w+");
     }
 }
 

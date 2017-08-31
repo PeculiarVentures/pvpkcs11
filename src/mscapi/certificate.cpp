@@ -290,7 +290,15 @@ void mscapi::X509Certificate::AddToMyStorage()
         for (ULONG i = 0; i < provKeyNames->size(); i++) {
             auto provKeyName = provKeyNames->at(i);
             auto key = provider.OpenKey(provKeyName->pszName, provKeyName->dwLegacyKeySpec, 0);
-            auto keySpkiHash = key->GetId();
+            Scoped<Buffer> keySpkiHash;
+            try {
+                keySpkiHash = key->GetId();
+            }
+            catch (...) {
+                // Cannot get id from key. Key can be from token
+                // TODO: To check another way to get ID from key
+                continue;
+            }
             // compare hashes
             if (!memcmp(certSpkiHash->data(), keySpkiHash->data(), keySpkiHash->size
             ())) {
