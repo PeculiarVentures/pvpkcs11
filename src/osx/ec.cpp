@@ -251,7 +251,7 @@ Scoped<core::Object> EcKey::DeriveKey
         if (!params) {
             THROW_PKCS11_EXCEPTION(CKR_MECHANISM_PARAM_INVALID, "pMechanism->pParameter is not CK_ECDH1_DERIVE_PARAMS");
         }
-        
+
         Key* privateKey = dynamic_cast<Key*>(baseKey.get());
         if (!privateKey) {
             THROW_EXCEPTION("Cannot get SecKeyRef from Object");
@@ -295,7 +295,6 @@ Scoped<core::Object> EcKey::DeriveKey
                                                                    publicKey,
                                                                    &parameters,
                                                                    NULL);
-        
         if (derivedData.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyKeyExchangeResult");
         }
@@ -303,7 +302,7 @@ Scoped<core::Object> EcKey::DeriveKey
         puts("Derived");
         const UInt8* data = CFDataGetBytePtr(&derivedData);
         for (int i = 0; i < CFDataGetLength(&derivedData); i++) {
-            fprintf(stdout, "%02X", data[i]);
+            printf("%02X", data[i]);
         }
         puts("");
         
@@ -378,7 +377,12 @@ CK_RV osx::EcPrivateKey::Destroy()
 void osx::EcPrivateKey::FillPublicKeyStruct()
 {
     try {
-        CFRef<SecKeyRef> publicKey = SecKeyCopyPublicKey(&value);
+        CFRef<SecKeyRef> publicKey = SecKeyCopyPublicKeyEx(&value);
+        
+        if (publicKey.IsEmpty()) {
+            // Cannot contain a public key or no public key can be computed from this private key
+            THROW_EXCEPTION("Error on SecKeyCopyPublicKeyEx");
+        }
         
         CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(&publicKey);
         if (!&cfAttributes) {

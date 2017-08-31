@@ -59,7 +59,7 @@ char const* Exception::what()
 
 Pkcs11Exception::Pkcs11Exception(
     const char*        name,
-    int                code,
+    CK_ULONG           code,
     const char*        message,
     const char*        function,
     const char*        file,

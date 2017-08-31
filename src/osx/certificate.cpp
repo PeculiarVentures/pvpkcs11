@@ -127,19 +127,19 @@ Scoped<Buffer> osx::X509Certificate::GetPublicKeyHash(
         switch (mechType) {
             case CKM_SHA_1:
                 res->resize(CC_SHA1_DIGEST_LENGTH);
-                CC_SHA1(spki->data(), spki->size(), res->data());
+                CC_SHA1(spki->data(), (CC_LONG)spki->size(), res->data());
                 break;
             case CKM_SHA256:
                 res->resize(CC_SHA256_DIGEST_LENGTH);
-                CC_SHA256(spki->data(), spki->size(), res->data());
+                CC_SHA256(spki->data(), (CC_LONG)spki->size(), res->data());
                 break;
             case CKM_SHA384:
                 res->resize(CC_SHA384_DIGEST_LENGTH);
-                CC_SHA384(spki->data(), spki->size(), res->data());
+                CC_SHA384(spki->data(), (CC_LONG)spki->size(), res->data());
                 break;
             case CKM_SHA512:
                 res->resize(CC_SHA512_DIGEST_LENGTH);
-                CC_SHA512(spki->data(), spki->size(), res->data());
+                CC_SHA512(spki->data(), (CC_LONG)spki->size(), res->data());
                 break;
             default:
                 THROW_EXCEPTION("Invalid mechanism type must be CKM_SHA_1, CKM_SHA256, CKM_SHA384 or CKM_SHA512");
@@ -335,9 +335,6 @@ bool osx::X509Certificate::HasPrivateKey()
     CATCH_EXCEPTION
 }
 
-static CFStringRef kSecTrustResultDetails = (CFSTR("TrustResultDetails"));
-static CFStringRef kSecTrustResultDetailsTitle = (CFSTR("title"));
-
 /*
  Returns DER collection of certificates
  
@@ -370,7 +367,7 @@ Scoped<Buffer> GetCertificateChain
         
         // Get trust resul
         CFRef<CFDictionaryRef> result = SecTrustCopyResult(trust);
-        //        CFShow(&result);
+//        CFShow(&result);
         
         CFArrayRef anchorCertificates = NULL;
         status = SecTrustCopyAnchorCertificates(&anchorCertificates);
@@ -380,34 +377,10 @@ Scoped<Buffer> GetCertificateChain
         CFRef<CFArrayRef> scopedAnchorCertificates = anchorCertificates;
         
         std::vector<SecCertificateRef> certs;
-        certs.push_back(cert);
-        CFRef<CFArrayRef> props = SecTrustCopyProperties(trust); // contains info about checked certificates
         
-        // start read props from secind item. First is entry cert
-        for (CFIndex i = 1; i < CFArrayGetCount(&props); i++) {
-            // NOTE: each item has 'title' property whish is `label` of certificate
-            CFDictionaryRef prop = (CFDictionaryRef)CFArrayGetValueAtIndex(&props, i);
-            CFStringRef propTitle = (CFStringRef)CFDictionaryGetValue(prop, kSecTrustResultDetailsTitle);
-            
-            // get anchor certificates with the same `title`
-            CFIndex j;
-            for (j = 0; j < CFArrayGetCount(anchorCertificates); j++) {
-                SecCertificateRef anchorCert = (SecCertificateRef)CFArrayGetValueAtIndex(anchorCertificates, j);
-                
-                CFErrorRef error = NULL;
-                CFRef<CFStringRef> anchorCertLabel = SecCertificateCopyShortDescription(NULL, anchorCert, &error);
-                CFRef<CFErrorRef> scopedError = error;
-                if (CFStringCompare(&anchorCertLabel, propTitle, 0) == kCFCompareEqualTo) {
-                    // certificate has the same 'label'
-                    certs.push_back(anchorCert);
-                    break;
-                }
-            }
-
-            if (j == CFArrayGetCount(anchorCertificates)) {
-                printf("Anchor certificate with label(%s) is not found\n", CFStringGetCStringPtr(propTitle, kCFStringEncodingUTF8));
-            }
-            
+        for (CFIndex i = 0; i < SecTrustGetCertificateCount(trust); i++) {
+            SecCertificateRef chainCert = SecTrustGetCertificateAtIndex(trust, i);
+            certs.push_back(chainCert);
         }
         
         CK_ULONG ulDataLen = 0;

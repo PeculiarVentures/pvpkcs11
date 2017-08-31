@@ -51,7 +51,10 @@ static const SecAsn1Template kTbsCertificateTemplate[] = {
     {SEC_ASN1_ANY_CONTENTS, offsetof(ASN1_TBS_CERTIFICATE, subject)},
     {SEC_ASN1_SAVE, offsetof(ASN1_TBS_CERTIFICATE, derSubjectPublicKeyInfo)},
     {SEC_ASN1_INLINE, offsetof(ASN1_TBS_CERTIFICATE, subjectPublicKeyInfo), kSubjectPublicKeyInfoTemplate},
-    {SEC_ASN1_SKIP_REST},
+    {SEC_ASN1_OPTIONAL | SEC_ASN1_ANY_CONTENTS, offsetof(ASN1_TBS_CERTIFICATE, issuerUniqueId)},
+    {SEC_ASN1_OPTIONAL | SEC_ASN1_ANY_CONTENTS, offsetof(ASN1_TBS_CERTIFICATE, subjectUniqueId)},
+    {SEC_ASN1_OPTIONAL | SEC_ASN1_ANY_CONTENTS, offsetof(ASN1_TBS_CERTIFICATE, extensions)},
+    {0}
 };
 
 typedef struct {

@@ -37,7 +37,7 @@ SecKeyRef SecKeyCopyRef(SecKeyRef key) {
                                                                         &kCFTypeDictionaryKeyCallBacks,
                                                                         &kCFTypeDictionaryValueCallBacks);
     CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassKey);
-    CFDictionarySetValue(&matchAttr, kSecAttrApplicationLabel, klbl);
+    CFDictionaryAddValue(&matchAttr, kSecAttrApplicationLabel, klbl);
     CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
     
     SecKeyRef result = NULL;
@@ -49,7 +49,7 @@ SecKeyRef SecKeyCopyRef(SecKeyRef key) {
 }
 
 /*
- Copies SecKeyRef to core::Objected
+ Copies SecKeyRef to core::Objecte
  */
 Scoped<core::Object> SecKeyCopyObject(SecKeyRef key) {
     try {
@@ -450,6 +450,7 @@ CK_RV osx::Session::DeriveKey
                 derivedKey = EcKey::DeriveKey(pMechanism,
                                               baseKey,
                                               tmpl);
+                break;
             }
             default:
                 THROW_PKCS11_MECHANISM_INVALID();
