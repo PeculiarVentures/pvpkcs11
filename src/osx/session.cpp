@@ -201,6 +201,17 @@ CK_RV osx::Session::Open
         
         // Get keychain certificates and linked keys
         {
+            SecKeychainRef loginKeychain;
+            const char* HOME = getenv("HOME");
+            std::string loginKeyChainPath("");
+            loginKeyChainPath += HOME;
+            loginKeyChainPath += "/Library/Keychains/login.keychain";
+            OSStatus status = SecKeychainOpen(loginKeyChainPath.c_str(), &loginKeychain);
+            if (status) {
+                printf("Error SecKeychainOpen\n");
+            }
+            CFRef<SecKeychainRef> scopedLoginKeychain(loginKeychain);
+            
             CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
                                                                                 0,
                                                                                 &kCFTypeDictionaryKeyCallBacks,
@@ -208,6 +219,14 @@ CK_RV osx::Session::Open
             CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassCertificate);
             CFDictionaryAddValue(&matchAttr, kSecMatchLimit, kSecMatchLimitAll);
             CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
+            
+            // Add loging keychain to limit list
+            CFRef<CFArrayRef> matchSearchList;
+            if (loginKeychain){
+                SecKeychainRef keychainArray[] = {loginKeychain};
+                matchSearchList = CFArrayCreate(NULL, (const void**)keychainArray, 1, &kCFTypeArrayCallBacks);
+                CFDictionaryAddValue(&matchAttr, kSecMatchSearchList, &matchSearchList);
+            }
             
             CFArrayRef result;
             status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&result);
