@@ -94,7 +94,14 @@ void RsaPrivateKey::FillPublicKeyStruct()
         PBYTE pbModulus = (PBYTE)(pbPublicExponent + header->cbPublicExp);
         ItemByType(CKA_MODULUS)->SetValue(pbModulus, header->cbModulus);
 
-        auto keyUsage = nkey->GetNumber(NCRYPT_KEY_USAGE_PROPERTY);
+        DWORD keyUsage = NCRYPT_ALLOW_SIGNING_FLAG | NCRYPT_ALLOW_DECRYPT_FLAG;
+        // NCRYPT_KEY_USAGE_PROPERTY can contain zero or a combination of one or more of the values
+        try {
+            keyUsage = nkey->GetNumber(NCRYPT_KEY_USAGE_PROPERTY);
+        }
+        catch (...) {
+            // Cannot get NCRYPT_KEY_USAGE_PROPERTY
+        }
         if (keyUsage & NCRYPT_ALLOW_SIGNING_FLAG) {
             ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
         }
