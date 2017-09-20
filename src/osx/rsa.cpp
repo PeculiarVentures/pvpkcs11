@@ -132,6 +132,15 @@ void osx::RsaPrivateKey::Assign(SecKeyRef key)
         THROW_EXCEPTION("Error on SecKeyCopyAttributes");
     }
     
+    // Check key type
+    CFStringRef cfKeyType = (CFStringRef)CFDictionaryGetValue(&cfAttributes, kSecAttrKeyType);
+    if (cfKeyType == NULL) {
+        THROW_EXCEPTION("Key item doesn't have kSecAttrKeyType attribute");
+    }
+    if (CFStringCompare(cfKeyType, kSecAttrKeyTypeRSA, kCFCompareCaseInsensitive) != kCFCompareEqualTo) {
+        THROW_EXCEPTION("Cannot assign SecKeyRef. It has wrong kSecAttrKeyType");
+    }
+    
     CFDataRef cfLabel = (CFDataRef)CFDictionaryGetValue(&cfAttributes, kSecAttrApplicationLabel);
     if (cfLabel) {
         ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
@@ -401,6 +410,16 @@ void osx::RsaPublicKey::Assign(SecKeyRef key)
         if (cfAttributes.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyAttributes");
         }
+        
+        // Check key type
+        CFStringRef cfKeyType = (CFStringRef)CFDictionaryGetValue(&cfAttributes, kSecAttrKeyType);
+        if (cfKeyType == NULL) {
+            THROW_EXCEPTION("Key item doesn't have kSecAttrKeyType attribute");
+        }
+        if (CFStringCompare(cfKeyType, kSecAttrKeyTypeRSA, kCFCompareCaseInsensitive) != kCFCompareEqualTo) {
+            THROW_EXCEPTION("Cannot assign SecKeyRef. It has wrong kSecAttrKeyType");
+        }
+        
         CFDataRef cfAppLabel = (CFDataRef)CFDictionaryGetValue(&cfAttributes, kSecAttrApplicationLabel);
         if (cfAppLabel) {
             ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set((CK_BYTE_PTR)CFDataGetBytePtr(cfAppLabel),

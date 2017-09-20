@@ -54,16 +54,24 @@ SecKeyRef SecKeyCopyRef(SecKeyRef key) {
 Scoped<core::Object> SecKeyCopyObject(SecKeyRef key) {
     try {
         if (key == NULL) {
-            THROW_EXCEPTION("Parameter 'key' is empry");
+            THROW_EXCEPTION("Parameter 'key' is empty");
         }
         Scoped<core::Object> result;
-        SecKeyRef copyKey = SecKeyCopyRef(key);
+//        SecKeyRef copyKey = SecKeyCopyRef(key);
+        SecKeyRef copyKey = key;
         if (copyKey == NULL){
             THROW_EXCEPTION("Cannot copy SekKeyRef");
         }
         CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributes(copyKey);
         CFStringRef keyType  = (CFStringRef)CFDictionaryGetValue(&attrs, kSecAttrKeyType);
+        if (keyType == NULL) {
+            THROW_EXCEPTION("Cannot get kSecAttrKeyType from SecKeyRef");
+        }
         CFStringRef keyClass  = (CFStringRef)CFDictionaryGetValue(&attrs, kSecAttrKeyClass);
+        if (keyClass == NULL) {
+            THROW_EXCEPTION("Cannot get kSecAttrKeyClass from SecKeyRef");
+        }
+        
         if (CFStringCompare(keyType, kSecAttrKeyTypeRSA, kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
             if (CFStringCompare(keyClass, kSecAttrKeyClassPrivate, kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
                 Scoped<RsaPrivateKey> rsaKey(new RsaPrivateKey);
@@ -273,8 +281,12 @@ CK_RV osx::Session::Open
                     
                     objects.add(x509);
                 }
+                catch (Scoped<core::Exception> e) {
+                    // TODO: Static log function is neened
+                    printf("Error:%s: %s\n", __FUNCTION__, e->what());
+                }
                 catch(...) {
-                    puts("Error: Cannot get keys for certificate");
+                    puts("Error: Cannot get keys for certificate. Uknown error.");
                 }
             }
         }

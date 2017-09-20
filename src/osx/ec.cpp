@@ -322,6 +322,15 @@ void osx::EcPrivateKey::Assign(SecKeyRef key)
         THROW_EXCEPTION("Error on SecKeyCopyAttributes");
     }
     
+    // Check key type
+    CFStringRef cfKeyType = (CFStringRef)CFDictionaryGetValue(&cfAttributes, kSecAttrKeyType);
+    if (cfKeyType == NULL) {
+        THROW_EXCEPTION("Key item doesn't have kSecAttrKeyType attribute");
+    }
+    if (CFStringCompare(cfKeyType, kSecAttrKeyTypeEC, kCFCompareCaseInsensitive) != kCFCompareEqualTo) {
+        THROW_EXCEPTION("Cannot assign SecKeyRef. It has wrong kSecAttrKeyType");
+    }
+    
     CFDataRef cfLabel = (CFDataRef)CFDictionaryGetValue(&cfAttributes, kSecAttrApplicationLabel);
     if (cfLabel) {
         ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
@@ -396,13 +405,17 @@ void osx::EcPrivateKey::FillPublicKeyStruct()
                                                                         CFDataGetLength(cfLabel)
                                                                         );
         }
-        
+
         CFNumberRef cfKeySizeInBits = (CFNumberRef)CFDictionaryGetValue(&cfAttributes, kSecAttrKeySizeInBits);
         if (!cfKeySizeInBits) {
             THROW_EXCEPTION("Cannot get size of key");
         }
         CK_ULONG keySizeInBits = 0;
-        CFNumberGetValue(cfKeySizeInBits, kCFNumberSInt64Type, &keySizeInBits);
+        
+        CFNumberType cfNumberType = CFNumberGetType(cfKeySizeInBits);
+        if (!CFNumberGetValue(cfKeySizeInBits, cfNumberType, &keySizeInBits)) {
+            THROW_EXCEPTION("Error on CFNumberGetValue");
+        }
         CFRef<CFDataRef> cfKeyData = SecKeyCopyExternalRepresentation(&value, NULL);
         if (cfKeyData.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyExternalRepresentation");
@@ -574,8 +587,18 @@ void osx::EcPublicKey::Assign(SecKeyRef key)
         value = key;
         
         CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(&value);
+        
         if (!&cfAttributes) {
             THROW_EXCEPTION("Error on SecKeyCopyAttributes");
+        }
+        
+        // Check key type
+        CFStringRef cfKeyType = (CFStringRef)CFDictionaryGetValue(&cfAttributes, kSecAttrKeyType);
+        if (cfKeyType == NULL) {
+            THROW_EXCEPTION("Key item doesn't have kSecAttrKeyType attribute");
+        }
+        if (CFStringCompare(cfKeyType, kSecAttrKeyTypeEC, kCFCompareCaseInsensitive) != kCFCompareEqualTo) {
+            THROW_EXCEPTION("Cannot assign SecKeyRef. It has wrong kSecAttrKeyType");
         }
         
         CFDataRef cfAppLabel = (CFDataRef)CFDictionaryGetValue(&cfAttributes, kSecAttrApplicationLabel);

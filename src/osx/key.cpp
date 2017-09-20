@@ -38,14 +38,13 @@ SecKeyRef osx::SecKeyCopyPublicKeyEx(SecKeyRef key) {
     }
     if (!pubKey) {
         // Get public key from certificate
-        // Get public key from key chain
         // create query
         CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
                                                                             0,
                                                                             &kCFTypeDictionaryKeyCallBacks,
                                                                             &kCFTypeDictionaryValueCallBacks);
         CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassCertificate);
-        CFDictionaryAddValue(&matchAttr, kSecAttrApplicationLabel, klbl);
+        CFDictionaryAddValue(&matchAttr, kSecAttrPublicKeyHash, klbl);
         CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
         
         SecCertificateRef cert = NULL;

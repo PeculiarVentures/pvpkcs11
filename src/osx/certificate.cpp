@@ -260,6 +260,9 @@ Scoped<core::PublicKey> osx::X509Certificate::GetPublicKey()
         
         Scoped<core::PublicKey> res;
         CFStringRef cfKeyType = static_cast<CFStringRef>(CFDictionaryGetValue(&cfAttributes, kSecAttrKeyType));
+        if (cfKeyType == NULL) {
+            THROW_EXCEPTION("Cannot get type of public key. CFDictionaryGetValue returns empty");
+        }
         if (!CFStringCompare(kSecAttrKeyTypeRSA, cfKeyType, kCFCompareCaseInsensitive)) {
             Scoped<RsaPublicKey> rsaKey(new RsaPublicKey);
             rsaKey->Assign(secPublicKey);
@@ -300,11 +303,11 @@ Scoped<core::PrivateKey> osx::X509Certificate::GetPrivateKey()
         
         CFStringRef cfKeyType = static_cast<CFStringRef>(CFDictionaryGetValue(&attributes, kSecAttrKeyType));
         Scoped<core::PrivateKey> res;
-        if (!CFStringCompare(kSecAttrKeyTypeRSA, cfKeyType, kCFCompareCaseInsensitive)) {
+        if (CFStringCompare(kSecAttrKeyTypeRSA, cfKeyType, kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
             Scoped<RsaPrivateKey> rsaKey(new RsaPrivateKey);
             rsaKey->Assign(privateKey);
             res = rsaKey;
-        } else if (!CFStringCompare(kSecAttrKeyTypeEC, cfKeyType, kCFCompareCaseInsensitive)) {
+        } else if (CFStringCompare(kSecAttrKeyTypeEC, cfKeyType, kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
             Scoped<EcPrivateKey> ecKey(new EcPrivateKey);
             ecKey->Assign(privateKey);
             res = ecKey;
