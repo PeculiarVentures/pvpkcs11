@@ -48,10 +48,14 @@ SecKeyRef osx::SecKeyCopyPublicKeyEx(SecKeyRef key) {
         CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
         
         SecCertificateRef cert = NULL;
-        SecItemCopyMatching(&matchAttr, (CFTypeRef*)&cert);
-        if (cert) {
+        OSStatus status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&cert);
+        if (!status &&  cert != NULL) {
+            CFShow(cert);
             SecCertificateCopyPublicKey(cert, &pubKey);
             CFRelease(cert);
+        } else {
+            puts("Certificate is not found");
+            pubKey = NULL;
         }
     }
     return pubKey;

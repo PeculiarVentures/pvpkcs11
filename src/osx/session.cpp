@@ -57,8 +57,7 @@ Scoped<core::Object> SecKeyCopyObject(SecKeyRef key) {
             THROW_EXCEPTION("Parameter 'key' is empty");
         }
         Scoped<core::Object> result;
-//        SecKeyRef copyKey = SecKeyCopyRef(key);
-        SecKeyRef copyKey = key;
+        SecKeyRef copyKey = SecKeyCopyRef(key);
         if (copyKey == NULL){
             THROW_EXCEPTION("Cannot copy SekKeyRef");
         }
