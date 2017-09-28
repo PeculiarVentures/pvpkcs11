@@ -3,17 +3,20 @@
 
 using namespace mscapi;
 
+#define MS_SLOT_NAME "Windows CryptoAPI"
+
 mscapi::Slot::Slot() :
     core::Slot()
 {
     try {
-        SET_STRING(this->manufacturerID, "Windows CryptoAPI", 32);
-        SET_STRING(this->description, "Windows CryptoAPI", 64);
+        SET_STRING(this->manufacturerID, MS_SLOT_NAME, 32);
+        SET_STRING(this->description, MS_SLOT_NAME, 64);
         this->flags = CKF_TOKEN_INITIALIZED | CKF_RNG;
         this->hardwareVersion = { 0, 1 };
         this->firmwareVersion = { 0, 1 };
 
         // Token info
+		SET_STRING(this->tokenInfo.label, MS_SLOT_NAME, 32);
 
         // Add mechanisms
         //   SHA
