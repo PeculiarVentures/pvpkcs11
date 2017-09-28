@@ -215,7 +215,7 @@ CK_RV osx::Session::Open
             loginKeyChainPath += "/Library/Keychains/login.keychain";
             OSStatus status = SecKeychainOpen(loginKeyChainPath.c_str(), &loginKeychain);
             if (status) {
-                printf("Error SecKeychainOpen\n");
+                THROW_OSX_EXCEPTION(status, "SecKeychainOpen");
             }
             CFRef<SecKeychainRef> scopedLoginKeychain(loginKeychain);
             
@@ -234,58 +234,57 @@ CK_RV osx::Session::Open
                 matchSearchList = CFArrayCreate(NULL, (const void**)keychainArray, 1, &kCFTypeArrayCallBacks);
                 CFDictionaryAddValue(&matchAttr, kSecMatchSearchList, &matchSearchList);
             }
-            
+
             CFArrayRef result;
             status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&result);
-            if (status) {
-                THROW_OSX_EXCEPTION(status, "SecItemCopyMatching");
-            }
-            CFRef<CFArrayRef> scopedResult(result);
-            CFIndex certCount = CFArrayGetCount(result);
-            
-            CFIndex index = 0;
-            while (index < certCount) {
-                SecCertificateRef cert = (SecCertificateRef)CFArrayGetValueAtIndex(result, index++);
-                CFRef<CFDataRef> certData = SecCertificateCopyData(cert);
-                SecCertificateRef certCopy = SecCertificateCreateWithData(NULL, &certData);
+            if (!status) {
+                CFRef<CFArrayRef> scopedResult(result);
+                CFIndex certCount = CFArrayGetCount(result);
                 
-                Scoped<X509Certificate> x509(new X509Certificate);
-                x509->Assign(certCopy);
-                x509->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                
-                try {
+                CFIndex index = 0;
+                while (index < certCount) {
+                    SecCertificateRef cert = (SecCertificateRef)CFArrayGetValueAtIndex(result, index++);
+                    CFRef<CFDataRef> certData = SecCertificateCopyData(cert);
+                    SecCertificateRef certCopy = SecCertificateCreateWithData(NULL, &certData);
                     
-                    Scoped<core::PublicKey> publicKey = x509->GetPublicKey();
+                    Scoped<X509Certificate> x509(new X509Certificate);
+                    x509->Assign(certCopy);
+                    x509->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
                     
-                    // don't add keys with specific label. They will be added in the next step
-                    Key* pKey = dynamic_cast<Key*>(publicKey.get());
-                    if (pKey == NULL) {
-                        THROW_EXCEPTION("Cannot convert PublicKey to Key");
-                    }
-                    SecKeyRef secKey = pKey->Get();
-                    CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributes(secKey);
-                    CFStringRef keyLabel = (CFStringRef)CFDictionaryGetValue(&attrs, kSecAttrLabel);
-                    if (!(keyLabel &&
-                          CFStringCompare(keyLabel, kSecAttrLabelModule, kCFCompareCaseInsensitive) == kCFCompareEqualTo)) {
+                    try {
                         
-                        publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                    
-                        if (x509->HasPrivateKey()) {
-                            Scoped<core::PrivateKey> privateKey = x509->GetPrivateKey();
-                            privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                            objects.add(privateKey);
+                        Scoped<core::PublicKey> publicKey = x509->GetPublicKey();
+                        
+                        // don't add keys with specific label. They will be added in the next step
+                        Key* pKey = dynamic_cast<Key*>(publicKey.get());
+                        if (pKey == NULL) {
+                            THROW_EXCEPTION("Cannot convert PublicKey to Key");
                         }
-                        objects.add(publicKey);
+                        SecKeyRef secKey = pKey->Get();
+                        CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributes(secKey);
+                        CFStringRef keyLabel = (CFStringRef)CFDictionaryGetValue(&attrs, kSecAttrLabel);
+                        if (!(keyLabel &&
+                              CFStringCompare(keyLabel, kSecAttrLabelModule, kCFCompareCaseInsensitive) == kCFCompareEqualTo)) {
+                            
+                            publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                            
+                            if (x509->HasPrivateKey()) {
+                                Scoped<core::PrivateKey> privateKey = x509->GetPrivateKey();
+                                privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                                objects.add(privateKey);
+                            }
+                            objects.add(publicKey);
+                        }
+                        
+                        objects.add(x509);
                     }
-                    
-                    objects.add(x509);
-                }
-                catch (Scoped<core::Exception> e) {
-                    // TODO: Static log function is neened
-                    printf("Error:%s: %s\n", __FUNCTION__, e->what());
-                }
-                catch(...) {
-                    puts("Error: Cannot get keys for certificate. Uknown error.");
+                    catch (Scoped<core::Exception> e) {
+                        // TODO: Static log function is neened
+                        printf("Error:%s: %s\n", __FUNCTION__, e->what());
+                    }
+                    catch(...) {
+                        puts("Error: Cannot get keys for certificate. Uknown error.");
+                    }
                 }
             }
         }
