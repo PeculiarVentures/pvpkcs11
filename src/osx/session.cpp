@@ -280,10 +280,10 @@ CK_RV osx::Session::Open
                     }
                     catch (Scoped<core::Exception> e) {
                         // TODO: Static log function is neened
-                        printf("Error:%s: %s\n", __FUNCTION__, e->what());
+                        // printf("Error:%s: %s\n", __FUNCTION__, e->what());
                     }
                     catch(...) {
-                        puts("Error: Cannot get keys for certificate. Uknown error.");
+                        // puts("Error: Cannot get keys for certificate. Uknown error.");
                     }
                 }
             }
