@@ -3,12 +3,14 @@
 
 using namespace osx;
 
+#define OSX_SLOT_NAME "MacOS Crypto"
+
 osx::Slot::Slot() :
     core::Slot()
 {
     try {
-        SET_STRING(this->manufacturerID, "MacOS Crypto", 32);
-        SET_STRING(this->description, "MacOS Crypto", 64);
+        SET_STRING(this->manufacturerID, OSX_SLOT_NAME, 32);
+        SET_STRING(this->description, OSX_SLOT_NAME, 64);
         this->flags = CKF_TOKEN_INITIALIZED | CKF_RNG;
         this->hardwareVersion.major = 0;
         this->hardwareVersion.minor = 1;
@@ -16,6 +18,7 @@ osx::Slot::Slot() :
         this->firmwareVersion.minor = 1;
 
         // Token info
+        SET_STRING(this->tokenInfo.label, OSX_SLOT_NAME, 32);
 
         // Add mechanisms
         //   SHA
