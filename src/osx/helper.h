@@ -1,8 +1,9 @@
 #pragma once
 
 #include "../stdafx.h"
+#include "../core/excep.h"
 #include <CoreFoundation/CoreFoundation.h>
-
+#include <Security/Security.h>
 
 namespace osx {
     
@@ -59,5 +60,29 @@ throw Scoped<core::Exception>(new core::Pkcs11Exception(OSX_EXCEPTION_NAME, CKR_
     };
     
     static CFStringRef kSecAttrLabelModule = (CFSTR("WebCrypto Local"));
+    
+    template<typename T>
+    CK_RV SecItemDestroy(T item, CFStringRef secClass) {
+        try {
+            OSStatus status;
+            CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                                                                0,
+                                                                                &kCFTypeDictionaryKeyCallBacks,
+                                                                                &kCFTypeDictionaryValueCallBacks);
+            T itemArray[] = { item };
+            CFDictionaryAddValue(&matchAttr, kSecClass, secClass);
+            CFRef<CFArrayRef> itemList = CFArrayCreate(NULL, (const void**)itemArray , 1, &kCFTypeArrayCallBacks);
+            CFDictionaryAddValue(&matchAttr, kSecMatchItemList, &itemList);
+            
+            if ((status = SecItemDelete(&matchAttr))) {
+                THROW_OSX_EXCEPTION(status, "SecItemDelete");
+            }
+            
+            return CKR_OK;
+        }
+        CATCH_EXCEPTION
+    }
 
 }
+
+

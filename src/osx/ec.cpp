@@ -378,7 +378,7 @@ CK_RV osx::EcPrivateKey::CopyValues
 CK_RV osx::EcPrivateKey::Destroy()
 {
     try {
-        THROW_PKCS11_FUNCTION_NOT_SUPPORTED();
+        return SecItemDestroy(value.Get(), kSecClassKey);
     }
     CATCH_EXCEPTION
 }
@@ -572,7 +572,7 @@ CK_RV osx::EcPublicKey::CopyValues
 CK_RV osx::EcPublicKey::Destroy()
 {
     try {
-        THROW_PKCS11_FUNCTION_NOT_SUPPORTED();
+        return SecItemDestroy(value.Get(), kSecClassKey);
     }
     CATCH_EXCEPTION
 }

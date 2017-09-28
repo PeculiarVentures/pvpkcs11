@@ -187,7 +187,7 @@ CK_RV osx::RsaPrivateKey::CopyValues
 CK_RV osx::RsaPrivateKey::Destroy()
 {
     try {
-        THROW_PKCS11_FUNCTION_NOT_SUPPORTED();
+        return SecItemDestroy(value.Get(), kSecClassKey);
     }
     CATCH_EXCEPTION
 }
@@ -378,20 +378,21 @@ CK_RV osx::RsaPublicKey::CreateValues
     CATCH_EXCEPTION
 }
 
+CK_RV osx::RsaPublicKey::Destroy()
+{
+    try {
+        return SecItemDestroy(value.Get(), kSecClassKey);
+    }
+    CATCH_EXCEPTION
+}
+
+
 CK_RV osx::RsaPublicKey::CopyValues
 (
  Scoped<core::Object>    object,     /* the object which must be copied */
  CK_ATTRIBUTE_PTR        pTemplate,  /* specifies attributes */
  CK_ULONG                ulCount     /* attributes in template */
 )
-{
-    try {
-        THROW_PKCS11_FUNCTION_NOT_SUPPORTED();
-    }
-    CATCH_EXCEPTION
-}
-
-CK_RV osx::RsaPublicKey::Destroy()
 {
     try {
         THROW_PKCS11_FUNCTION_NOT_SUPPORTED();

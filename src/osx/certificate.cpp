@@ -224,21 +224,7 @@ void osx::X509Certificate::AddToMyStorage()
 CK_RV osx::X509Certificate::Destroy()
 {
     try {
-        OSStatus status;
-        CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                            0,
-                                                                            &kCFTypeDictionaryKeyCallBacks,
-                                                                            &kCFTypeDictionaryValueCallBacks);
-        SecCertificateRef certArray[] = { value.Get() };
-        CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassCertificate);
-        CFRef<CFArrayRef> itemList = CFArrayCreate(NULL, (const void**)certArray , 1, &kCFTypeArrayCallBacks);
-        CFDictionaryAddValue(&matchAttr, kSecMatchItemList, &itemList);
-        
-        if ((status = SecItemDelete(&matchAttr))) {
-            THROW_OSX_EXCEPTION(status, "SecItemDelete");
-        }
-        
-        return CKR_OK;
+        return SecItemDestroy(value.Get(), kSecClassCertificate);
     }
     CATCH_EXCEPTION
 }
