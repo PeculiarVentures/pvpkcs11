@@ -95,28 +95,33 @@ void Session::LoadMyStore()
                     }
                 }
 
-                switch (pKeyProvInfo->dwProvType) {
-                case PROV_RSA_SIG:
-                case PROV_RSA_AES:
-                case PROV_RSA_FULL: {
-                    auto rsaPrivateKey = Scoped<RsaPrivateKey>(new RsaPrivateKey());
-                    rsaPrivateKey->Assign(nkey);
-                    auto rsaPublicKey = Scoped<RsaPublicKey>(new RsaPublicKey());
-                    rsaPublicKey->Assign(nkey);
-                    privateKey = rsaPrivateKey;
-                    publicKey = rsaPublicKey;
-                    break;
-                }
-                case PROV_EC_ECDSA_SIG:
-                case PROV_EC_ECDSA_FULL:
-                    auto ecPrivateKey = Scoped<EcPrivateKey>(new EcPrivateKey());
-                    ecPrivateKey->Assign(nkey);
-                    auto ecPublicKey = Scoped<EcPublicKey>(new EcPublicKey());
-                    ecPublicKey->Assign(nkey);
-                    privateKey = ecPrivateKey;
-                    publicKey = ecPublicKey;
-                    break;
-                }
+				try {
+					switch (pKeyProvInfo->dwProvType) {
+					case PROV_RSA_SIG:
+					case PROV_RSA_AES:
+					case PROV_RSA_FULL: {
+						auto rsaPrivateKey = Scoped<RsaPrivateKey>(new RsaPrivateKey());
+						rsaPrivateKey->Assign(nkey);
+						auto rsaPublicKey = Scoped<RsaPublicKey>(new RsaPublicKey());
+						rsaPublicKey->Assign(nkey);
+						privateKey = rsaPrivateKey;
+						publicKey = rsaPublicKey;
+						break;
+					}
+					case PROV_EC_ECDSA_SIG:
+					case PROV_EC_ECDSA_FULL:
+						auto ecPrivateKey = Scoped<EcPrivateKey>(new EcPrivateKey());
+						ecPrivateKey->Assign(nkey);
+						auto ecPublicKey = Scoped<EcPublicKey>(new EcPublicKey());
+						ecPublicKey->Assign(nkey);
+						privateKey = ecPrivateKey;
+						publicKey = ecPublicKey;
+						break;
+					}
+				}
+				catch (...) {
+					// Cannot get key
+				}
             }
             else {
                 continue;
@@ -186,46 +191,51 @@ void Session::LoadCngKeys()
 
         auto keyNames = provider->GetKeyNames(0);
         for (ULONG i = 0; i < keyNames->size(); i++) {
-            auto keyName = keyNames->at(i);
-            auto key = provider->OpenKey(keyName->pszName, keyName->dwLegacyKeySpec, keyName->dwFlags);
-            auto propAlgGroup = key->GetBytesW(NCRYPT_ALGORITHM_GROUP_PROPERTY);
-            Scoped<core::Object> privateKey;
-            Scoped<core::Object> publicKey;
-            if (!wmemcmp(propAlgGroup->c_str(), NCRYPT_RSA_ALGORITHM_GROUP, lstrlenW(NCRYPT_RSA_ALGORITHM_GROUP))) {
-                auto rsaPrivateKey = Scoped<RsaPrivateKey>(new RsaPrivateKey());
-                rsaPrivateKey->Assign(key);
-                auto rsaPublicKey = Scoped<RsaPublicKey>(new RsaPublicKey());
-                rsaPublicKey->Assign(key);
-                privateKey = rsaPrivateKey;
-                publicKey = rsaPublicKey;
-            }
-            else if (!wmemcmp(propAlgGroup->c_str(), NCRYPT_ECDH_ALGORITHM_GROUP, lstrlenW(NCRYPT_ECDH_ALGORITHM_GROUP)) ||
-                !wmemcmp(propAlgGroup->c_str(), NCRYPT_ECDSA_ALGORITHM_GROUP, lstrlenW(NCRYPT_ECDSA_ALGORITHM_GROUP))) {
-                auto ecPrivateKey = Scoped<EcPrivateKey>(new EcPrivateKey());
-                ecPrivateKey->Assign(key);
-                auto ecPublicKey = Scoped<EcPublicKey>(new EcPublicKey());
-                ecPublicKey->Assign(key);
-                privateKey = ecPrivateKey;
-                publicKey = ecPublicKey;
-            }
-            else {
-                // Unsupported algorithm
-                continue;
-            }
+			try {
+				auto keyName = keyNames->at(i);
+				auto key = provider->OpenKey(keyName->pszName, keyName->dwLegacyKeySpec, keyName->dwFlags);
+				auto propAlgGroup = key->GetBytesW(NCRYPT_ALGORITHM_GROUP_PROPERTY);
+				Scoped<core::Object> privateKey;
+				Scoped<core::Object> publicKey;
+				if (!wmemcmp(propAlgGroup->c_str(), NCRYPT_RSA_ALGORITHM_GROUP, lstrlenW(NCRYPT_RSA_ALGORITHM_GROUP))) {
+					auto rsaPrivateKey = Scoped<RsaPrivateKey>(new RsaPrivateKey());
+					rsaPrivateKey->Assign(key);
+					auto rsaPublicKey = Scoped<RsaPublicKey>(new RsaPublicKey());
+					rsaPublicKey->Assign(key);
+					privateKey = rsaPrivateKey;
+					publicKey = rsaPublicKey;
+				}
+				else if (!wmemcmp(propAlgGroup->c_str(), NCRYPT_ECDH_ALGORITHM_GROUP, lstrlenW(NCRYPT_ECDH_ALGORITHM_GROUP)) ||
+					!wmemcmp(propAlgGroup->c_str(), NCRYPT_ECDSA_ALGORITHM_GROUP, lstrlenW(NCRYPT_ECDSA_ALGORITHM_GROUP))) {
+					auto ecPrivateKey = Scoped<EcPrivateKey>(new EcPrivateKey());
+					ecPrivateKey->Assign(key);
+					auto ecPublicKey = Scoped<EcPublicKey>(new EcPublicKey());
+					ecPublicKey->Assign(key);
+					privateKey = ecPrivateKey;
+					publicKey = ecPublicKey;
+				}
+				else {
+					// Unsupported algorithm
+					continue;
+				}
 
-            auto attrID = key->GetId();
-            privateKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
-            privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-            privateKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
-            privateKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+				auto attrID = key->GetId();
+				privateKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
+				privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+				privateKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+				privateKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
 
-            publicKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
-            publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-            publicKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
-            publicKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+				publicKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
+				publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+				publicKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+				publicKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
 
-            objects.add(publicKey);
-            objects.add(privateKey);
+				objects.add(publicKey);
+				objects.add(privateKey);
+			}
+			catch (...) {
+				// TODO make log to PVPKCS11
+			}
         }
     }
     CATCH_EXCEPTION
