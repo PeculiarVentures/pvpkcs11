@@ -24,13 +24,19 @@ SecCertificateRef osx::X509Certificate::Get()
     return this->value.Get();
 }
 
-void osx::X509Certificate::Assign(
-    SecCertificateRef        cert
+void osx::X509Certificate::Assign
+(
+ SecCertificateRef        cert,     /* OSX certificate reference */
+ CK_BBOOL                 free      /* destroy ref in destructor */
 )
 {
     try {
-        value = cert;
-
+        if (free) {
+            value = cert;
+        } else {
+            value = CFRef<SecCertificateRef>(cert, NULL);
+        }
+        
         // CKA_SUBJECT
         {
             CFRef<CFDataRef> cfSubjectName = SecCertificateCopyNormalizedSubjectSequence(&value);
@@ -38,9 +44,9 @@ void osx::X509Certificate::Assign(
             subjectName->resize((CK_ULONG)CFDataGetLength(&cfSubjectName));
             CFDataGetBytes(&cfSubjectName, CFRangeMake(0, subjectName->size()), subjectName->data());
             ItemByType(CKA_SUBJECT)->To<core::AttributeBytes>()->Set(
-                subjectName->data(),
-                subjectName->size()
-            );
+                                                                     subjectName->data(),
+                                                                     subjectName->size()
+                                                                     );
         }
         // CKA_ISSUER
         {
@@ -49,9 +55,9 @@ void osx::X509Certificate::Assign(
             issuerName->resize((CK_ULONG)CFDataGetLength(&cfIssuerName));
             CFDataGetBytes(&cfIssuerName, CFRangeMake(0, issuerName->size()), issuerName->data());
             ItemByType(CKA_ISSUER)->To<core::AttributeBytes>()->Set(
-                issuerName->data(),
-                issuerName->size()
-            );
+                                                                    issuerName->data(),
+                                                                    issuerName->size()
+                                                                    );
         }
         // CKA_VALUE
         {
@@ -65,17 +71,17 @@ void osx::X509Certificate::Assign(
                                                                    );
         }
         // CKA_ID
-        Scoped<Buffer> hash = GetPublicKeyHash(CKM_SHA_1);
+        Scoped<Buffer> hash = GetPublicKeyHash();
         ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set(
-            hash->data(),
-            hash->size()
-        );
+                                                            hash->data(),
+                                                            hash->size()
+                                                            );
         // CKA_CHECK_VALUE
         if (hash->size() > 3) {
             ItemByType(CKA_CHECK_VALUE)->To<core::AttributeBytes>()->Set(
-                hash->data(),
-                3
-            );
+                                                                         hash->data(),
+                                                                         3
+                                                                         );
         }
         // CKA_SERIAL_NUMBER
         {
@@ -84,68 +90,29 @@ void osx::X509Certificate::Assign(
             serialNumber->resize((CK_ULONG)CFDataGetLength(&cfSerialNumber));
             CFDataGetBytes(&cfSerialNumber, CFRangeMake(0, serialNumber->size()), serialNumber->data());
             ItemByType(CKA_SERIAL_NUMBER)->To<core::AttributeBytes>()->Set(
-                serialNumber->data(),
-                serialNumber->size()
-            );
+                                                                           serialNumber->data(),
+                                                                           serialNumber->size()
+                                                                           );
         }
     }
     CATCH_EXCEPTION
 }
 
-Scoped<Buffer> osx::X509Certificate::GetPublicKeyHash(
-    CK_MECHANISM_TYPE       mechType
+void osx::X509Certificate::Assign(
+    SecCertificateRef        cert
 )
 {
     try {
-        Scoped<Buffer> der = ItemByType(CKA_VALUE)->To<core::AttributeBytes>()->ToValue();
+        this->Assign(cert, true);
+    }
+    CATCH_EXCEPTION
+}
 
-        SecAsn1CoderRef coder = NULL;
-        SecAsn1CoderCreate(&coder);
-        if (!coder) {
-            THROW_EXCEPTION("SecAsn1CoderRef is empty");
-        }
-        
-        ASN1_X509 asn1Cert;
-        memset(&asn1Cert, 0, sizeof(ASN1_X509));
-        OSStatus status = SecAsn1Decode(
-                      coder,
-                      der->data(), der->size(),
-                      kX509Template,
-                      &asn1Cert
-                      );
-        if (status) {
-            SecAsn1CoderRelease(coder);
-            THROW_OSX_EXCEPTION(status, "SecAsn1Decode");
-        }
-        
-        Scoped<Buffer> spki(new Buffer);
-        spki->resize(asn1Cert.tbsCertificate.derSubjectPublicKeyInfo.Length);
-        memcpy(spki->data(), asn1Cert.tbsCertificate.derSubjectPublicKeyInfo.Data, spki->size());
-        SecAsn1CoderRelease(coder);
-        
-        Scoped<Buffer> res(new Buffer);
-        switch (mechType) {
-            case CKM_SHA_1:
-                res->resize(CC_SHA1_DIGEST_LENGTH);
-                CC_SHA1(spki->data(), (CC_LONG)spki->size(), res->data());
-                break;
-            case CKM_SHA256:
-                res->resize(CC_SHA256_DIGEST_LENGTH);
-                CC_SHA256(spki->data(), (CC_LONG)spki->size(), res->data());
-                break;
-            case CKM_SHA384:
-                res->resize(CC_SHA384_DIGEST_LENGTH);
-                CC_SHA384(spki->data(), (CC_LONG)spki->size(), res->data());
-                break;
-            case CKM_SHA512:
-                res->resize(CC_SHA512_DIGEST_LENGTH);
-                CC_SHA512(spki->data(), (CC_LONG)spki->size(), res->data());
-                break;
-            default:
-                THROW_EXCEPTION("Invalid mechanism type must be CKM_SHA_1, CKM_SHA256, CKM_SHA384 or CKM_SHA512");
-        }
-        
-        return res;
+Scoped<Buffer> osx::X509Certificate::GetPublicKeyHash()
+{
+    try {
+        Scoped<core::PublicKey> publicKey = this->GetPublicKey();
+        return publicKey->ItemByType(CKA_ID)->ToBytes();
     }
     CATCH_EXCEPTION
 }
@@ -262,7 +229,6 @@ Scoped<core::PublicKey> osx::X509Certificate::GetPublicKey()
         }
         
         Scoped<Buffer> certId = ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
-        res->ItemByType(CKA_ID)->SetValue(certId->data(), certId->size());
         
         return res;
     }
@@ -303,7 +269,6 @@ Scoped<core::PrivateKey> osx::X509Certificate::GetPrivateKey()
         }
         
         Scoped<Buffer> certId = ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
-        res->ItemByType(CKA_ID)->SetValue(certId->data(), certId->size());
         
         return res;
     }
@@ -320,6 +285,23 @@ bool osx::X509Certificate::HasPrivateKey()
         }
         CFRelease(identity);
         return true;
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<X509Certificate> osx::X509Certificate::Copy()
+{
+    try {
+        CFRef<CFDataRef> certData = SecCertificateCopyData(this->Get());
+        SecCertificateRef certCopy = SecCertificateCreateWithData(NULL, &certData);
+        if (!certCopy) {
+            THROW_EXCEPTION("Error on SecCertificateCreateWithData");
+        }
+        
+        Scoped<X509Certificate> res(new X509Certificate);
+        res->Assign(certCopy);
+        
+        return res;
     }
     CATCH_EXCEPTION
 }
@@ -356,7 +338,6 @@ Scoped<Buffer> GetCertificateChain
         
         // Get trust resul
         CFRef<CFDictionaryRef> result = SecTrustCopyResult(trust);
-//        CFShow(&result);
         
         CFArrayRef anchorCertificates = NULL;
         status = SecTrustCopyAnchorCertificates(&anchorCertificates);

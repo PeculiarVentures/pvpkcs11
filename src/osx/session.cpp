@@ -37,6 +37,7 @@ SecKeyRef SecKeyCopyRef(SecKeyRef key) {
                                                                         &kCFTypeDictionaryKeyCallBacks,
                                                                         &kCFTypeDictionaryValueCallBacks);
     CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassKey);
+    CFDictionaryAddValue(&matchAttr, kSecAttrKeyClass, kcls);
     CFDictionaryAddValue(&matchAttr, kSecAttrApplicationLabel, klbl);
     CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
     
@@ -239,44 +240,37 @@ CK_RV osx::Session::Open
             status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&result);
             if (!status) {
                 CFRef<CFArrayRef> scopedResult(result);
-                CFIndex certCount = CFArrayGetCount(result);
+                CFIndex itemsCount = CFArrayGetCount(result);
                 
                 CFIndex index = 0;
-                while (index < certCount) {
+                while (index < itemsCount) {
                     SecCertificateRef cert = (SecCertificateRef)CFArrayGetValueAtIndex(result, index++);
-                    CFRef<CFDataRef> certData = SecCertificateCopyData(cert);
-                    SecCertificateRef certCopy = SecCertificateCreateWithData(NULL, &certData);
                     
-                    Scoped<X509Certificate> x509(new X509Certificate);
-                    x509->Assign(certCopy);
-                    x509->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                    X509Certificate x509;
+                    x509.Assign(cert, false);
                     
                     try {
                         
-                        Scoped<core::PublicKey> publicKey = x509->GetPublicKey();
+                        Scoped<core::PublicKey> publicKey = x509.GetPublicKey();
                         
-                        // don't add keys with specific label. They will be added in the next step
                         Key* pKey = dynamic_cast<Key*>(publicKey.get());
                         if (pKey == NULL) {
                             THROW_EXCEPTION("Cannot convert PublicKey to Key");
                         }
-                        SecKeyRef secKey = pKey->Get();
-                        CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributes(secKey);
-                        CFStringRef keyLabel = (CFStringRef)CFDictionaryGetValue(&attrs, kSecAttrLabel);
-                        if (!(keyLabel &&
-                              CFStringCompare(keyLabel, kSecAttrLabelModule, kCFCompareCaseInsensitive) == kCFCompareEqualTo)) {
                             
-                            publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                        publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
                             
-                            if (x509->HasPrivateKey()) {
-                                Scoped<core::PrivateKey> privateKey = x509->GetPrivateKey();
-                                privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                                objects.add(privateKey);
-                            }
-                            objects.add(publicKey);
+                        if (x509.HasPrivateKey()) {
+                            Scoped<core::PrivateKey> privateKey = x509.GetPrivateKey();
+                            privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                            objects.add(privateKey);
                         }
+                        objects.add(publicKey);
                         
-                        objects.add(x509);
+                        Scoped<X509Certificate> x509Copy = x509.Copy();
+                        x509Copy->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                        
+                        objects.add(x509Copy);
                     }
                     catch (Scoped<core::Exception> e) {
                         // TODO: Static log function is neened
@@ -310,7 +304,27 @@ CK_RV osx::Session::Open
                 while (index < arrayCount) {
                     SecKeyRef secKey = (SecKeyRef)CFArrayGetValueAtIndex(result, index++);
                     Scoped<core::Object> key = SecKeyCopyObject(secKey);
+                    
+                    // Don't add tokens which were added before
+                    CK_LONG searchIndex = 0;
+                    while (searchIndex < objects.count()) {
+                        Scoped<core::Object> object = objects.items(searchIndex++);
+                        if (object->ItemByType(CKA_CLASS)->ToNumber() == key->ItemByType(CKA_CLASS)->ToNumber() &&
+                            object->ItemByType(CKA_KEY_TYPE)->ToNumber() == key->ItemByType(CKA_KEY_TYPE)->ToNumber()) {
+                            Scoped<Buffer> keyId1 = object->ItemByType(CKA_ID)->ToBytes();
+                            Scoped<Buffer> keyId2 = key->ItemByType(CKA_ID)->ToBytes();
+                            if (keyId1->size() == keyId2->size() &&
+                                !memcmp(keyId1->data(), keyId2->data(), keyId1->size())) {
+                                break;
+                            }
+                        }
+                    }
+                    if (searchIndex < objects.count()) {
+                        continue;
+                    }
+                    
                     key->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                    
                     objects.add(key);
                 }
             }
