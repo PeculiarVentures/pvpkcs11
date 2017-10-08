@@ -31,11 +31,20 @@
 #include <vector>
 #include <string>
 
+#include "logger.h"
+
+static Logger logger;
+
+#define LOGGER_INFO(message, ...) logger.print(LOGGER_LEVEL_INFO, __FILE__, __LINE__, __FUNCTION__, message, ## __VA_ARGS__)
+#define LOGGER_WARN(message, ...) logger.print(LOGGER_LEVEL_WARN, __FILE__, __LINE__, __FUNCTION__, message, ## __VA_ARGS__)
+#define LOGGER_ERROR(message, ...) logger.print(LOGGER_LEVEL_ERROR, __FILE__, __LINE__, __FUNCTION__, message, ## __VA_ARGS__)
+#define LOGGER_DEBUG(message, ...) logger.print(LOGGER_LEVEL_DEBUG, __FILE__, __LINE__, __FUNCTION__, message, ## __VA_ARGS__)
+#define LOGGER_TRACE(message, ...) logger.print(LOGGER_LEVEL_TRACE, __FILE__, __LINE__, __FUNCTION__, message, ## __VA_ARGS__)
+
+
 template <typename T>
 using Scoped = std::shared_ptr<T>;
 using Buffer = std::vector<CK_BYTE>;
-
-static FILE* pvlog = NULL;
 
 /**
  * Set padded string for PKCS#11 structures

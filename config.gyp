@@ -34,6 +34,7 @@
                 # core
                 'src/stdafx.cpp',
                 'src/pkcs11.cpp',
+                'src/logger.cpp',
                 'src/core/crypto_digest.cpp',
                 'src/core/crypto_sign.cpp',
                 'src/core/crypto_encrypt.cpp',

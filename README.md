@@ -64,9 +64,18 @@ npm test
 
 ### Enviroment Variables
 
-| Name              | Value | Description                                                              |
-|-------------------|-------|--------------------------------------------------------------------------|
-| `PV_PKCS11_ERROR` | true  | Prints to stdout additional information about errors from PKCS#11 module |
+| Name                    | Type   | Description                                                              |
+|-------------------------|--------|--------------------------------------------------------------------------|
+| `PV_PKCS11_ERROR`       | any    | Prints to stdout additional information about errors from PKCS#11 module |
+| `PV_PKCS11_ERROR_LEVEL` | number | Combination of flags for different types of messages                     |
+
+| Name                    | Value |
+|-------------------------|-------|
+| `INFO`                  | 1     |
+| `WARN`                  | 2     |
+| `ERROR`                 | 4     |
+| `DEBUG`                 | 8     |
+| `TRACE`                 | 16    |
 
 
 ### Supported Algorithms
