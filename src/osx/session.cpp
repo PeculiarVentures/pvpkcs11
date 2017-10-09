@@ -16,17 +16,22 @@
 
 using namespace osx;
 
-/*
+/**
  Creates copy for SecKeyRef by getting the same SecKeyRef from Keychain
  If it cannot get SecKeyRef from chain it returns NULL
+ 
+ @param key Key wich must be copied
+ @return Copy of SecKeyRef. Returns NULL if cannot copy key
  */
 SecKeyRef SecKeyCopyRef(SecKeyRef key) {
+    LOGGER_FUNCTION_BEGIN;
+    
     CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributes(key);
-    CFDataRef klbl = (CFDataRef)CFDictionaryGetValue(&attrs, kSecAttrApplicationLabel);
+    CFDataRef klbl = (CFDataRef)CFDictionaryGetValue(*attrs, kSecAttrApplicationLabel);
     if (klbl == NULL) {
         return NULL;
     }
-    CFStringRef kcls = (CFStringRef) CFDictionaryGetValue(&attrs, kSecAttrKeyClass);
+    CFStringRef kcls = (CFStringRef) CFDictionaryGetValue(*attrs, kSecAttrKeyClass);
     if (kcls == NULL) {
         return NULL;
     }
@@ -36,12 +41,13 @@ SecKeyRef SecKeyCopyRef(SecKeyRef key) {
                                                                         0,
                                                                         &kCFTypeDictionaryKeyCallBacks,
                                                                         &kCFTypeDictionaryValueCallBacks);
-    CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassKey);
-    CFDictionaryAddValue(&matchAttr, kSecAttrApplicationLabel, klbl);
-    CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
+    CFDictionaryAddValue(*matchAttr, kSecClass, kSecClassKey);
+    CFDictionaryAddValue(*matchAttr, kSecAttrKeyClass, kcls);
+    CFDictionaryAddValue(*matchAttr, kSecAttrApplicationLabel, klbl);
+    CFDictionaryAddValue(*matchAttr, kSecReturnRef, kCFBooleanTrue);
     
     SecKeyRef result = NULL;
-    OSStatus status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&result);
+    OSStatus status = SecItemCopyMatching(*matchAttr, (CFTypeRef*)&result);
     if (status) {
         return NULL;
     }
@@ -52,6 +58,8 @@ SecKeyRef SecKeyCopyRef(SecKeyRef key) {
  Copies SecKeyRef to core::Objecte
  */
 Scoped<core::Object> SecKeyCopyObject(SecKeyRef key) {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         if (key == NULL) {
             THROW_EXCEPTION("Parameter 'key' is empty");
@@ -62,11 +70,11 @@ Scoped<core::Object> SecKeyCopyObject(SecKeyRef key) {
             THROW_EXCEPTION("Cannot copy SekKeyRef");
         }
         CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributes(copyKey);
-        CFStringRef keyType  = (CFStringRef)CFDictionaryGetValue(&attrs, kSecAttrKeyType);
+        CFStringRef keyType  = (CFStringRef)CFDictionaryGetValue(*attrs, kSecAttrKeyType);
         if (keyType == NULL) {
             THROW_EXCEPTION("Cannot get kSecAttrKeyType from SecKeyRef");
         }
-        CFStringRef keyClass  = (CFStringRef)CFDictionaryGetValue(&attrs, kSecAttrKeyClass);
+        CFStringRef keyClass  = (CFStringRef)CFDictionaryGetValue(*attrs, kSecAttrKeyClass);
         if (keyClass == NULL) {
             THROW_EXCEPTION("Cannot get kSecAttrKeyClass from SecKeyRef");
         }
@@ -107,6 +115,8 @@ Scoped<core::Object> osx::Session::CreateObject
  CK_ULONG                ulCount      /* attributes in template */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         core::Template tmpl(pTemplate, ulCount);
         
@@ -166,6 +176,8 @@ Scoped<core::Object> osx::Session::CopyObject
  CK_ULONG             ulCount      /* attributes in template */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         Scoped<core::Object> copy;
         if (dynamic_cast<X509Certificate*>(object.get())) {
@@ -192,6 +204,8 @@ CK_RV osx::Session::Open
  CK_SESSION_HANDLE_PTR phSession      /* gets session handle */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         core::Session::Open(flags,
                             pApplication,
@@ -208,7 +222,7 @@ CK_RV osx::Session::Open
         
         // Get keychain certificates and linked keys
         {
-            SecKeychainRef loginKeychain;
+            CFRef<SecKeychainRef> loginKeychain;
             const char* HOME = getenv("HOME");
             std::string loginKeyChainPath("");
             loginKeyChainPath += HOME;
@@ -217,100 +231,109 @@ CK_RV osx::Session::Open
             if (status) {
                 THROW_OSX_EXCEPTION(status, "SecKeychainOpen");
             }
-            CFRef<SecKeychainRef> scopedLoginKeychain(loginKeychain);
             
             CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
                                                                                 0,
                                                                                 &kCFTypeDictionaryKeyCallBacks,
                                                                                 &kCFTypeDictionaryValueCallBacks);
-            CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassCertificate);
-            CFDictionaryAddValue(&matchAttr, kSecMatchLimit, kSecMatchLimitAll);
-            CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
+            CFDictionaryAddValue(*matchAttr, kSecClass, kSecClassCertificate);
+            CFDictionaryAddValue(*matchAttr, kSecMatchLimit, kSecMatchLimitAll);
+            CFDictionaryAddValue(*matchAttr, kSecReturnRef, kCFBooleanTrue);
             
             // Add loging keychain to limit list
             CFRef<CFArrayRef> matchSearchList;
-            if (loginKeychain){
-                SecKeychainRef keychainArray[] = {loginKeychain};
+            if (!loginKeychain.IsEmpty()){
+                SecKeychainRef keychainArray[] = {*loginKeychain};
                 matchSearchList = CFArrayCreate(NULL, (const void**)keychainArray, 1, &kCFTypeArrayCallBacks);
-                CFDictionaryAddValue(&matchAttr, kSecMatchSearchList, &matchSearchList);
+                CFDictionaryAddValue(*matchAttr, kSecMatchSearchList, *matchSearchList);
             }
-
-            CFArrayRef result;
-            status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&result);
+            
+            CFRef<CFArrayRef> result;
+            status = SecItemCopyMatching(*matchAttr, (CFTypeRef*)&result);
             if (!status) {
-                CFRef<CFArrayRef> scopedResult(result);
-                CFIndex certCount = CFArrayGetCount(result);
+                CFIndex itemsCount = CFArrayGetCount(*result);
                 
                 CFIndex index = 0;
-                while (index < certCount) {
-                    SecCertificateRef cert = (SecCertificateRef)CFArrayGetValueAtIndex(result, index++);
-                    CFRef<CFDataRef> certData = SecCertificateCopyData(cert);
-                    SecCertificateRef certCopy = SecCertificateCreateWithData(NULL, &certData);
+                while (index < itemsCount) {
+                    SecCertificateRef cert = (SecCertificateRef)CFArrayGetValueAtIndex(*result, index++);
                     
-                    Scoped<X509Certificate> x509(new X509Certificate);
-                    x509->Assign(certCopy);
-                    x509->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                    X509Certificate x509;
+                    x509.Assign(cert, false);
                     
                     try {
                         
-                        Scoped<core::PublicKey> publicKey = x509->GetPublicKey();
+                        Scoped<core::PublicKey> publicKey = x509.GetPublicKey();
                         
-                        // don't add keys with specific label. They will be added in the next step
                         Key* pKey = dynamic_cast<Key*>(publicKey.get());
                         if (pKey == NULL) {
                             THROW_EXCEPTION("Cannot convert PublicKey to Key");
                         }
-                        SecKeyRef secKey = pKey->Get();
-                        CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributes(secKey);
-                        CFStringRef keyLabel = (CFStringRef)CFDictionaryGetValue(&attrs, kSecAttrLabel);
-                        if (!(keyLabel &&
-                              CFStringCompare(keyLabel, kSecAttrLabelModule, kCFCompareCaseInsensitive) == kCFCompareEqualTo)) {
-                            
-                            publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                            
-                            if (x509->HasPrivateKey()) {
-                                Scoped<core::PrivateKey> privateKey = x509->GetPrivateKey();
-                                privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                                objects.add(privateKey);
-                            }
-                            objects.add(publicKey);
-                        }
                         
-                        objects.add(x509);
+                        publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                        
+                        if (x509.HasPrivateKey()) {
+                            Scoped<core::PrivateKey> privateKey = x509.GetPrivateKey();
+                            privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                            objects.add(privateKey);
+                        }
+                        objects.add(publicKey);
+                        
+                        Scoped<X509Certificate> x509Copy = x509.Copy();
+                        x509Copy->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                        
+                        objects.add(x509Copy);
                     }
                     catch (Scoped<core::Exception> e) {
-                        // TODO: Static log function is neened
-                        // printf("Error:%s: %s\n", __FUNCTION__, e->what());
+                        LOGGER_ERROR("Cannot load certificate. %s", e->what());
                     }
                     catch(...) {
-                        // puts("Error: Cannot get keys for certificate. Uknown error.");
+                        LOGGER_ERROR("Cannot load certificate. Uknown exception");
                     }
                 }
             }
         }
-
+        
         // Get all keys from keychain matching to label
         {
             CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
                                                                                 0,
                                                                                 &kCFTypeDictionaryKeyCallBacks,
                                                                                 &kCFTypeDictionaryValueCallBacks);
-            CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassKey);
-            CFDictionaryAddValue(&matchAttr, kSecMatchLimit, kSecMatchLimitAll);
-            CFDictionaryAddValue(&matchAttr, kSecAttrLabel, kSecAttrLabelModule);
-            CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
+            CFDictionaryAddValue(*matchAttr, kSecClass, kSecClassKey);
+            CFDictionaryAddValue(*matchAttr, kSecMatchLimit, kSecMatchLimitAll);
+            CFDictionaryAddValue(*matchAttr, kSecAttrLabel, kSecAttrLabelModule);
+            CFDictionaryAddValue(*matchAttr, kSecReturnRef, kCFBooleanTrue);
             
-            CFArrayRef result;
-            status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&result);
+            CFRef<CFArrayRef> result;
+            status = SecItemCopyMatching(*matchAttr, (CFTypeRef*)&result);
             if (!status) {
-                CFRef<CFArrayRef> scopedResult(result);
-                CFIndex arrayCount = CFArrayGetCount(result);
+                CFIndex arrayCount = CFArrayGetCount(*result);
                 
                 CFIndex index = 0;
                 while (index < arrayCount) {
-                    SecKeyRef secKey = (SecKeyRef)CFArrayGetValueAtIndex(result, index++);
+                    SecKeyRef secKey = (SecKeyRef)CFArrayGetValueAtIndex(*result, index++);
                     Scoped<core::Object> key = SecKeyCopyObject(secKey);
+                    
+                    // Don't add tokens which were added before
+                    CK_LONG searchIndex = 0;
+                    while (searchIndex < objects.count()) {
+                        Scoped<core::Object> object = objects.items(searchIndex++);
+                        if (object->ItemByType(CKA_CLASS)->ToNumber() == key->ItemByType(CKA_CLASS)->ToNumber() &&
+                            object->ItemByType(CKA_KEY_TYPE)->ToNumber() == key->ItemByType(CKA_KEY_TYPE)->ToNumber()) {
+                            Scoped<Buffer> keyId1 = object->ItemByType(CKA_ID)->ToBytes();
+                            Scoped<Buffer> keyId2 = key->ItemByType(CKA_ID)->ToBytes();
+                            if (keyId1->size() == keyId2->size() &&
+                                !memcmp(keyId1->data(), keyId2->data(), keyId1->size())) {
+                                break;
+                            }
+                        }
+                    }
+                    if (searchIndex < objects.count()) {
+                        continue;
+                    }
+                    
                     key->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                    
                     objects.add(key);
                 }
             }
@@ -322,15 +345,18 @@ CK_RV osx::Session::Open
 
 CK_RV osx::Session::Close()
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         return CKR_OK;
     }
     CATCH_EXCEPTION
 }
 
-CK_RV osx::Session::GenerateRandom(
-                                   CK_BYTE_PTR       pPart,     /* data to be digested */
-                                   CK_ULONG          ulPartLen  /* bytes of data to be digested */
+CK_RV osx::Session::GenerateRandom
+(
+ CK_BYTE_PTR       pPart,     /* data to be digested */
+ CK_ULONG          ulPartLen  /* bytes of data to be digested */
 )
 {
     try {
@@ -539,6 +565,8 @@ CK_RV osx::Session::DecryptInit
  CK_OBJECT_HANDLE  hKey
  )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         core::Session::DecryptInit(
                                    pMechanism,
@@ -576,6 +604,8 @@ CK_RV osx::Session::SignInit
  CK_OBJECT_HANDLE  hKey
  )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         core::Session::SignInit(
                                 pMechanism,
@@ -616,11 +646,13 @@ CK_RV osx::Session::VerifyInit
  CK_OBJECT_HANDLE  hKey
  )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         core::Session::VerifyInit(
-                                pMechanism,
-                                hKey
-                                );
+                                  pMechanism,
+                                  hKey
+                                  );
         
         if (decrypt->IsActive()) {
             THROW_PKCS11_OPERATION_ACTIVE();

@@ -7,6 +7,7 @@ using namespace osx;
 osx::RsaPKCS1Sign::RsaPKCS1Sign(CK_BBOOL type) :
 core::CryptoSign(type)
 {
+    LOGGER_FUNCTION_BEGIN;
 }
 
 CK_RV osx::RsaPKCS1Sign::Init
@@ -15,6 +16,8 @@ CK_RV osx::RsaPKCS1Sign::Init
  Scoped<core::Object>    key
  )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         core::CryptoSign::Init(pMechanism, key);
         
@@ -69,6 +72,8 @@ CK_RV osx::RsaPKCS1Sign::Update
  CK_ULONG          ulPartLen
  )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         core::CryptoSign::Update(pPart, ulPartLen);
         
@@ -85,6 +90,8 @@ CK_RV osx::RsaPKCS1Sign::Final
  CK_ULONG_PTR      pulSignatureLen
  )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CryptoSign::Final(pSignature, pulSignatureLen);
         
@@ -121,9 +128,10 @@ CK_RV osx::RsaPKCS1Sign::Final
             
             CFRef<CFDataRef> cfHash = CFDataCreate(NULL, hash, hashLen);
             
-            CFRef<CFDataRef> signature = SecKeyCreateSignature(key->Get(),
+            SecKeyRef secKey = key->Get();
+            CFRef<CFDataRef> signature = SecKeyCreateSignature(secKey,
                                                                keyAlgorithm,
-                                                               &cfHash,
+                                                               *cfHash,
                                                                NULL);
             
             active = false;
@@ -132,8 +140,8 @@ CK_RV osx::RsaPKCS1Sign::Final
                 THROW_EXCEPTION("Error on SecKeyCreateSignature");
             }
             
-            *pulSignatureLen = CFDataGetLength(&signature);
-            memcpy(pSignature, (CK_BYTE_PTR)CFDataGetBytePtr(&signature), *pulSignatureLen);
+            *pulSignatureLen = CFDataGetLength(*signature);
+            memcpy(pSignature, (CK_BYTE_PTR)CFDataGetBytePtr(*signature), *pulSignatureLen);
         }
         
         return CKR_OK;
@@ -147,6 +155,8 @@ CK_RV osx::RsaPKCS1Sign::Final
  CK_ULONG          ulSignatureLen
  )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CryptoSign::Final(pSignature, ulSignatureLen);
         
@@ -175,11 +185,12 @@ CK_RV osx::RsaPKCS1Sign::Final
         CFRef<CFDataRef> cfHash = CFDataCreate(NULL, hash, hashLen);
         CFRef<CFDataRef> cfSignature = CFDataCreate(NULL, pSignature, ulSignatureLen);
         
+        SecKeyRef secKey = key->Get();
         Boolean ok = SecKeyVerifySignature(
-                                           key->Get(),
+                                           secKey,
                                            keyAlgorithm,
-                                           &cfHash,
-                                           &cfSignature,
+                                           *cfHash,
+                                           *cfSignature,
                                            NULL);
         
         active = false;

@@ -18,12 +18,14 @@ namespace osx {
         (
          SecCertificateRef        cert      /* OSX certificate reference */
         );
+        void Assign
+        (
+         SecCertificateRef        cert,     /* OSX certificate reference */
+         CK_BBOOL                 free      /* destroy ref in destructor */
+        );
         SecCertificateRef Get();
         
-        Scoped<Buffer> GetPublicKeyHash
-        (
-         CK_MECHANISM_TYPE       mechType   /* digest mechanism type */
-        );
+        Scoped<Buffer> GetPublicKeyHash();
         
         CK_RV CreateValues
         (
@@ -43,6 +45,7 @@ namespace osx {
         Scoped<core::PublicKey> GetPublicKey();
         Scoped<core::PrivateKey> GetPrivateKey();
         bool HasPrivateKey();
+        Scoped<X509Certificate> Copy();
         
     protected:
         CFRef<SecCertificateRef> value;
