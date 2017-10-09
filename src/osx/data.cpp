@@ -14,6 +14,8 @@ void osx::Data::Assign
  Scoped<Buffer>      data
  )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         
     }
@@ -51,7 +53,7 @@ CK_RV osx::Data::CreateValues
         
         // Copy SPKI data to buffer
         SecAsn1Item spki = asn1Request.certificationRequestInfo.subjectPublicKeyInfo.subjectPublicKey;
-        Scoped<Buffer> spkiBuf(new Buffer(spki.Length << 3));
+        Scoped<Buffer> spkiBuf(new Buffer(spki.Length >> 3));
         memcpy(spkiBuf->data(), spki.Data, spkiBuf->size());
         SecAsn1CoderRelease(coder);
         
@@ -92,16 +94,71 @@ CK_RV osx::Data::CopyValues
         
         core::Template tmpl(pTemplate, ulCount);
         
-        // Use CKA_OBJECT_ID from incoming template
-        if (tmpl.HasAttribute(CKA_OBJECT_ID)) {
-            Scoped<Buffer> id = tmpl.GetBytes(CKA_OBJECT_ID, true);
-            this->ItemByType(CKA_OBJECT_ID)->To<core::AttributeBytes>()->Set(id->data(), id->size());
-        }
-        
         return CKR_OK;
     }
     CATCH_EXCEPTION
 }
+
+CK_RV osx::Data::CreateValue
+(
+ CK_ATTRIBUTE_PTR  attr
+ )
+{
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        if (attr) {
+            // Don't change value
+            if (attr->type == CKA_OBJECT_ID) {
+                return CKR_OK;
+            }
+        }
+        
+        return core::Data::CreateValue(attr);
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV osx::Data::CopyValue
+(
+ CK_ATTRIBUTE_PTR  attr
+ )
+{
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        if (attr) {
+            // Don't change value
+            if (attr->type == CKA_OBJECT_ID) {
+                return CKR_OK;
+            }
+        }
+        
+        return core::Data::CopyValue(attr);
+    }
+    CATCH_EXCEPTION
+}
+
+CK_RV osx::Data::SetValue
+(
+ CK_ATTRIBUTE_PTR  attr
+ )
+{
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        if (attr) {
+            // Don't change value
+            if (attr->type == CKA_OBJECT_ID) {
+                return CKR_OK;
+            }
+        }
+        
+        return core::Data::SetValue(attr);
+    }
+    CATCH_EXCEPTION
+}
+
 
 CK_RV osx::Data::Destroy()
 {

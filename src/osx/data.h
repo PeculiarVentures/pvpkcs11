@@ -30,6 +30,18 @@ namespace osx {
         );
         CK_RV Destroy();
     protected:
+        CK_RV CreateValue
+        (
+         CK_ATTRIBUTE_PTR  attr
+         );
+        CK_RV CopyValue
+        (
+         CK_ATTRIBUTE_PTR  attr
+         );
+        CK_RV SetValue
+        (
+         CK_ATTRIBUTE_PTR  attr
+         );
     };
     
 }
