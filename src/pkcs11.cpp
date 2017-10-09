@@ -106,7 +106,7 @@ static CK_FUNCTION_LIST functionList =
     C_WaitForSlotEvent
 };
 
-core::Module pkcs11 = core::Module();
+core::Module pkcs11;
 
 class App {
 public:

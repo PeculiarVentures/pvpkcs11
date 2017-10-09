@@ -8,6 +8,8 @@ using namespace osx;
 osx::Slot::Slot() :
     core::Slot()
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         SET_STRING(this->manufacturerID, OSX_SLOT_NAME, 32);
         SET_STRING(this->description, OSX_SLOT_NAME, 64);
@@ -66,6 +68,8 @@ osx::Slot::Slot() :
 
 Scoped<core::Session> osx::Slot::CreateSession()
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         return Scoped<Session>(new Session());
     }

@@ -2,6 +2,7 @@
 
 #include "../stdafx.h"
 #include "../core/excep.h"
+
 #include <CoreFoundation/CoreFoundation.h>
 #include <Security/Security.h>
 
@@ -18,20 +19,20 @@ throw Scoped<core::Exception>(new core::Pkcs11Exception(OSX_EXCEPTION_NAME, CKR_
     class CFRef {
     public:
         CFRef() : value(NULL), free(CFRelease) {
-//            fprintf(stdout, "%s\n", __FUNCTION__, typeid(value).name());
+            LOGGER_TRACE("CFRef init value:%p %s", value, typeid(value).name());
         }
         
         CFRef(T value) : value(value), free(CFRelease) {
-//            fprintf(stdout, "%s:%s %p\n", __FUNCTION__, typeid(value).name(), value);
+            LOGGER_TRACE("CFRef init value:%p %s", value, typeid(value).name());
         }
         
         CFRef(T value, void (*free)(const void* ref)) : value(value), free(free) {
-//            fprintf(stdout, "%s:$s %p %p\n", __FUNCTION__, value, typeid(value).name(), free);
+            LOGGER_TRACE("CFRef init value:%p %s", value, typeid(value).name());
         }
         
         ~CFRef(){
             if (value && free) {
-//                fprintf(stdout, "%s:%s\n", __FUNCTION__, typeid(value).name());
+                LOGGER_TRACE("CFRef relese value:%p %s", value, typeid(value).name());
                 free(value);
                 value = NULL;
             }
@@ -42,11 +43,20 @@ throw Scoped<core::Exception>(new core::Pkcs11Exception(OSX_EXCEPTION_NAME, CKR_
         }
         
         CFRef<T>& operator=(const T data) {
+            LOGGER_TRACE("Set value:%p %s", data, typeid(value).name());
             value = data;
             return *this;
         }
         
-        T operator&() {
+        T* operator&() {
+            return &value;
+        }
+        
+        T operator*() {
+            return value;
+        }
+        
+        T get() {
             return value;
         }
         
@@ -61,27 +71,7 @@ throw Scoped<core::Exception>(new core::Pkcs11Exception(OSX_EXCEPTION_NAME, CKR_
     
     static CFStringRef kSecAttrLabelModule = (CFSTR("WebCrypto Local"));
     
-    template<typename T>
-    CK_RV SecItemDestroy(T item, CFStringRef secClass) {
-        try {
-            OSStatus status;
-            CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                                0,
-                                                                                &kCFTypeDictionaryKeyCallBacks,
-                                                                                &kCFTypeDictionaryValueCallBacks);
-            T itemArray[] = { item };
-            CFDictionaryAddValue(&matchAttr, kSecClass, secClass);
-            CFRef<CFArrayRef> itemList = CFArrayCreate(NULL, (const void**)itemArray , 1, &kCFTypeArrayCallBacks);
-            CFDictionaryAddValue(&matchAttr, kSecMatchItemList, &itemList);
-            
-            if ((status = SecItemDelete(&matchAttr))) {
-                THROW_OSX_EXCEPTION(status, "SecItemDelete");
-            }
-            
-            return CKR_OK;
-        }
-        CATCH_EXCEPTION
-    }
+    CK_RV SecItemDestroy(void* item);
 
 }
 

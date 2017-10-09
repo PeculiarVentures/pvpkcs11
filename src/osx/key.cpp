@@ -4,7 +4,7 @@ using namespace osx;
 
 SecKeyRef osx::Key::Get()
 {
-    return &value;
+    return *value;
 }
 
 SecKeyRef osx::SecKeyCopyPublicKeyEx(SecKeyRef key) {
@@ -17,7 +17,7 @@ SecKeyRef osx::SecKeyCopyPublicKeyEx(SecKeyRef key) {
     }
     
     CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributes(key);
-    CFDataRef klbl = (CFDataRef)CFDictionaryGetValue(&attrs, kSecAttrApplicationLabel);
+    CFDataRef klbl = (CFDataRef)CFDictionaryGetValue(*attrs, kSecAttrApplicationLabel);
     if (klbl == NULL) {
         return NULL;
     }
@@ -29,12 +29,12 @@ SecKeyRef osx::SecKeyCopyPublicKeyEx(SecKeyRef key) {
                                                                             0,
                                                                             &kCFTypeDictionaryKeyCallBacks,
                                                                             &kCFTypeDictionaryValueCallBacks);
-        CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassKey);
-        CFDictionaryAddValue(&matchAttr, kSecAttrKeyClass, kSecAttrKeyClassPublic);
-        CFDictionaryAddValue(&matchAttr, kSecAttrApplicationLabel, klbl);
-        CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
+        CFDictionaryAddValue(*matchAttr, kSecClass, kSecClassKey);
+        CFDictionaryAddValue(*matchAttr, kSecAttrKeyClass, kSecAttrKeyClassPublic);
+        CFDictionaryAddValue(*matchAttr, kSecAttrApplicationLabel, klbl);
+        CFDictionaryAddValue(*matchAttr, kSecReturnRef, kCFBooleanTrue);
         
-        SecItemCopyMatching(&matchAttr, (CFTypeRef*)&pubKey);
+        SecItemCopyMatching(*matchAttr, (CFTypeRef*)&pubKey);
     }
     if (!pubKey) {
         // Get public key from certificate
@@ -43,18 +43,18 @@ SecKeyRef osx::SecKeyCopyPublicKeyEx(SecKeyRef key) {
                                                                             0,
                                                                             &kCFTypeDictionaryKeyCallBacks,
                                                                             &kCFTypeDictionaryValueCallBacks);
-        CFDictionaryAddValue(&matchAttr, kSecClass, kSecClassCertificate);
-        CFDictionaryAddValue(&matchAttr, kSecAttrPublicKeyHash, klbl);
-        CFDictionaryAddValue(&matchAttr, kSecReturnRef, kCFBooleanTrue);
+        CFDictionaryAddValue(*matchAttr, kSecClass, kSecClassCertificate);
+        CFDictionaryAddValue(*matchAttr, kSecAttrPublicKeyHash, klbl);
+        CFDictionaryAddValue(*matchAttr, kSecReturnRef, kCFBooleanTrue);
         
         SecCertificateRef cert = NULL;
-        OSStatus status = SecItemCopyMatching(&matchAttr, (CFTypeRef*)&cert);
+        OSStatus status = SecItemCopyMatching(*matchAttr, (CFTypeRef*)&cert);
         if (!status &&  cert != NULL) {
             CFShow(cert);
             SecCertificateCopyPublicKey(cert, &pubKey);
             CFRelease(cert);
         } else {
-            puts("Certificate is not found");
+            LOGGER_WARN("%s Cannot copy public key", __FUNCTION__);
             pubKey = NULL;
         }
     }
