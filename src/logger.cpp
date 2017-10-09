@@ -6,6 +6,16 @@
 
 #include "logger.h"
 
+Logger *logger = NULL;
+
+Logger* Logger::getInstance()
+{
+    if (!logger) {
+        logger = new Logger;
+    }
+    return logger;
+}
+
 Logger::Logger()
 {
     init();
@@ -73,7 +83,7 @@ void Logger::print
         // skip '../../src/'
         const char* slicedFile = (const char*)(file + 10);
         
-        fprintf(this->file, "%s %s %s %s:%ul %s\n", time, function, levelName, slicedFile, line, buffer);
+        fprintf(this->file, "%s %s:%d %s %s\n", time, slicedFile, line, levelName, buffer);
         fflush(this->file);
         
         va_end(args);
@@ -117,5 +127,4 @@ void Logger::init()
             }
         }
     }
-    
 }

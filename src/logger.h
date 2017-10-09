@@ -16,6 +16,9 @@ class Logger {
 public:
     Logger();
     ~Logger();
+    
+    static Logger* getInstance();
+    
     void print
     (
      int level,
@@ -31,4 +34,13 @@ protected:
     
     void init();
 };
+
+#define LOGGER_PRINT(level, message, ...) Logger::getInstance()->print(level, __FILE__, __LINE__, __FUNCTION__, message, ## __VA_ARGS__)
+#define LOGGER_INFO(message, ...) LOGGER_PRINT(LOGGER_LEVEL_INFO, message, ## __VA_ARGS__)
+#define LOGGER_WARN(message, ...) LOGGER_PRINT(LOGGER_LEVEL_WARN, message, ## __VA_ARGS__)
+#define LOGGER_ERROR(message, ...) LOGGER_PRINT(LOGGER_LEVEL_ERROR, message, ## __VA_ARGS__)
+#define LOGGER_DEBUG(message, ...) LOGGER_PRINT(LOGGER_LEVEL_DEBUG, message, ## __VA_ARGS__)
+#define LOGGER_TRACE(message, ...) LOGGER_PRINT(LOGGER_LEVEL_TRACE, message, ## __VA_ARGS__)
+
+#define LOGGER_FUNCTION_BEGIN LOGGER_TRACE("BEGIN:%s", __FUNCTION__)
 

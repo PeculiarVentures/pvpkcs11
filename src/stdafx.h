@@ -33,15 +33,6 @@
 
 #include "logger.h"
 
-static Logger logger;
-
-#define LOGGER_INFO(message, ...) logger.print(LOGGER_LEVEL_INFO, __FILE__, __LINE__, __FUNCTION__, message, ## __VA_ARGS__)
-#define LOGGER_WARN(message, ...) logger.print(LOGGER_LEVEL_WARN, __FILE__, __LINE__, __FUNCTION__, message, ## __VA_ARGS__)
-#define LOGGER_ERROR(message, ...) logger.print(LOGGER_LEVEL_ERROR, __FILE__, __LINE__, __FUNCTION__, message, ## __VA_ARGS__)
-#define LOGGER_DEBUG(message, ...) logger.print(LOGGER_LEVEL_DEBUG, __FILE__, __LINE__, __FUNCTION__, message, ## __VA_ARGS__)
-#define LOGGER_TRACE(message, ...) logger.print(LOGGER_LEVEL_TRACE, __FILE__, __LINE__, __FUNCTION__, message, ## __VA_ARGS__)
-
-
 template <typename T>
 using Scoped = std::shared_ptr<T>;
 using Buffer = std::vector<CK_BYTE>;
@@ -57,4 +48,4 @@ void SET_STRING(CK_UTF8CHAR* storage, const char* data, int size);
 		return CKR_ARGUMENTS_BAD;				\
 	}
 
-#define CKA_X509_CHAIN (CKA_VENDOR_DEFINED|0x00000101)
+#define CKA_X509_CHAIN CKA_VENDOR_DEFINED | 0x00000101
