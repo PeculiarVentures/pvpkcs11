@@ -81,9 +81,9 @@ void Logger::print
         vsprintf(buffer, message, args);
         
         // skip '../../src/'
-        const char* slicedFile = (const char*)(file + 10);
+//        const char* slicedFile = (const char*)(file + 10);
         
-        fprintf(this->file, "%s %s:%d %s %s\n", time, slicedFile, line, levelName, buffer);
+        fprintf(this->file, "%s %s:%d %s %s\n", time, file, line, levelName, buffer);
         fflush(this->file);
         
         va_end(args);
