@@ -150,12 +150,6 @@ CK_RV osx::X509Certificate::CreateValues(
         
         Assign(cert);
         
-        // Use CKA_ID from incoming template, it can be different from ID of cert from KeyChain
-        if (tmpl.HasAttribute(CKA_ID)) {
-            Scoped<Buffer> id = tmpl.GetBytes(CKA_ID, true);
-            this->ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set(id->data(), id->size());
-        }
-        
         if (tmpl.GetBool(CKA_TOKEN, false, false)) {
             AddToMyStorage();
         }
@@ -187,15 +181,6 @@ CK_RV osx::X509Certificate::CopyValues(
         SecCertificateRef cert = SecCertificateCreateWithData(NULL, *certData);
         Assign(cert);
         
-        // Use CKA_ID from incoming template or object, it can be different from ID of cert from KeyChain
-        if (tmpl.HasAttribute(CKA_ID)) {
-            Scoped<Buffer> id = tmpl.GetBytes(CKA_ID, true);
-            this->ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set(id->data(), id->size());
-        } else if (original->HasAttribute(CKA_ID)) {
-            Scoped<Buffer> id = original->ItemByType(CKA_ID)->ToBytes();
-            this->ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set(id->data(), id->size());
-        }
-        
         if (tmpl.GetBool(CKA_TOKEN, false, false)) {
             AddToMyStorage();
         }
@@ -220,7 +205,7 @@ CK_RV osx::X509Certificate::Destroy()
     LOGGER_FUNCTION_BEGIN;
     
     try {
-        SecItemDestroy(value.Get());
+        SecItemDestroy(value.Get(), kSecClassCertificate);
         return CKR_OK;
     }
     CATCH_EXCEPTION

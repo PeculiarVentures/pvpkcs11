@@ -71,7 +71,7 @@ throw Scoped<core::Exception>(new core::Pkcs11Exception(OSX_EXCEPTION_NAME, CKR_
     
     static CFStringRef kSecAttrLabelModule = (CFSTR("WebCrypto Local"));
     
-    CK_RV SecItemDestroy(void* item);
+    CK_RV SecItemDestroy(CFTypeRef item, CFStringRef itemClass);
 
 }
 

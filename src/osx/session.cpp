@@ -245,7 +245,7 @@ CK_RV osx::Session::Open
             if (!loginKeychain.IsEmpty()){
                 SecKeychainRef keychainArray[] = {*loginKeychain};
                 matchSearchList = CFArrayCreate(NULL, (const void**)keychainArray, 1, &kCFTypeArrayCallBacks);
-                CFDictionaryAddValue(*matchAttr, kSecMatchSearchList, &matchSearchList);
+                CFDictionaryAddValue(*matchAttr, kSecMatchSearchList, *matchSearchList);
             }
             
             CFRef<CFArrayRef> result;

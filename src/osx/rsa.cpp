@@ -91,7 +91,7 @@ Scoped<core::KeyPair> osx::RsaKey::Generate
         CFRef<CFNumberRef> cfModulusBits = CFNumberCreate(kCFAllocatorDefault,
                                                           kCFNumberSInt32Type,
                                                           &modulusBits);
-        CFDictionarySetValue(keyPairAttr, kSecAttrKeySizeInBits, &cfModulusBits);
+        CFDictionarySetValue(keyPairAttr, kSecAttrKeySizeInBits, *cfModulusBits);
         
         CFDictionarySetValue(privateKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
         CFDictionarySetValue(keyPairAttr, kSecPrivateKeyAttrs, privateKeyAttr);
@@ -198,7 +198,7 @@ CK_RV osx::RsaPrivateKey::Destroy()
     LOGGER_FUNCTION_BEGIN;
     
     try {
-        return SecItemDestroy(value.Get());
+        return SecItemDestroy(value.Get(), kSecClassKey);
     }
     CATCH_EXCEPTION
 }
@@ -402,7 +402,7 @@ CK_RV osx::RsaPublicKey::Destroy()
     LOGGER_FUNCTION_BEGIN;
     
     try {
-        return SecItemDestroy(value.Get());
+        return SecItemDestroy(value.Get(), kSecClassKey);
     }
     CATCH_EXCEPTION
 }

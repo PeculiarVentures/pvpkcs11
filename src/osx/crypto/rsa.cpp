@@ -128,7 +128,8 @@ CK_RV osx::RsaPKCS1Sign::Final
             
             CFRef<CFDataRef> cfHash = CFDataCreate(NULL, hash, hashLen);
             
-            CFRef<CFDataRef> signature = SecKeyCreateSignature(key->Get(),
+            SecKeyRef secKey = key->Get();
+            CFRef<CFDataRef> signature = SecKeyCreateSignature(secKey,
                                                                keyAlgorithm,
                                                                *cfHash,
                                                                NULL);
@@ -184,8 +185,9 @@ CK_RV osx::RsaPKCS1Sign::Final
         CFRef<CFDataRef> cfHash = CFDataCreate(NULL, hash, hashLen);
         CFRef<CFDataRef> cfSignature = CFDataCreate(NULL, pSignature, ulSignatureLen);
         
+        SecKeyRef secKey = key->Get();
         Boolean ok = SecKeyVerifySignature(
-                                           key->Get(),
+                                           secKey,
                                            keyAlgorithm,
                                            *cfHash,
                                            *cfSignature,
