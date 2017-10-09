@@ -21,6 +21,7 @@ using namespace core;
 
 Module::Module()
 {
+    LOGGER_INFO("Initialize new instance of PKCS#11 module v%d.%d", PVPKCS11_VERSION_MAJOR, PVPKCS11_VERSION_MINOR);
     this->initialized = false;
 }
 
@@ -28,17 +29,24 @@ CK_RV Module::Initialize(
     CK_VOID_PTR   pInitArgs
 )
 {
-    if (this->initialized) {
-        return CKR_CRYPTOKI_ALREADY_INITIALIZED;
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        if (this->initialized) {
+            return CKR_CRYPTOKI_ALREADY_INITIALIZED;
+        }
+        this->initialized = true;
+        return CKR_OK;
     }
-    this->initialized = true;
-    return CKR_OK;
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::Finalize(
     CK_VOID_PTR pReserved
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 
@@ -53,18 +61,23 @@ CK_RV Module::GetInfo(
     CK_INFO_PTR pInfo
 )
 {
-    CHECK_INITIALIZED();
-    CHECK_ARGUMENT_NULL(pInfo);
-
-    pInfo->cryptokiVersion.major = CRYPTOKI_VERSION_MAJOR;
-    pInfo->cryptokiVersion.minor = CRYPTOKI_VERSION_MINOR;
-    pInfo->flags = 0;
-    SET_STRING(pInfo->manufacturerID, "Module", 32);
-    SET_STRING(pInfo->libraryDescription, "Windows CryptoAPI", 32);
-    pInfo->libraryVersion.major = 0;
-    pInfo->libraryVersion.minor = 1;
-
-    return CKR_OK;
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        CHECK_ARGUMENT_NULL(pInfo);
+        
+        pInfo->cryptokiVersion.major = CRYPTOKI_VERSION_MAJOR;
+        pInfo->cryptokiVersion.minor = CRYPTOKI_VERSION_MINOR;
+        pInfo->flags = 0;
+        SET_STRING(pInfo->manufacturerID, "Module", 32);
+        SET_STRING(pInfo->libraryDescription, "PKCS#11 over System crypto", 32);
+        pInfo->libraryVersion.major = PVPKCS11_VERSION_MAJOR;
+        pInfo->libraryVersion.minor = PVPKCS11_VERSION_MINOR;
+        
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::GetSlotList(
@@ -73,6 +86,8 @@ CK_RV Module::GetSlotList(
     CK_ULONG_PTR   pulCount       /* receives number of slots */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 
@@ -97,6 +112,8 @@ CK_RV Module::GetSlotInfo(
     CK_SLOT_INFO_PTR pInfo    /* receives the slot information */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 
@@ -115,6 +132,8 @@ CK_RV Module::GetTokenInfo
     CK_TOKEN_INFO_PTR pInfo    /* receives the token information */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 
@@ -132,11 +151,16 @@ CK_RV Module::GetMechanismList
     CK_ULONG_PTR          pulCount         /* gets # of mechs. */
 )
 {
-    CHECK_INITIALIZED();
-    CHECK_SLOD_ID(slotID);
-    Scoped<Slot> slot = this->slots.items(slotID);
-
-    return slot->GetMechanismList(pMechanismList, pulCount);
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        CHECK_SLOD_ID(slotID);
+        Scoped<Slot> slot = this->slots.items(slotID);
+        
+        return slot->GetMechanismList(pMechanismList, pulCount);
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::GetMechanismInfo
@@ -146,11 +170,16 @@ CK_RV Module::GetMechanismInfo
     CK_MECHANISM_INFO_PTR pInfo    /* receives mechanism info */
 )
 {
-    CHECK_INITIALIZED();
-    CHECK_SLOD_ID(slotID);
-    Scoped<Slot> slot = this->slots.items(slotID);
-
-    return slot->GetMechanismInfo(type, pInfo);
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        CHECK_SLOD_ID(slotID);
+        Scoped<Slot> slot = this->slots.items(slotID);
+        
+        return slot->GetMechanismInfo(type, pInfo);
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::InitToken
@@ -161,12 +190,17 @@ CK_RV Module::InitToken
     CK_UTF8CHAR_PTR pLabel     /* 32-byte token label (blank padded) */
 )
 {
-    CHECK_INITIALIZED();
-    CHECK_SLOD_ID(slotID);
-
-    Scoped<Slot> slot = this->slots.items(slotID);
-
-    return slot->InitToken(pPin, ulPinLen, pLabel);
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        CHECK_SLOD_ID(slotID);
+        
+        Scoped<Slot> slot = this->slots.items(slotID);
+        
+        return slot->InitToken(pPin, ulPinLen, pLabel);
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::InitPIN
@@ -176,9 +210,14 @@ CK_RV Module::InitPIN
     CK_ULONG          ulPinLen   /* length in bytes of the PIN */
 )
 {
-    CHECK_INITIALIZED();
-
-    return CKR_FUNCTION_NOT_SUPPORTED;
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        
+        return CKR_FUNCTION_NOT_SUPPORTED;
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::OpenSession
@@ -190,11 +229,16 @@ CK_RV Module::OpenSession
     CK_SESSION_HANDLE_PTR phSession      /* gets session handle */
 )
 {
-    CHECK_INITIALIZED();
-    CHECK_SLOD_ID(slotID);
-
-    Scoped<Slot> slot = this->slots.items(slotID);
-    return slot->OpenSession(flags, pApplication, Notify, phSession);
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        CHECK_SLOD_ID(slotID);
+        
+        Scoped<Slot> slot = this->slots.items(slotID);
+        return slot->OpenSession(flags, pApplication, Notify, phSession);
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::CloseSession
@@ -202,29 +246,41 @@ CK_RV Module::CloseSession
     CK_SESSION_HANDLE hSession  /* the session's handle */
 )
 {
-    CHECK_INITIALIZED();
-    Scoped<Slot> slot = this->getSlotBySession(hSession);
-
-    if (!(slot && slot.get())) {
-        return CKR_SESSION_HANDLE_INVALID;
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        Scoped<Slot> slot = this->getSlotBySession(hSession);
+        
+        if (!(slot && slot.get())) {
+            return CKR_SESSION_HANDLE_INVALID;
+        }
+        
+        return slot->CloseSession(hSession);
     }
-
-    return slot->CloseSession(hSession);
+    CATCH_EXCEPTION
 }
 
 Scoped<Slot> Module::getSlotBySession(CK_SESSION_HANDLE hSession)
 {
-    for (size_t i = 0; i < this->slots.count(); i++) {
-        Scoped<Slot> slot = this->slots.items(i);
-        if (slot->hasSession(hSession)) {
-            return slot;
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        for (size_t i = 0; i < this->slots.count(); i++) {
+            Scoped<Slot> slot = this->slots.items(i);
+            if (slot->hasSession(hSession)) {
+                return slot;
+            }
         }
+        THROW_PKCS11_EXCEPTION(CKR_SESSION_HANDLE_INVALID, "Session handle invalid");
     }
-    THROW_PKCS11_EXCEPTION(CKR_SESSION_HANDLE_INVALID, "Session handle invalid");
+    CATCH_EXCEPTION
 }
 
 Scoped<Session> Module::getSession(CK_SESSION_HANDLE hSession)
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         Scoped<Slot> slot = this->getSlotBySession(hSession);
         if (slot) {
@@ -242,11 +298,17 @@ CK_RV Module::CloseAllSessions
     CK_SLOT_ID     slotID  /* the token's slot */
 )
 {
-    CHECK_INITIALIZED();
-    CHECK_SLOD_ID(slotID);
-    Scoped<Slot> slot = this->slots.items(slotID);
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        CHECK_SLOD_ID(slotID);
+        
+        Scoped<Slot> slot = this->slots.items(slotID);
+        return slot->CloseAllSessions();
+    }
+    CATCH_EXCEPTION
 
-    return slot->CloseAllSessions();
 }
 
 CK_RV Module::GetSessionInfo
@@ -255,10 +317,15 @@ CK_RV Module::GetSessionInfo
     CK_SESSION_INFO_PTR pInfo      /* receives session info */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
-
-    return session->GetInfo(pInfo);
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
+        
+        return session->GetInfo(pInfo);
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::Login
@@ -269,10 +336,15 @@ CK_RV Module::Login
     CK_ULONG          ulPinLen   /* the length of the PIN */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
-
-    return session->Login(userType, pPin, ulPinLen);
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
+        
+        return session->Login(userType, pPin, ulPinLen);
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::GetAttributeValue
@@ -283,10 +355,15 @@ CK_RV Module::GetAttributeValue
     CK_ULONG          ulCount     /* attributes in template */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
-
-    return session->GetAttributeValue(hObject, pTemplate, ulCount);
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
+        
+        return session->GetAttributeValue(hObject, pTemplate, ulCount);
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::SetAttributeValue
@@ -297,10 +374,13 @@ CK_RV Module::SetAttributeValue
     CK_ULONG          ulCount     /* attributes in template */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
-
-    return session->SetAttributeValue(hObject, pTemplate, ulCount);
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
+        
+        return session->SetAttributeValue(hObject, pTemplate, ulCount);
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::FindObjectsInit
@@ -310,10 +390,15 @@ CK_RV Module::FindObjectsInit
     CK_ULONG          ulCount     /* attributes in search template */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
-
-    return session->FindObjectsInit(pTemplate, ulCount);
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
+        
+        return session->FindObjectsInit(pTemplate, ulCount);
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::FindObjects
@@ -324,10 +409,15 @@ CK_RV Module::FindObjects
     CK_ULONG_PTR         pulObjectCount     /* actual # returned */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
-
-    return session->FindObjects(phObject, ulMaxObjectCount, pulObjectCount);
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
+        
+        return session->FindObjects(phObject, ulMaxObjectCount, pulObjectCount);
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::FindObjectsFinal
@@ -335,10 +425,15 @@ CK_RV Module::FindObjectsFinal
     CK_SESSION_HANDLE hSession  /* the session's handle */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
-
-    return session->FindObjectsFinal();
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
+        
+        return session->FindObjectsFinal();
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::DigestInit
@@ -347,6 +442,8 @@ CK_RV Module::DigestInit
     CK_MECHANISM_PTR  pMechanism  /* the digesting mechanism */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 
@@ -371,6 +468,8 @@ CK_RV Module::Digest
     CK_ULONG_PTR      pulDigestLen  /* gets digest length */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 
@@ -393,6 +492,8 @@ CK_RV Module::DigestUpdate
     CK_ULONG          ulPartLen  /* bytes of data to be digested */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 
@@ -412,6 +513,8 @@ CK_RV Module::DigestKey
     CK_OBJECT_HANDLE  hKey       /* secret key to digest */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 
@@ -432,6 +535,8 @@ CK_RV Module::DigestFinal
     CK_ULONG_PTR      pulDigestLen  /* gets byte count of digest */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 
@@ -453,10 +558,15 @@ CK_RV Module::SignInit(
     CK_OBJECT_HANDLE  hKey         /* handle of signature key */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
-
-    return session->SignInit(pMechanism, hKey);
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
+        
+        return session->SignInit(pMechanism, hKey);
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::Sign(
@@ -467,6 +577,8 @@ CK_RV Module::Sign(
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
         GET_SESSION(hSession);
@@ -487,6 +599,8 @@ CK_RV Module::SignUpdate(
     CK_ULONG          ulPartLen  /* count of bytes to sign */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
         GET_SESSION(hSession);
@@ -502,6 +616,8 @@ CK_RV Module::SignFinal(
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
         GET_SESSION(hSession);
@@ -518,6 +634,8 @@ CK_RV Module::VerifyInit
     CK_OBJECT_HANDLE  hKey         /* verification key */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
         GET_SESSION(hSession);
@@ -536,6 +654,8 @@ CK_RV Module::Verify
     CK_ULONG          ulSignatureLen  /* signature length*/
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
         GET_SESSION(hSession);
@@ -557,6 +677,8 @@ CK_RV Module::VerifyUpdate
     CK_ULONG          ulPartLen  /* length of signed data */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
         GET_SESSION(hSession);
@@ -573,6 +695,8 @@ CK_RV Module::VerifyFinal
     CK_ULONG          ulSignatureLen  /* signature length */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
         GET_SESSION(hSession);
@@ -589,10 +713,15 @@ CK_RV Module::EncryptInit
     CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
-
-    return session->EncryptInit(pMechanism, hKey);
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
+        
+        return session->EncryptInit(pMechanism, hKey);
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::Encrypt
@@ -604,6 +733,8 @@ CK_RV Module::Encrypt
     CK_ULONG_PTR      pulEncryptedDataLen  /* gets c-text size */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
         GET_SESSION(hSession);
@@ -627,6 +758,8 @@ CK_RV Module::EncryptUpdate
     CK_ULONG_PTR      pulEncryptedPartLen /* gets c-text size */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
         GET_SESSION(hSession);
@@ -648,6 +781,8 @@ CK_RV Module::EncryptFinal
     CK_ULONG_PTR      pulLastEncryptedPartLen  /* gets last size */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
         GET_SESSION(hSession);
@@ -667,13 +802,19 @@ CK_RV Module::DecryptInit
     CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
-
-    return session->DecryptInit(
-        pMechanism,
-        hKey
-    );
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
+        
+        return session->DecryptInit(
+                                    pMechanism,
+                                    hKey
+                                    );
+    }
+    CATCH_EXCEPTION
+    
 }
 
 CK_RV Module::Decrypt
@@ -685,6 +826,8 @@ CK_RV Module::Decrypt
     CK_ULONG_PTR      pulDataLen          /* gets p-text size */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
         GET_SESSION(hSession);
@@ -708,6 +851,8 @@ CK_RV Module::DecryptUpdate
     CK_ULONG_PTR      pulPartLen           /* p-text size */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
         GET_SESSION(hSession);
@@ -729,6 +874,8 @@ CK_RV Module::DecryptFinal
     CK_ULONG_PTR      pulLastPartLen  /* p-text size */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
         GET_SESSION(hSession);
@@ -750,15 +897,20 @@ CK_RV Module::GenerateKey
     CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
-
-    return session->GenerateKey(
-        pMechanism,
-        pTemplate,
-        ulCount,
-        phKey
-    );
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
+        
+        return session->GenerateKey(
+                                    pMechanism,
+                                    pTemplate,
+                                    ulCount,
+                                    phKey
+                                    );
+    }
+    CATCH_EXCEPTION
 }
 
 CK_RV Module::GenerateKeyPair
@@ -773,24 +925,31 @@ CK_RV Module::GenerateKeyPair
     CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
 )
 {
-    CHECK_INITIALIZED();
-    GET_SESSION(hSession);
-
-    return session->GenerateKeyPair(
-        pMechanism,
-        pPublicKeyTemplate,
-        ulPublicKeyAttributeCount,
-        pPrivateKeyTemplate,
-        ulPrivateKeyAttributeCount,
-        phPublicKey,
-        phPrivateKey
-    );
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CHECK_INITIALIZED();
+        GET_SESSION(hSession);
+        
+        return session->GenerateKeyPair(
+                                        pMechanism,
+                                        pPublicKeyTemplate,
+                                        ulPublicKeyAttributeCount,
+                                        pPrivateKeyTemplate,
+                                        ulPrivateKeyAttributeCount,
+                                        phPublicKey,
+                                        phPrivateKey
+                                        );
+    }
+    CATCH_EXCEPTION
 }
 
 Scoped<Slot> Module::getSlot(
     CK_SLOT_ID slotID
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         if (!(slotID < slots.count())) {
             THROW_PKCS11_EXCEPTION(CKR_SLOT_ID_INVALID, "Cannot get Slot by ID");
@@ -806,6 +965,8 @@ CK_RV Module::SeedRandom(
     CK_ULONG          ulSeedLen  /* length of seed material */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 
@@ -823,6 +984,8 @@ CK_RV Module::GenerateRandom(
     CK_ULONG          ulRandomLen  /* # of bytes to generate */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 
@@ -843,6 +1006,8 @@ CK_RV Module::DeriveKey
     CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 
@@ -867,6 +1032,8 @@ CK_RV Module::CreateObject
     CK_OBJECT_HANDLE_PTR    phObject     /* gets new object's handle. */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 
@@ -907,6 +1074,8 @@ CK_RV Module::CopyObject
     CK_OBJECT_HANDLE_PTR phNewObject  /* receives handle of copy */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 
@@ -946,6 +1115,8 @@ CK_RV Module::DestroyObject(
     CK_OBJECT_HANDLE  hObject    /* the object's handle */
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CHECK_INITIALIZED();
 

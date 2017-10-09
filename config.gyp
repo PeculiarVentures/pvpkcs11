@@ -27,6 +27,10 @@
     'targets': [
         {
             'target_name': 'pvpkcs11',
+            'defines': [
+                'PVPKCS11_VERSION_MAJOR=1',
+                'PVPKCS11_VERSION_MINOR=1',
+            ],
             'include_dirs': [
             ],
             'type': 'shared_library',
@@ -34,6 +38,7 @@
                 # core
                 'src/stdafx.cpp',
                 'src/pkcs11.cpp',
+                'src/logger.cpp',
                 'src/core/crypto_digest.cpp',
                 'src/core/crypto_sign.cpp',
                 'src/core/crypto_encrypt.cpp',

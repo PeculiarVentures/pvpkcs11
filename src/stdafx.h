@@ -31,11 +31,11 @@
 #include <vector>
 #include <string>
 
+#include "logger.h"
+
 template <typename T>
 using Scoped = std::shared_ptr<T>;
 using Buffer = std::vector<CK_BYTE>;
-
-static FILE* pvlog = NULL;
 
 /**
  * Set padded string for PKCS#11 structures
@@ -48,4 +48,4 @@ void SET_STRING(CK_UTF8CHAR* storage, const char* data, int size);
 		return CKR_ARGUMENTS_BAD;				\
 	}
 
-#define CKA_X509_CHAIN (CKA_VENDOR_DEFINED|0x00000101)
+#define CKA_X509_CHAIN CKA_VENDOR_DEFINED | 0x00000101

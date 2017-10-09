@@ -21,6 +21,8 @@ const SecAsn1Template kEcSignatureTemplate[] = {
 };
 
 Scoped<Buffer> ConvertSignatureToWebcrypto(CFDataRef data, CK_ULONG size) {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         SecAsn1CoderRef coder = NULL;
         SecAsn1CoderCreate(&coder);
@@ -54,6 +56,8 @@ Scoped<Buffer> ConvertSignatureToWebcrypto(CFDataRef data, CK_ULONG size) {
 }
 
 CK_ULONG GetIntegerPaddingSize(CK_BYTE_PTR data, CK_ULONG dataLen) {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         for (int i = 0; i < dataLen; i++) {
             if (data[i] != 0) {
@@ -66,6 +70,8 @@ CK_ULONG GetIntegerPaddingSize(CK_BYTE_PTR data, CK_ULONG dataLen) {
 }
 
 Scoped<Buffer> ConvertSignatureFromWebcrypto(CFDataRef data) {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         SecAsn1CoderRef coder = NULL;
         SecAsn1CoderCreate(&coder);
@@ -111,6 +117,8 @@ CK_RV osx::EcDsaSign::Init
  Scoped<core::Object>    key
  )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         core::CryptoSign::Init(pMechanism, key);
         
@@ -165,6 +173,8 @@ CK_RV osx::EcDsaSign::Update
  CK_ULONG          ulPartLen
  )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         core::CryptoSign::Update(pPart, ulPartLen);
         
@@ -181,6 +191,8 @@ CK_RV osx::EcDsaSign::Final
  CK_ULONG_PTR      pulSignatureLen
  )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CryptoSign::Final(pSignature, pulSignatureLen);
         
@@ -189,7 +201,7 @@ CK_RV osx::EcDsaSign::Final
             THROW_EXCEPTION("Error on SecKeyCopyAttributes");
         }
         
-        CFNumberRef cfKeySizeInBits = (CFNumberRef)CFDictionaryGetValue(&cfAttributes, kSecAttrKeySizeInBits);
+        CFNumberRef cfKeySizeInBits = (CFNumberRef)CFDictionaryGetValue(*cfAttributes, kSecAttrKeySizeInBits);
         if (!cfKeySizeInBits) {
             THROW_EXCEPTION("Cannot get size of key");
         }
@@ -232,7 +244,7 @@ CK_RV osx::EcDsaSign::Final
             
             CFRef<CFDataRef> signature = SecKeyCreateSignature(key->Get(),
                                                                keyAlgorithm,
-                                                               &cfHash,
+                                                               *cfHash,
                                                                NULL);
             
             active = false;
@@ -241,7 +253,7 @@ CK_RV osx::EcDsaSign::Final
                 THROW_EXCEPTION("Error on SecKeyCreateSignature");
             }
             
-            Scoped<Buffer> wcSignature = ConvertSignatureToWebcrypto(&signature, keySizeInBits);
+            Scoped<Buffer> wcSignature = ConvertSignatureToWebcrypto(*signature, keySizeInBits);
             
             *pulSignatureLen = wcSignature->size();
             memcpy(pSignature, wcSignature->data(), wcSignature->size());
@@ -258,6 +270,8 @@ CK_RV osx::EcDsaSign::Final
  CK_ULONG          ulSignatureLen
  )
 {
+    LOGGER_FUNCTION_BEGIN;
+    
     try {
         CryptoSign::Final(pSignature, ulSignatureLen);
         
@@ -266,7 +280,7 @@ CK_RV osx::EcDsaSign::Final
         if (!&cfAttributes) {
             THROW_EXCEPTION("Error on SecKeyCopyAttributes");
         }
-        CFNumberRef cfKeySizeInBits = (CFNumberRef)CFDictionaryGetValue(&cfAttributes, kSecAttrKeySizeInBits);
+        CFNumberRef cfKeySizeInBits = (CFNumberRef)CFDictionaryGetValue(*cfAttributes, kSecAttrKeySizeInBits);
         if (!cfKeySizeInBits) {
             THROW_EXCEPTION("Cannot get size of key");
         }
@@ -301,13 +315,13 @@ CK_RV osx::EcDsaSign::Final
         
         CFRef<CFDataRef> cfHash = CFDataCreate(NULL, hash, hashLen);
         CFRef<CFDataRef> cfWebcryptoSignature = CFDataCreate(NULL, pSignature, ulSignatureLen);
-        Scoped<Buffer> derSignature = ConvertSignatureFromWebcrypto(&cfWebcryptoSignature);
+        Scoped<Buffer> derSignature = ConvertSignatureFromWebcrypto(*cfWebcryptoSignature);
         CFRef<CFDataRef> cfSignature = CFDataCreate(NULL, derSignature->data(), derSignature->size());
         
         Boolean ok = SecKeyVerifySignature(key->Get(),
                                            keyAlgorithm,
-                                           &cfHash,
-                                           &cfSignature,
+                                           *cfHash,
+                                           *cfSignature,
                                            NULL);
         
         active = false;
