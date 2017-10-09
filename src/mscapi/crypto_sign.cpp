@@ -18,6 +18,8 @@ CK_RV RsaPKCS1Sign::Init(
     Scoped<core::Object>    key          /* signature key */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::CryptoSign::Init(pMechanism, key);
 
@@ -70,6 +72,8 @@ CK_RV RsaPKCS1Sign::Update(
     CK_ULONG          ulPartLen  /* count of bytes to sign/verify */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::CryptoSign::Update(pPart, ulPartLen);
 
@@ -85,6 +89,8 @@ CK_RV RsaPKCS1Sign::Final(
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         CryptoSign::Final(pSignature, pulSignatureLen);
 
@@ -126,6 +132,8 @@ CK_RV RsaPKCS1Sign::Final(
     CK_ULONG          ulSignatureLen  /* signature length */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         CryptoSign::Final(pSignature, ulSignatureLen);
 
@@ -172,6 +180,8 @@ CK_RV RsaPSSSign::Init(
     Scoped<core::Object>    key          /* signature key */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::CryptoSign::Init(pMechanism, key);
 
@@ -235,6 +245,8 @@ CK_RV RsaPSSSign::Update(
     CK_ULONG          ulPartLen  /* count of bytes to sign/verify */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::CryptoSign::Update(pPart, ulPartLen);
 
@@ -250,6 +262,8 @@ CK_RV RsaPSSSign::Final(
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
 
         BCRYPT_PSS_PADDING_INFO paddingInfo = { digestAlgorithm, salt };
@@ -290,6 +304,8 @@ CK_RV RsaPSSSign::Final(
     CK_ULONG          ulSignatureLen  /* signature length */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         CryptoSign::Final(pSignature, ulSignatureLen);
 
@@ -334,6 +350,8 @@ CK_RV EcDSASign::Init(
     Scoped<core::Object>    key          /* signature key */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::CryptoSign::Init(pMechanism, key);
 
@@ -382,6 +400,8 @@ CK_RV EcDSASign::Update(
     CK_ULONG          ulPartLen  /* count of bytes to sign/verify */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::CryptoSign::Update(pPart, ulPartLen);
 
@@ -397,6 +417,8 @@ CK_RV EcDSASign::Final(
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         CryptoSign::Final(pSignature, pulSignatureLen);
 
@@ -436,6 +458,8 @@ CK_RV EcDSASign::Final(
     CK_ULONG          ulSignatureLen  /* signature length */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         CryptoSign::Final(pSignature, ulSignatureLen);
 

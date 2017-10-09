@@ -9,6 +9,8 @@ void X509CertificateRequest::Assign(
     Scoped<crypt::Certificate>  cert
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         if (cert->HasProperty(CERT_PV_REQUEST) && cert->HasProperty(CERT_PV_ID)) {
             auto propRequest = cert->GetPropertyBytes(CERT_PV_REQUEST);
@@ -33,6 +35,8 @@ CK_RV X509CertificateRequest::CreateValues(
     CK_ULONG          ulCount
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::Data::CreateValues(
             pTemplate,
@@ -128,6 +132,8 @@ CK_RV X509CertificateRequest::CopyValues(
     CK_ULONG          ulCount   
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::Data::CopyValues(
             object,
@@ -158,6 +164,8 @@ CK_RV X509CertificateRequest::CopyValues(
 
 CK_RV X509CertificateRequest::Destroy()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         cert->DeleteFromStore();
 

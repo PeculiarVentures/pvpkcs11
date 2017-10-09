@@ -32,6 +32,8 @@ CK_RV CryptoRsaOAEPEncrypt::Init
     Scoped<core::Object>    hKey
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         if (pMechanism->mechanism != CKM_RSA_PKCS_OAEP) {
             THROW_PKCS11_MECHANISM_INVALID();
@@ -91,6 +93,8 @@ CK_RV CryptoRsaOAEPEncrypt::Once(
     CK_ULONG_PTR      pulEncryptedDataLen
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         if (!active) {
             THROW_PKCS11_OPERATION_NOT_INITIALIZED();
@@ -161,6 +165,8 @@ CK_RV CryptoRsaOAEPEncrypt::Update
     CK_ULONG_PTR      pulEncryptedPartLen
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         THROW_PKCS11_MECHANISM_INVALID();
     }
@@ -173,6 +179,8 @@ CK_RV CryptoRsaOAEPEncrypt::Final
     CK_ULONG_PTR      pulLastEncryptedPartLen
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         active = false;
         THROW_PKCS11_MECHANISM_INVALID();

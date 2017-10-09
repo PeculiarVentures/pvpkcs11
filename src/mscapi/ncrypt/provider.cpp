@@ -8,6 +8,8 @@ void Provider::Open(
     _In_    DWORD   dwFlags
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     NTSTATUS status = NCryptOpenStorageProvider(
         &handle,
         pszProviderName,
@@ -20,6 +22,8 @@ void Provider::Open(
 
 Provider::~Provider()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     if (handle) {
         NCryptFreeObject(handle);
         handle = NULL;
@@ -32,6 +36,8 @@ Scoped<Key> Provider::OpenKey(
     _In_     DWORD   dwFlags
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     NCRYPT_KEY_HANDLE hKey;
 
     NTSTATUS status = NCryptOpenKey(
@@ -54,6 +60,8 @@ Scoped<Key> Provider::TranslateHandle(
     _In_    DWORD   dwFlags
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     NCRYPT_PROV_HANDLE hProvider;
 
     NCRYPT_KEY_HANDLE hKey;
@@ -72,6 +80,8 @@ Scoped<Key> Provider::CreatePersistedKey(
     _In_     DWORD   dwFlags
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     NCRYPT_KEY_HANDLE hKey;
 
     NTSTATUS status = NCryptCreatePersistedKey(
@@ -96,6 +106,8 @@ Scoped<Key> Provider::ImportKey(
     _In_        DWORD               dwFlags
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         NCRYPT_KEY_HANDLE hKey;
 
@@ -112,6 +124,8 @@ Scoped<NCryptKeyNames> Provider::GetKeyNames(
     ULONG               dwFlags
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         NTSTATUS status;
 
@@ -140,6 +154,8 @@ Scoped<NCryptKeyNames> Provider::GetKeyNames(
 
 Scoped<std::wstring> Provider::GenerateRandomName()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         // Generate random value
         Buffer buffer(20);

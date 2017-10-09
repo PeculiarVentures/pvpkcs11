@@ -10,6 +10,8 @@ Scoped<core::SecretKey> AesKey::Generate(
     Scoped<core::Template> tmpl
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         if (pMechanism == NULL_PTR) {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
@@ -59,6 +61,8 @@ CK_RV AesKey::CreateValues(
     CK_ULONG          ulCount     /* attributes in template */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::Template tmpl(pTemplate, ulCount);
         core::AesKey::CreateValues(pTemplate, ulCount);
@@ -89,6 +93,8 @@ CK_RV AesKey::CreateValues(
 
 CK_RV mscapi::AesKey::Destroy()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         return CKR_OK;
     }
@@ -109,6 +115,8 @@ CK_RV CryptoAesEncrypt::Init
     Scoped<core::Object>    key
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::CryptoEncrypt::Init(
             pMechanism,
@@ -172,6 +180,8 @@ CK_RV CryptoAesEncrypt::Update
     CK_ULONG_PTR      pulEncryptedPartLen
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         std::string data("");
         std::string incomingData((char*)pPart, ulPartLen);
@@ -220,6 +230,8 @@ CK_RV CryptoAesEncrypt::Final
     CK_ULONG_PTR      pulLastEncryptedPartLen
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         if (type == CRYPTO_ENCRYPT || !buffer.empty()) {
             this->Make(true, (BYTE*)buffer.c_str(), buffer.length(), pLastEncryptedPart, pulLastEncryptedPartLen);
@@ -243,6 +255,8 @@ void CryptoAesEncrypt::Make(
     DWORD*  pdwOutLen
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         DWORD dwEncryptedLen;
         NTSTATUS status;
@@ -315,6 +329,8 @@ CK_RV CryptoAesGCMEncrypt::Init
     Scoped<core::Object>    key
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::CryptoEncrypt::Init(
             pMechanism,
@@ -374,6 +390,8 @@ CK_RV CryptoAesGCMEncrypt::Once
     CK_ULONG_PTR      pulEncryptedDataLen
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         NTSTATUS status;
         Buffer tag(tagLength);
@@ -464,6 +482,8 @@ CK_RV CryptoAesGCMEncrypt::Update
     CK_ULONG_PTR      pulEncryptedPartLen
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     THROW_PKCS11_MECHANISM_INVALID();
 }
 
@@ -473,5 +493,7 @@ CK_RV CryptoAesGCMEncrypt::Final
     CK_ULONG_PTR      pulLastEncryptedPartLen
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     THROW_PKCS11_MECHANISM_INVALID();
 }

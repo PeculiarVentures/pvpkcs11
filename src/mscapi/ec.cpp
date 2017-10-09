@@ -8,6 +8,8 @@ Scoped<CryptoKeyPair> EcKey::Generate(
     Scoped<core::Template> privateTemplate
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         if (pMechanism == NULL_PTR) {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
@@ -86,6 +88,8 @@ Scoped<CryptoKeyPair> EcKey::Generate(
 
 void EcPrivateKey::FillPublicKeyStruct()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         auto buffer = nkey->ExportKey(BCRYPT_ECCPUBLIC_BLOB, 0);
         PUCHAR pbKey = buffer->data();
@@ -131,6 +135,8 @@ void EcPrivateKey::FillPublicKeyStruct()
 
 void EcPrivateKey::FillPrivateKeyStruct()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         auto buffer = nkey->ExportKey(BCRYPT_ECCPUBLIC_BLOB, 0);
         PUCHAR pbKey = buffer->data();
@@ -147,6 +153,8 @@ CK_RV EcPrivateKey::GetValue(
     CK_ATTRIBUTE_PTR attr
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::EcPrivateKey::GetValue(attr);
 
@@ -174,6 +182,8 @@ CK_RV EcPrivateKey::CopyValues(
     CK_ULONG                ulCount     /* attributes in template */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::EcPrivateKey::CopyValues(
             object,
@@ -207,6 +217,8 @@ CK_RV EcPrivateKey::CopyValues(
 
 CK_RV mscapi::EcPrivateKey::Destroy()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         nkey->Delete(0);
 
@@ -217,6 +229,8 @@ CK_RV mscapi::EcPrivateKey::Destroy()
 
 void EcPrivateKey::OnKeyAssigned()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         FillPublicKeyStruct();
     }
@@ -227,6 +241,8 @@ void EcPrivateKey::OnKeyAssigned()
 
 void EcPublicKey::FillKeyStruct()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         auto buffer = nkey->ExportKey(BCRYPT_ECCPUBLIC_BLOB, 0);
         PUCHAR pbKey = buffer->data();
@@ -276,6 +292,8 @@ CK_RV EcPublicKey::GetValue(
     CK_ATTRIBUTE_PTR attr
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::EcPublicKey::GetValue(attr);
 
@@ -299,6 +317,8 @@ Scoped<core::Object> EcKey::DeriveKey(
     Scoped<core::Template>  tmpl
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         EcPrivateKey* ecPrivateKey = dynamic_cast<EcPrivateKey*>(baseKey.get());
         if (!ecPrivateKey) {
@@ -330,6 +350,8 @@ CK_RV EcPublicKey::CreateValues
     CK_ULONG          ulCount     /* attributes in template */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::Template tmpl(pTemplate, ulCount);
         core::EcPublicKey::CreateValues(pTemplate, ulCount);
@@ -386,6 +408,8 @@ CK_RV EcPublicKey::CopyValues(
     CK_ULONG                ulCount     /* attributes in template */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::EcPublicKey::CopyValues(
             object,
@@ -409,6 +433,8 @@ CK_RV EcPublicKey::CopyValues(
 
 CK_RV mscapi::EcPublicKey::Destroy()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         return CKR_OK;
     }
@@ -417,6 +443,8 @@ CK_RV mscapi::EcPublicKey::Destroy()
 
 void EcPublicKey::OnKeyAssigned()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         FillKeyStruct();
     }

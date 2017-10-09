@@ -8,6 +8,8 @@ using namespace mscapi;
 mscapi::Slot::Slot() :
     core::Slot()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         SET_STRING(this->manufacturerID, MS_SLOT_NAME, 32);
         SET_STRING(this->description, MS_SLOT_NAME, 64);
@@ -59,6 +61,8 @@ mscapi::Slot::Slot() :
 
 Scoped<core::Session> mscapi::Slot::CreateSession()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         return Scoped<Session>(new Session());
     }

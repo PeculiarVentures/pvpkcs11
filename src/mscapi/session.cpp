@@ -28,6 +28,8 @@ Session::~Session()
 
 void Session::LoadMyStore()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         Scoped<crypt::CertStore> store(new crypt::CertStore());
         this->certStores.push_back(store);
@@ -158,6 +160,8 @@ void Session::LoadMyStore()
 
 void Session::LoadRequestStore()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         Scoped<crypt::CertStore> requestStore(new crypt::CertStore());
         requestStore->Open(PV_STORE_NAME_REQUEST);
@@ -185,6 +189,8 @@ void Session::LoadRequestStore()
 
 void Session::LoadCngKeys()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         Scoped<ncrypt::Provider> provider(new ncrypt::Provider());
         provider->Open(MS_KEY_STORAGE_PROVIDER, 0);
@@ -249,6 +255,8 @@ CK_RV Session::Open
     CK_SESSION_HANDLE_PTR phSession      /* gets session handle */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         CK_RV res = core::Session::Open(flags, pApplication, Notify, phSession);
 
@@ -264,6 +272,8 @@ CK_RV Session::Open
 
 CK_RV Session::Close()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         CK_RV res = core::Session::Close();
 
@@ -282,6 +292,8 @@ CK_RV Session::GenerateKey
     CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::Session::GenerateKey(
             pMechanism,
@@ -326,6 +338,8 @@ CK_RV Session::GenerateKeyPair
     CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::Session::GenerateKeyPair(
             pMechanism,
@@ -378,6 +392,8 @@ CK_RV mscapi::Session::GenerateRandom(
     CK_ULONG          ulRandomLen  /* # of bytes to generate */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::Session::GenerateRandom(pRandomData, ulRandomLen);
 
@@ -396,6 +412,8 @@ CK_RV Session::VerifyInit(
     CK_OBJECT_HANDLE  hKey         /* verification key */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::Session::VerifyInit(pMechanism, hKey);
 
@@ -436,6 +454,8 @@ CK_RV Session::SignInit(
     CK_OBJECT_HANDLE  hKey         /* handle of signature key */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::Session::SignInit(pMechanism, hKey);
 
@@ -477,6 +497,8 @@ CK_RV Session::EncryptInit
     CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::Session::EncryptInit(
             pMechanism,
@@ -517,6 +539,8 @@ CK_RV Session::DecryptInit
     CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::Session::DecryptInit(
             pMechanism,
@@ -560,6 +584,8 @@ CK_RV Session::DeriveKey
     CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::Session::DeriveKey(
             pMechanism,
@@ -602,6 +628,8 @@ Scoped<core::Object> Session::CreateObject
     CK_ULONG                ulCount      /* attributes in template */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::Template tmpl(pTemplate, ulCount);
         Scoped<core::Object> object;
@@ -666,6 +694,8 @@ Scoped<core::Object> Session::CopyObject
     CK_ULONG             ulCount      /* attributes in template */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         Scoped<core::Object> copy;
         if (dynamic_cast<RsaPrivateKey*>(object.get())) {

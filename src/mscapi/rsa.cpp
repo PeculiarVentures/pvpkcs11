@@ -10,6 +10,8 @@ Scoped<CryptoKeyPair> RsaKey::Generate(
     Scoped<core::Template> privateTemplate
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         if (pMechanism == NULL_PTR) {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
@@ -81,6 +83,8 @@ Scoped<CryptoKeyPair> RsaKey::Generate(
 
 void RsaPrivateKey::FillPublicKeyStruct()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         auto buffer = nkey->ExportKey(BCRYPT_RSAPUBLIC_BLOB, 0);
         BYTE* pbKey = buffer->data();
@@ -115,6 +119,8 @@ void RsaPrivateKey::FillPublicKeyStruct()
 
 void RsaPrivateKey::FillPrivateKeyStruct()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         auto buffer = nkey->ExportKey(BCRYPT_RSAFULLPRIVATE_BLOB, 0);
         BYTE* pbKey = buffer->data();
@@ -152,6 +158,8 @@ CK_RV RsaPrivateKey::GetValue
     CK_ATTRIBUTE_PTR  attr
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         switch (attr->type) {
         case CKA_MODULUS:
@@ -186,6 +194,8 @@ CK_RV RsaPrivateKey::CopyValues(
     CK_ULONG                ulCount     /* attributes in template */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::RsaPrivateKey::CopyValues(
             object,
@@ -219,6 +229,8 @@ CK_RV RsaPrivateKey::CopyValues(
 
 CK_RV RsaPrivateKey::Destroy()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         nkey->Delete(0);
 
@@ -229,6 +241,8 @@ CK_RV RsaPrivateKey::Destroy()
 
 void RsaPrivateKey::OnKeyAssigned()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         FillPublicKeyStruct();
     }
@@ -239,6 +253,8 @@ void RsaPrivateKey::OnKeyAssigned()
 
 void RsaPublicKey::FillKeyStruct()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         auto buffer = nkey->ExportKey(BCRYPT_RSAPUBLIC_BLOB, 0);
         BYTE* pbKey = buffer->data();
@@ -271,6 +287,8 @@ CK_RV RsaPublicKey::GetValue
     CK_ATTRIBUTE_PTR  attr
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         switch (attr->type) {
         case CKA_MODULUS:
@@ -294,6 +312,8 @@ CK_RV RsaPublicKey::CreateValues
     CK_ULONG          ulCount     /* attributes in template */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::Template tmpl(pTemplate, ulCount);
         core::RsaPublicKey::CreateValues(pTemplate, ulCount);
@@ -333,6 +353,8 @@ CK_RV RsaPublicKey::CopyValues(
     CK_ULONG                ulCount     /* attributes in template */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::RsaPublicKey::CopyValues(
             object,
@@ -354,6 +376,8 @@ CK_RV RsaPublicKey::CopyValues(
 
 CK_RV RsaPublicKey::Destroy()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         return CKR_OK;
     }
@@ -362,6 +386,8 @@ CK_RV RsaPublicKey::Destroy()
 
 void RsaPublicKey::OnKeyAssigned()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         FillKeyStruct();
     }

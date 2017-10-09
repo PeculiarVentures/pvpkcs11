@@ -14,6 +14,8 @@ CK_RV CryptoDigest::Init
     CK_MECHANISM_PTR  pMechanism  /* the digesting mechanism */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::CryptoDigest::Init(pMechanism);
 
@@ -54,6 +56,8 @@ CK_RV CryptoDigest::Update(
     CK_ULONG          ulPartLen  /* bytes of data to be digested */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::CryptoDigest::Update(pPart, ulPartLen);
 
@@ -72,6 +76,8 @@ CK_RV CryptoDigest::Final(
     CK_ULONG_PTR      pulDigestLen  /* gets byte count of digest */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::CryptoDigest::Final(pDigest, pulDigestLen);
 
@@ -109,6 +115,8 @@ CK_RV CryptoDigest::Final(
 
 void CryptoDigest::Dispose()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     if (hDigest) {
         BCryptDestroyHash(hDigest);
         hDigest = NULL;
@@ -122,6 +130,8 @@ Scoped<Buffer> mscapi::Digest(
     CK_ULONG            ulDataLen
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         Scoped<Buffer> buffer(new Buffer(256));
         CK_ULONG digestLength = buffer->size();

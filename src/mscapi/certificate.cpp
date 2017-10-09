@@ -24,6 +24,8 @@ Scoped<Buffer> GetCertificateChain
     crypt::Certificate*     cert       // certificate
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         PCCERT_CHAIN_CONTEXT     pChainContext = NULL;
         CERT_CHAIN_PARA          ChainPara;
@@ -130,6 +132,8 @@ Scoped<Buffer> GetCertificateChain
 mscapi::X509Certificate::X509Certificate()
     : core::X509Certificate()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     Add(core::AttributeBytes::New(CKA_X509_CHAIN, NULL, 0, PVF_2));
 }
 
@@ -137,6 +141,8 @@ void X509Certificate::Assign(
     Scoped<crypt::Certificate>        cert
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         value = cert;
         auto context = cert->Get();
@@ -180,6 +186,8 @@ Scoped<Buffer> X509Certificate::GetPublicKeyHash(
     CK_MECHANISM_TYPE       mechType
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         // Encode public key info
         ULONG ulEncodedLen;
@@ -217,6 +225,8 @@ CK_RV X509Certificate::CreateValues(
     CK_ULONG          ulCount     /* attributes in template */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::X509Certificate::CreateValues(
             pTemplate,
@@ -245,6 +255,8 @@ CK_RV X509Certificate::CopyValues(
     CK_ULONG          ulCount     /* attributes in template */
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         core::X509Certificate::CopyValues(
             object,
@@ -270,6 +282,8 @@ CK_RV X509Certificate::CopyValues(
 
 void mscapi::X509Certificate::AddToMyStorage()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         crypt::CertStore store;
         store.Open(PV_STORE_NAME_MY);
@@ -326,6 +340,8 @@ void mscapi::X509Certificate::AddToMyStorage()
 
 CK_RV mscapi::X509Certificate::Destroy()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         value->DeleteFromStore();
 
@@ -339,6 +355,8 @@ CK_RV mscapi::X509Certificate::GetValue
     CK_ATTRIBUTE_PTR  attr
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         switch (attr->type) {
         case CKA_X509_CHAIN: {

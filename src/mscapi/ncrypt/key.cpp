@@ -13,6 +13,8 @@ Key::Key(
 
 Key::~Key()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     if (handle) {
         NCryptFreeObject(handle);
         handle = NULL;
@@ -23,6 +25,8 @@ void Key::Finalize(
     ULONG dwFlags
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     NTSTATUS status = NCryptFinalizeKey(handle, dwFlags);
     if (status) {
         THROW_NT_EXCEPTION(status);
@@ -34,6 +38,8 @@ Scoped<Buffer> Key::ExportKey(
     _In_    DWORD   dwFlags
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         NTSTATUS status;
 
@@ -58,6 +64,8 @@ void Key::Delete(
     ULONG           dwFlags
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         NTSTATUS status = NCryptDeleteKey(handle, dwFlags);
         if (status) {
@@ -69,6 +77,8 @@ void Key::Delete(
 
 Scoped<CERT_PUBLIC_KEY_INFO> Key::GetPublicKeyInfo()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         ULONG spkiLen;
         if (!CryptExportPublicKeyInfo(
@@ -100,6 +110,8 @@ Scoped<CERT_PUBLIC_KEY_INFO> Key::GetPublicKeyInfo()
 */
 Scoped<Buffer> Key::GetId()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         Scoped<CERT_PUBLIC_KEY_INFO> spki = GetPublicKeyInfo();
         ULONG ulEncodedLen;
@@ -132,34 +144,39 @@ void LinkKeyToCertificate(
     Key*            key
 ) 
 {
-    crypt::CertStore store;
-    store.Open(PV_STORE_NAME_MY);
-    auto certs = store.GetCertificates();
-    for (ULONG i = 0; i < certs.size(); i++) {
-        auto cert = certs.at(i);
+	LOGGER_FUNCTION_BEGIN;
 
-        if (!cert->HasProperty(CERT_KEY_PROV_INFO_PROP_ID)) {
-            auto keySpki = key->GetPublicKeyInfo().get();
-            if (CertComparePublicKeyInfo(X509_ASN_ENCODING, keySpki, &cert->Get()->pCertInfo->SubjectPublicKeyInfo)) {
-                // Create key 
-                CRYPT_KEY_PROV_INFO keyProvInfo;
+	try {
+		crypt::CertStore store;
+		store.Open(PV_STORE_NAME_MY);
+		auto certs = store.GetCertificates();
+		for (ULONG i = 0; i < certs.size(); i++) {
+			auto cert = certs.at(i);
 
-                auto containerName = key->GetBytesW(NCRYPT_NAME_PROPERTY);
+			if (!cert->HasProperty(CERT_KEY_PROV_INFO_PROP_ID)) {
+				auto keySpki = key->GetPublicKeyInfo().get();
+				if (CertComparePublicKeyInfo(X509_ASN_ENCODING, keySpki, &cert->Get()->pCertInfo->SubjectPublicKeyInfo)) {
+					// Create key 
+					CRYPT_KEY_PROV_INFO keyProvInfo;
 
-                keyProvInfo.pwszContainerName = (LPWSTR) containerName->c_str();
-                keyProvInfo.pwszProvName = MS_KEY_STORAGE_PROVIDER;
-                keyProvInfo.dwProvType = 0;
-                keyProvInfo.dwFlags = 0;
-                keyProvInfo.cProvParam = 0;
-                keyProvInfo.rgProvParam = NULL;
-                keyProvInfo.dwKeySpec = 0;
+					auto containerName = key->GetBytesW(NCRYPT_NAME_PROPERTY);
 
-                if (!CertSetCertificateContextProperty(cert->Get(), CERT_KEY_PROV_INFO_PROP_ID, 0, &keyProvInfo)) {
-                    THROW_MSCAPI_EXCEPTION();
-                }
-            }
-        }
-    }
+					keyProvInfo.pwszContainerName = (LPWSTR) containerName->c_str();
+					keyProvInfo.pwszProvName = MS_KEY_STORAGE_PROVIDER;
+					keyProvInfo.dwProvType = 0;
+					keyProvInfo.dwFlags = 0;
+					keyProvInfo.cProvParam = 0;
+					keyProvInfo.rgProvParam = NULL;
+					keyProvInfo.dwKeySpec = 0;
+
+					if (!CertSetCertificateContextProperty(cert->Get(), CERT_KEY_PROV_INFO_PROP_ID, 0, &keyProvInfo)) {
+						THROW_MSCAPI_EXCEPTION();
+					}
+				}
+			}
+		}
+	}
+	CATCH_EXCEPTION
 }
 
 Scoped<Key> ncrypt::CopyKeyToProvider(
@@ -170,6 +187,8 @@ Scoped<Key> ncrypt::CopyKeyToProvider(
     bool                extractable
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         // copy key to new Provider
         auto blob = key->ExportKey(pszBlobType, 0);
