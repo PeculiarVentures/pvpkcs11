@@ -108,29 +108,33 @@ static CK_FUNCTION_LIST functionList =
 
 core::Module pkcs11;
 
+#define LOGGER_ADD_SLOT(name) LOGGER_INFO("Add %s slot to Module", name);
+
 class App {
 public:
     App() {
 #ifdef _WIN32
+        LOGGER_ADD_SLOT("MSCAPI");
         Scoped<core::Slot> mscapiSlot(new mscapi::Slot());
         pkcs11.slots.add(mscapiSlot);
         mscapiSlot->slotID = pkcs11.slots.count() - 1;
 #endif // _WIN32
 #ifdef __APPLE__
-// #ifdef TARGET_OS_MAC
+        LOGGER_ADD_SLOT("OSX");
         Scoped<core::Slot> osxSlot(new osx::Slot());
         pkcs11.slots.add(osxSlot);
         osxSlot->slotID = pkcs11.slots.count() - 1;
-// #endif // TARGET_OS_MAC
 #endif // __APPLE__
     }
 };
+
+#undef LOGGER_ADD_SLOT
 
 App app = App();
 
 CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList)
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         CHECK_ARGUMENT_NULL(ppFunctionList);
@@ -147,7 +151,7 @@ CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList)
 // PKCS #11 initialization function
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s pInitArgs:%p", __FUNCTION__, pInitArgs);
     
     
     try {
@@ -161,7 +165,7 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
 // PKCS #11 finalization function
 CK_RV C_Finalize(CK_VOID_PTR pReserved)
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s pReserved:%p", __FUNCTION__, pReserved);
     
     try {
         return pkcs11.Finalize(pReserved);
@@ -173,7 +177,7 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved)
 
 CK_RV C_GetInfo(CK_INFO_PTR pInfo)
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s pInfo:%p", __FUNCTION__, pInfo);
     
     try
     {
@@ -190,7 +194,7 @@ CK_RV C_GetSlotList(
     CK_ULONG_PTR   pulCount       /* receives number of slots */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s tokenPresent:%d pSlotList:%p pulCount:%d", __FUNCTION__, tokenPresent, pSlotList, *pulCount);
     
     try
     {
@@ -206,7 +210,7 @@ CK_RV C_GetSlotInfo(
     CK_SLOT_INFO_PTR pInfo    /* receives the slot information */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s slotID:%d pInfo:%p", __FUNCTION__, slotID, pInfo);
     
     try
     {
@@ -223,7 +227,7 @@ CK_RV C_GetTokenInfo
     CK_TOKEN_INFO_PTR pInfo    /* receives the token information */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s slotID:%d pInfo:%p", __FUNCTION__, slotID, pInfo);
     
     try
     {
@@ -241,7 +245,7 @@ CK_RV C_GetMechanismList
     CK_ULONG_PTR          pulCount         /* gets # of mechanisms */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s slotID:%d pMechanismList:%p pulCount:%d", __FUNCTION__, slotID, pMechanismList, *pulCount);
     
     try
     {
@@ -259,7 +263,7 @@ CK_RV C_GetMechanismInfo
     CK_MECHANISM_INFO_PTR pInfo    /* receives mechanism info */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s slotID:%d type:0x%08X(%d) pInfo:%p", __FUNCTION__, slotID, type, type, pInfo);
     
     try
     {
@@ -278,7 +282,7 @@ CK_RV C_InitToken
     CK_UTF8CHAR_PTR pLabel     /* 32-byte token label (blank padded) */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s slotID:%d pPin:%p ulPinLen:%d pLabel:'%s'", __FUNCTION__, slotID, pPin, ulPinLen, pLabel);
     
     try
     {
@@ -296,7 +300,7 @@ CK_RV C_InitPIN
     CK_ULONG          ulPinLen   /* length in bytes of the PIN */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try
     {
@@ -316,7 +320,7 @@ CK_RV C_SetPIN
     CK_ULONG          ulNewLen   /* length of the new PIN */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try
     {
@@ -336,7 +340,7 @@ CK_RV C_OpenSession
     CK_SESSION_HANDLE_PTR phSession      /* gets session handle */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s slotID:%d flags:%d pApplication:%p Notify:%p phSession:%p", __FUNCTION__, slotID, flags, pApplication, Notify, phSession);
     
     try
     {
@@ -352,7 +356,7 @@ CK_RV C_CloseSession
     CK_SESSION_HANDLE hSession  /* the session's handle */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s hSession:0x%08X", __FUNCTION__, hSession);
     
     try
     {
@@ -368,7 +372,7 @@ CK_RV C_CloseAllSessions
     CK_SLOT_ID     slotID  /* the token's slot */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s slotID:%d", __FUNCTION__, slotID);
     
     try
     {
@@ -385,7 +389,7 @@ CK_RV C_GetSessionInfo
     CK_SESSION_INFO_PTR pInfo      /* receives session info */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s hSession:0x%08X pInfo:%p", __FUNCTION__, hSession, pInfo);
     
     try
     {
@@ -403,7 +407,7 @@ CK_RV C_GetOperationState
     CK_ULONG_PTR      pulOperationStateLen  /* gets state length */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -417,7 +421,7 @@ CK_RV C_SetOperationState
     CK_OBJECT_HANDLE hAuthenticationKey    /* sign/verify key */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -430,7 +434,7 @@ CK_RV C_Login
     CK_ULONG          ulPinLen   /* the length of the PIN */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s hSession:0x%08X userType:%d", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -441,7 +445,7 @@ CK_RV C_Logout
     CK_SESSION_HANDLE hSession  /* the session's handle */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s hSession:0x%08X", __FUNCTION__, hSession);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -457,7 +461,7 @@ CK_RV C_CreateObject
     CK_OBJECT_HANDLE_PTR phObject  /* gets new object's handle. */
 )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.CreateObject(
@@ -482,7 +486,7 @@ CK_RV C_CopyObject
     CK_OBJECT_HANDLE_PTR phNewObject  /* receives handle of copy */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.CopyObject(
@@ -504,7 +508,7 @@ CK_RV C_DestroyObject
     CK_OBJECT_HANDLE  hObject    /* the object's handle */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.DestroyObject(
@@ -524,7 +528,7 @@ CK_RV C_GetObjectSize
     CK_ULONG_PTR      pulSize    /* receives size of object */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -540,7 +544,7 @@ CK_RV C_GetAttributeValue
     CK_ULONG          ulCount     /* attributes in template */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.GetAttributeValue(hSession, hObject, pTemplate, ulCount);
@@ -561,7 +565,7 @@ CK_RV C_SetAttributeValue
     CK_ULONG          ulCount     /* attributes in template */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.SetAttributeValue(hSession, hObject, pTemplate, ulCount);
@@ -582,7 +586,7 @@ CK_RV C_FindObjectsInit
     CK_ULONG          ulCount     /* attributes in search template */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.FindObjectsInit(hSession, pTemplate, ulCount);
@@ -604,7 +608,7 @@ CK_RV C_FindObjects
     CK_ULONG_PTR         pulObjectCount     /* actual # returned */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.FindObjects(hSession, phObject, ulMaxObjectCount, pulObjectCount);
@@ -622,7 +626,7 @@ CK_RV C_FindObjectsFinal
     CK_SESSION_HANDLE hSession  /* the session's handle */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.FindObjectsFinal(hSession);
@@ -644,7 +648,7 @@ CK_RV C_EncryptInit
     CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.EncryptInit(hSession, pMechanism, hKey);
@@ -665,7 +669,7 @@ CK_RV C_Encrypt
     CK_ULONG_PTR      pulEncryptedDataLen  /* gets c-text size */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.Encrypt(
@@ -693,7 +697,7 @@ CK_RV C_EncryptUpdate
     CK_ULONG_PTR      pulEncryptedPartLen /* gets c-text size */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.EncryptUpdate(
@@ -719,7 +723,7 @@ CK_RV C_EncryptFinal
     CK_ULONG_PTR      pulLastEncryptedPartLen  /* gets last size */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.EncryptFinal(
@@ -742,7 +746,7 @@ CK_RV C_DecryptInit
     CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.DecryptInit(
@@ -767,7 +771,7 @@ CK_RV C_Decrypt
     CK_ULONG_PTR      pulDataLen          /* gets p-text size */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.Decrypt(
@@ -795,7 +799,7 @@ CK_RV C_DecryptUpdate
     CK_ULONG_PTR      pulPartLen           /* p-text size */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.DecryptUpdate(
@@ -821,7 +825,7 @@ CK_RV C_DecryptFinal
     CK_ULONG_PTR      pulLastPartLen  /* p-text size */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.DecryptFinal(
@@ -844,7 +848,7 @@ CK_RV C_DigestInit
     CK_MECHANISM_PTR  pMechanism  /* the digesting mechanism */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.DigestInit(hSession, pMechanism);
@@ -865,7 +869,7 @@ CK_RV C_Digest
     CK_ULONG_PTR      pulDigestLen  /* gets digest length */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.Digest(hSession, pData, ulDataLen, pDigest, pulDigestLen);
@@ -885,7 +889,7 @@ CK_RV C_DigestUpdate
     CK_ULONG          ulPartLen  /* bytes of data to be digested */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.DigestUpdate(hSession, pPart, ulPartLen);
@@ -905,7 +909,7 @@ CK_RV C_DigestKey
     CK_OBJECT_HANDLE  hKey       /* secret key to digest */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.DigestKey(hSession, hKey);
@@ -925,7 +929,7 @@ CK_RV C_DigestFinal
     CK_ULONG_PTR      pulDigestLen  /* gets byte count of digest */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.DigestFinal(hSession, pDigest, pulDigestLen);
@@ -950,7 +954,7 @@ CK_RV C_SignInit
     CK_OBJECT_HANDLE  hKey         /* handle of signature key */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.SignInit(hSession, pMechanism, hKey);
@@ -973,7 +977,7 @@ CK_RV C_Sign
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.Sign(hSession, pData, ulDataLen, pSignature, pulSignatureLen);
@@ -994,7 +998,7 @@ CK_RV C_SignUpdate
     CK_ULONG          ulPartLen  /* count of bytes to sign */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.SignUpdate(hSession, pPart, ulPartLen);
@@ -1014,7 +1018,7 @@ CK_RV C_SignFinal
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.SignFinal(hSession, pSignature, pulSignatureLen);
@@ -1034,7 +1038,7 @@ CK_RV C_SignRecoverInit
     CK_OBJECT_HANDLE  hKey        /* handle of the signature key */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -1051,7 +1055,7 @@ CK_RV C_SignRecover
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -1070,7 +1074,7 @@ CK_RV C_VerifyInit
     CK_OBJECT_HANDLE  hKey         /* verification key */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.VerifyInit(hSession, pMechanism, hKey);
@@ -1093,7 +1097,7 @@ CK_RV C_Verify
     CK_ULONG          ulSignatureLen  /* signature length*/
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.Verify(hSession, pData, ulDataLen, pSignature, ulSignatureLen);
@@ -1114,7 +1118,7 @@ CK_RV C_VerifyUpdate
     CK_ULONG          ulPartLen  /* length of signed data */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.VerifyUpdate(hSession, pPart, ulPartLen);
@@ -1134,7 +1138,7 @@ CK_RV C_VerifyFinal
     CK_ULONG          ulSignatureLen  /* signature length */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.VerifyFinal(hSession, pSignature, ulSignatureLen);
@@ -1154,7 +1158,7 @@ CK_RV C_VerifyRecoverInit
     CK_OBJECT_HANDLE  hKey         /* verification key */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -1171,7 +1175,7 @@ CK_RV C_VerifyRecover
     CK_ULONG_PTR      pulDataLen       /* gets signed data length */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -1191,7 +1195,7 @@ CK_RV C_DigestEncryptUpdate
     CK_ULONG_PTR      pulEncryptedPartLen  /* gets c-text length */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -1208,7 +1212,7 @@ CK_RV C_DecryptDigestUpdate
     CK_ULONG_PTR      pulPartLen           /* gets plaintext length */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -1225,7 +1229,7 @@ CK_RV C_SignEncryptUpdate
     CK_ULONG_PTR      pulEncryptedPartLen  /* gets c-text length */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -1242,7 +1246,7 @@ CK_RV C_DecryptVerifyUpdate
     CK_ULONG_PTR      pulPartLen           /* gets p-text length */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -1262,7 +1266,7 @@ CK_RV C_GenerateKey
     CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.GenerateKey(
@@ -1293,7 +1297,7 @@ CK_RV C_GenerateKeyPair
     CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.GenerateKeyPair(
@@ -1324,7 +1328,7 @@ CK_RV C_WrapKey
     CK_ULONG_PTR      pulWrappedKeyLen /* gets wrapped key size */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -1344,7 +1348,7 @@ CK_RV C_UnwrapKey
     CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -1362,7 +1366,7 @@ CK_RV C_DeriveKey
     CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.DeriveKey(
@@ -1390,7 +1394,7 @@ CK_RV C_SeedRandom
     CK_ULONG          ulSeedLen  /* length of seed material */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.SeedRandom(hSession, pSeed, ulSeedLen);
@@ -1407,7 +1411,7 @@ CK_RV C_GenerateRandom
     CK_ULONG          ulRandomLen  /* # of bytes to generate */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     try {
         return pkcs11.GenerateRandom(hSession, RandomData, ulRandomLen);
@@ -1427,7 +1431,7 @@ CK_RV C_GetFunctionStatus
     CK_SESSION_HANDLE hSession  /* the session's handle */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -1440,7 +1444,7 @@ CK_RV C_CancelFunction
     CK_SESSION_HANDLE hSession  /* the session's handle */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -1458,7 +1462,7 @@ CK_RV C_WaitForSlotEvent
     CK_VOID_PTR pRserved   /* reserved.  Should be NULL_PTR */
     )
 {
-    LOGGER_INFO("Call %s", __FUNCTION__);
+    LOGGER_DEBUG("%s", __FUNCTION__);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
