@@ -11,6 +11,7 @@ SecKeyRef osx::SecKeyCopyPublicKeyEx(SecKeyRef key) {
     if (key == NULL) {
         return NULL;
     }
+    LOGGER_DEBUG("%s Looking for public key SecKeyCopyPublicKey", __FUNCTION__);
     SecKeyRef pubKey = SecKeyCopyPublicKey(key);
     if (pubKey) {
         return pubKey;
@@ -23,6 +24,7 @@ SecKeyRef osx::SecKeyCopyPublicKeyEx(SecKeyRef key) {
     }
     
     if (!pubKey) {
+        LOGGER_DEBUG("%s Looking for public key in KeyChain by kSecAttrApplicationLabel", __FUNCTION__);
         // Get public key from key chain
         // create query
         CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
@@ -33,10 +35,12 @@ SecKeyRef osx::SecKeyCopyPublicKeyEx(SecKeyRef key) {
         CFDictionaryAddValue(*matchAttr, kSecAttrKeyClass, kSecAttrKeyClassPublic);
         CFDictionaryAddValue(*matchAttr, kSecAttrApplicationLabel, klbl);
         CFDictionaryAddValue(*matchAttr, kSecReturnRef, kCFBooleanTrue);
+        CFDictionaryAddValue(*matchAttr, kSecMatchLimit, kSecMatchLimitOne);
         
         SecItemCopyMatching(*matchAttr, (CFTypeRef*)&pubKey);
     }
     if (!pubKey) {
+        LOGGER_DEBUG("%s Looking for public key in certificate from KeyChain by kSecAttrApplicationLabel", __FUNCTION__);
         // Get public key from certificate
         // create query
         CFRef<CFMutableDictionaryRef> matchAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
@@ -46,17 +50,22 @@ SecKeyRef osx::SecKeyCopyPublicKeyEx(SecKeyRef key) {
         CFDictionaryAddValue(*matchAttr, kSecClass, kSecClassCertificate);
         CFDictionaryAddValue(*matchAttr, kSecAttrPublicKeyHash, klbl);
         CFDictionaryAddValue(*matchAttr, kSecReturnRef, kCFBooleanTrue);
+        CFDictionaryAddValue(*matchAttr, kSecMatchLimit, kSecMatchLimitOne);
         
-        SecCertificateRef cert = NULL;
+        CFRef<SecCertificateRef> cert;
         OSStatus status = SecItemCopyMatching(*matchAttr, (CFTypeRef*)&cert);
-        if (!status &&  cert != NULL) {
-            CFShow(cert);
-            SecCertificateCopyPublicKey(cert, &pubKey);
-            CFRelease(cert);
+        if (!(status || cert.IsEmpty())) {
+            status = SecCertificateCopyPublicKey(*cert, &pubKey);
+            if (status) {
+                std::string error = GetOSXErrorAsString(status, "SecCertificateCopyPublicKey");
+                LOGGER_DEBUG("%s %s", __FUNCTION__, error.c_str());
+            }
         } else {
-            LOGGER_WARN("%s Cannot copy public key", __FUNCTION__);
             pubKey = NULL;
         }
+    }
+    if (pubKey == NULL) {
+        LOGGER_WARN("%s Cannot copy public key", __FUNCTION__);
     }
     return pubKey;
 }
