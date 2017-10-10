@@ -165,18 +165,18 @@ Scoped<core::KeyPair> osx::EcKey::Generate
         Scoped<EcPublicKey> publicKey(new EcPublicKey());
         publicKey->GenerateValues(publicTemplate->Get(), publicTemplate->Size());
         
-        CFMutableDictionaryRef privateKeyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                          0,
-                                                                          &kCFTypeDictionaryKeyCallBacks,
-                                                                          &kCFTypeDictionaryValueCallBacks);
-        CFMutableDictionaryRef publicKeyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                         0,
-                                                                         &kCFTypeDictionaryKeyCallBacks,
-                                                                         &kCFTypeDictionaryValueCallBacks);
-        CFMutableDictionaryRef keyPairAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                       0,
-                                                                       &kCFTypeDictionaryKeyCallBacks,
-                                                                       &kCFTypeDictionaryValueCallBacks);
+        CFRef<CFMutableDictionaryRef> privateKeyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                                                                 0,
+                                                                                 &kCFTypeDictionaryKeyCallBacks,
+                                                                                 &kCFTypeDictionaryValueCallBacks);
+        CFRef<CFMutableDictionaryRef> publicKeyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                                                                0,
+                                                                                &kCFTypeDictionaryKeyCallBacks,
+                                                                                &kCFTypeDictionaryValueCallBacks);
+        CFRef<CFMutableDictionaryRef> keyPairAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                                                              0,
+                                                                              &kCFTypeDictionaryKeyCallBacks,
+                                                                              &kCFTypeDictionaryValueCallBacks);
         
         SecKeyRef pPrivateKey = NULL;
         SecKeyRef pPublicKey = NULL;
@@ -201,20 +201,20 @@ Scoped<core::KeyPair> osx::EcKey::Generate
         
 #undef POINT_COMPARE
         
-        CFDictionarySetValue(keyPairAttr, kSecAttrKeyType, kSecAttrKeyTypeEC);
+        CFDictionarySetValue(*keyPairAttr, kSecAttrKeyType, kSecAttrKeyTypeEC);
         CFRef<CFNumberRef> cfKeySizeInBits = CFNumberCreate(NULL,
                                                             kCFNumberSInt32Type,
                                                             &keySizeInBits);
-        CFDictionarySetValue(keyPairAttr, kSecAttrKeySizeInBits, *cfKeySizeInBits);
+        CFDictionarySetValue(*keyPairAttr, kSecAttrKeySizeInBits, *cfKeySizeInBits);
         
-        CFDictionarySetValue(privateKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
+        CFDictionarySetValue(*privateKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
         
-        CFDictionarySetValue(keyPairAttr, kSecPrivateKeyAttrs, privateKeyAttr);
+        CFDictionarySetValue(*keyPairAttr, kSecPrivateKeyAttrs, *privateKeyAttr);
         
-        CFDictionarySetValue(publicKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
-        CFDictionarySetValue(keyPairAttr, kSecPublicKeyAttrs, publicKeyAttr);
+        CFDictionarySetValue(*publicKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
+        CFDictionarySetValue(*keyPairAttr, kSecPublicKeyAttrs, *publicKeyAttr);
         
-        OSStatus status = SecKeyGeneratePair(keyPairAttr, &pPublicKey, &pPrivateKey);
+        OSStatus status = SecKeyGeneratePair(*keyPairAttr, &pPublicKey, &pPrivateKey);
         if (status) {
             THROW_OSX_EXCEPTION(status, "SecKeyGeneratePair");
         }

@@ -70,34 +70,34 @@ Scoped<core::KeyPair> osx::RsaKey::Generate
         Scoped<RsaPublicKey> publicKey(new RsaPublicKey());
         publicKey->GenerateValues(publicTemplate->Get(), publicTemplate->Size());
         
-        CFMutableDictionaryRef privateKeyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                          0,
-                                                                          &kCFTypeDictionaryKeyCallBacks,
-                                                                          &kCFTypeDictionaryValueCallBacks);
-        CFMutableDictionaryRef publicKeyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                         0,
-                                                                         &kCFTypeDictionaryKeyCallBacks,
-                                                                         &kCFTypeDictionaryValueCallBacks);
-        CFMutableDictionaryRef keyPairAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                       0,
-                                                                       &kCFTypeDictionaryKeyCallBacks,
-                                                                       &kCFTypeDictionaryValueCallBacks);
+        CFRef<CFMutableDictionaryRef> privateKeyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                                                                 0,
+                                                                                 &kCFTypeDictionaryKeyCallBacks,
+                                                                                 &kCFTypeDictionaryValueCallBacks);
+        CFRef<CFMutableDictionaryRef> publicKeyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                                                                0,
+                                                                                &kCFTypeDictionaryKeyCallBacks,
+                                                                                &kCFTypeDictionaryValueCallBacks);
+        CFRef<CFMutableDictionaryRef> keyPairAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                                                              0,
+                                                                              &kCFTypeDictionaryKeyCallBacks,
+                                                                              &kCFTypeDictionaryValueCallBacks);
         
         SecKeyRef pPrivateKey = NULL;
         SecKeyRef pPublicKey = NULL;
         
-        CFDictionarySetValue(keyPairAttr, kSecAttrKeyType, kSecAttrKeyTypeRSA);
+        CFDictionarySetValue(*keyPairAttr, kSecAttrKeyType, kSecAttrKeyTypeRSA);
         int32_t modulusBits = (int32_t)publicTemplate->GetNumber(CKA_MODULUS_BITS, true);
         CFRef<CFNumberRef> cfModulusBits = CFNumberCreate(kCFAllocatorDefault,
                                                           kCFNumberSInt32Type,
                                                           &modulusBits);
-        CFDictionarySetValue(keyPairAttr, kSecAttrKeySizeInBits, *cfModulusBits);
+        CFDictionarySetValue(*keyPairAttr, kSecAttrKeySizeInBits, *cfModulusBits);
         
-        CFDictionarySetValue(privateKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
-        CFDictionarySetValue(keyPairAttr, kSecPrivateKeyAttrs, privateKeyAttr);
+        CFDictionarySetValue(*privateKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
+        CFDictionarySetValue(*keyPairAttr, kSecPrivateKeyAttrs, *privateKeyAttr);
         
-        CFDictionarySetValue(publicKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
-        CFDictionarySetValue(keyPairAttr, kSecPublicKeyAttrs, publicKeyAttr);
+        CFDictionarySetValue(*publicKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
+        CFDictionarySetValue(*keyPairAttr, kSecPublicKeyAttrs, *publicKeyAttr);
         
         
         // Public exponent
@@ -107,11 +107,10 @@ Scoped<core::KeyPair> osx::RsaKey::Generate
             THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, "Public exponent must be 65537 only");
         }
         
-        OSStatus status = SecKeyGeneratePair(keyPairAttr, &pPublicKey, &pPrivateKey);
+        OSStatus status = SecKeyGeneratePair(*keyPairAttr, &pPublicKey, &pPrivateKey);
         if (status) {
             THROW_OSX_EXCEPTION(status, "SecKeyGeneratePair");
         }
-        
         
         publicKey->Assign(pPublicKey);
         publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
