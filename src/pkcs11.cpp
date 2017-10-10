@@ -16,7 +16,7 @@
 #define CATCH(functionName)                                     \
     catch (Scoped<core::Exception> e) {                         \
 		core::Pkcs11Exception* exception = dynamic_cast<core::Pkcs11Exception*>(e.get()); \
-        LOGGER_ERROR("%s", e->what());                          \
+        LOGGER_ERROR("%s %s", __FUNCTION__, e->what());         \
 		if (exception) {                                        \
 			return strcmp(exception->name.c_str(), PKCS11_EXCEPTION_NAME) ? CKR_FUNCTION_FAILED : exception->code;\
 		}                                                       \
