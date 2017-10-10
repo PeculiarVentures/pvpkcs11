@@ -205,7 +205,9 @@ CK_RV osx::X509Certificate::Destroy()
     LOGGER_FUNCTION_BEGIN;
     
     try {
-        SecItemDestroy(value.Get(), kSecClassCertificate);
+        if (ItemByType(CKA_TOKEN)->ToBool()) {
+            SecItemDestroy(value.Get(), kSecClassCertificate);
+        }
         return CKR_OK;
     }
     CATCH_EXCEPTION

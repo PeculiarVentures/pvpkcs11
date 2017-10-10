@@ -395,7 +395,10 @@ CK_RV osx::EcPrivateKey::Destroy()
     LOGGER_FUNCTION_BEGIN;
     
     try {
-        return SecItemDestroy(value.Get(), kSecClassKey);
+        if (ItemByType(CKA_TOKEN)->ToBool()) {
+            return SecItemDestroy(value.Get(), kSecClassKey);
+        }
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -601,7 +604,10 @@ CK_RV osx::EcPublicKey::Destroy()
     LOGGER_FUNCTION_BEGIN;
     
     try {
-        return SecItemDestroy(value.Get(), kSecClassKey);
+        if (ItemByType(CKA_TOKEN)->ToBool()) {
+            return SecItemDestroy(value.Get(), kSecClassKey);
+        }
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
