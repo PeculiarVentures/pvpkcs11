@@ -19,7 +19,8 @@ namespace core {
             const char*        message,
             const char*        function,
             const char*        file,
-            int                line
+            int                line,
+            ...
         );
 
         ~Exception() throw() {}
@@ -40,7 +41,8 @@ namespace core {
             const char*        message,
             const char*        function,
             const char*        file,
-            int                line
+            int                line,
+            ...
         );
     };
 
@@ -48,13 +50,13 @@ namespace core {
 
 #define EXCEPTION_NAME "Exception"
 
-#define THROW_EXCEPTION(message)                                  \
-	throw Scoped<core::Exception>(new core::Exception(EXCEPTION_NAME, message, __FUNCTION__, __FILE__, __LINE__))
+#define THROW_EXCEPTION(message, ...)                                  \
+	throw Scoped<core::Exception>(new core::Exception(EXCEPTION_NAME, message, __FUNCTION__, __FILE__, __LINE__, ## __VA_ARGS__))
 
 #define PKCS11_EXCEPTION_NAME "Pkcs11Exception"
 
-#define THROW_PKCS11_EXCEPTION(code, message)                     \
-	throw Scoped<core::Exception>(new core::Pkcs11Exception(PKCS11_EXCEPTION_NAME, code, message, __FUNCTION__, __FILE__, __LINE__))
+#define THROW_PKCS11_EXCEPTION(code, message, ...)                     \
+	throw Scoped<core::Exception>(new core::Pkcs11Exception(PKCS11_EXCEPTION_NAME, code, message, __FUNCTION__, __FILE__, __LINE__, ## __VA_ARGS__))
 
 #define THROW_PKCS11_MECHANISM_INVALID() THROW_PKCS11_EXCEPTION(CKR_MECHANISM_INVALID, "Unsupported mechanism in use")
 #define THROW_PKCS11_BUFFER_TOO_SMALL() THROW_PKCS11_EXCEPTION(CKR_BUFFER_TOO_SMALL, "Buffer too small")
