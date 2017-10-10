@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "core/module.h"
 #include "core/excep.h"
+#include "debug.h"
 
 #ifdef _WIN32
 #include "mscapi/slot.h"
@@ -356,7 +357,7 @@ CK_RV C_CloseSession
     CK_SESSION_HANDLE hSession  /* the session's handle */
 )
 {
-    LOGGER_DEBUG("%s hSession:0x%08X", __FUNCTION__, hSession);
+    LOGGER_DEBUG("%s hSession:%s", __FUNCTION__, printHandle(hSession).c_str());
     
     try
     {
@@ -389,7 +390,10 @@ CK_RV C_GetSessionInfo
     CK_SESSION_INFO_PTR pInfo      /* receives session info */
 )
 {
-    LOGGER_DEBUG("%s hSession:0x%08X pInfo:%p", __FUNCTION__, hSession, pInfo);
+    LOGGER_DEBUG("%s hSession:%s pInfo:%s",
+                 __FUNCTION__,
+                 printHandle(hSession).c_str(),
+                 printAddress(pInfo).c_str());
     
     try
     {
@@ -434,7 +438,10 @@ CK_RV C_Login
     CK_ULONG          ulPinLen   /* the length of the PIN */
 )
 {
-    LOGGER_DEBUG("%s hSession:0x%08X userType:%d", __FUNCTION__);
+    LOGGER_DEBUG("%s hSession:%s userType:%d",
+                 __FUNCTION__,
+                 printHandle(hSession).c_str(),
+                 userType);
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -445,7 +452,9 @@ CK_RV C_Logout
     CK_SESSION_HANDLE hSession  /* the session's handle */
 )
 {
-    LOGGER_DEBUG("%s hSession:0x%08X", __FUNCTION__, hSession);
+    LOGGER_DEBUG("%s hSession:%s",
+                 __FUNCTION__,
+                 printHandle(hSession).c_str());
     
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
@@ -461,7 +470,11 @@ CK_RV C_CreateObject
     CK_OBJECT_HANDLE_PTR phObject  /* gets new object's handle. */
 )
 {
-    LOGGER_DEBUG("%s", __FUNCTION__);
+    LOGGER_DEBUG("%s hSession:%s pTemplate:%s phObject:%s",
+                 __FUNCTION__,
+                 printHandle(hSession).c_str(),
+                 printTemplate(pTemplate, ulCount).c_str(),
+                 printAddress(phObject).c_str());
     
     try {
         return pkcs11.CreateObject(
@@ -486,7 +499,12 @@ CK_RV C_CopyObject
     CK_OBJECT_HANDLE_PTR phNewObject  /* receives handle of copy */
     )
 {
-    LOGGER_DEBUG("%s", __FUNCTION__);
+    LOGGER_DEBUG("%s hSession:%s hObject:%s",
+                 __FUNCTION__,
+                 printHandle(hSession).c_str(),
+                 printHandle(hObject).c_str(),
+                 printTemplate(pTemplate, ulCount).c_str(),
+                 printAddress(phNewObject).c_str());
     
     try {
         return pkcs11.CopyObject(
@@ -508,7 +526,10 @@ CK_RV C_DestroyObject
     CK_OBJECT_HANDLE  hObject    /* the object's handle */
     )
 {
-    LOGGER_DEBUG("%s", __FUNCTION__);
+    LOGGER_DEBUG("%s hSession:%s hObject:%s",
+                 __FUNCTION__,
+                 printHandle(hSession).c_str(),
+                 printHandle(hObject).c_str());
     
     try {
         return pkcs11.DestroyObject(
@@ -544,7 +565,11 @@ CK_RV C_GetAttributeValue
     CK_ULONG          ulCount     /* attributes in template */
     )
 {
-    LOGGER_DEBUG("%s", __FUNCTION__);
+    LOGGER_DEBUG("%s hSssion:%s hObject:%s pTemplate:%s",
+                 __FUNCTION__,
+                 printHandle(hSession).c_str(),
+                 printHandle(hObject).c_str(),
+                 printTemplate(pTemplate, ulCount).c_str());
     
     try {
         return pkcs11.GetAttributeValue(hSession, hObject, pTemplate, ulCount);
@@ -565,7 +590,11 @@ CK_RV C_SetAttributeValue
     CK_ULONG          ulCount     /* attributes in template */
     )
 {
-    LOGGER_DEBUG("%s", __FUNCTION__);
+    LOGGER_DEBUG("%s hSssion:%s hObject:%s pTemplate:%s",
+                 __FUNCTION__,
+                 printHandle(hSession).c_str(),
+                 printHandle(hObject).c_str(),
+                 printTemplate(pTemplate, ulCount).c_str());
     
     try {
         return pkcs11.SetAttributeValue(hSession, hObject, pTemplate, ulCount);
@@ -586,7 +615,10 @@ CK_RV C_FindObjectsInit
     CK_ULONG          ulCount     /* attributes in search template */
     )
 {
-    LOGGER_DEBUG("%s", __FUNCTION__);
+    LOGGER_DEBUG("%s hSession:%s pTemplate:%s",
+                 __FUNCTION__,
+                 printHandle(hSession).c_str(),
+                 printTemplate(pTemplate, ulCount).c_str());
     
     try {
         return pkcs11.FindObjectsInit(hSession, pTemplate, ulCount);
@@ -631,7 +663,7 @@ CK_RV C_FindObjectsFinal
     try {
         return pkcs11.FindObjectsFinal(hSession);
     }
-    CATCH("C_FindObjectsFinal");
+    CATCH(__FUNCTION__);
 
     return CKR_FUNCTION_FAILED;
 }
@@ -653,7 +685,7 @@ CK_RV C_EncryptInit
     try {
         return pkcs11.EncryptInit(hSession, pMechanism, hKey);
     }
-    CATCH("C_EncryptInit");
+    CATCH(__FUNCTION__);
 
     return CKR_FUNCTION_FAILED;
 }
@@ -680,7 +712,7 @@ CK_RV C_Encrypt
             pulEncryptedDataLen
         );
     }
-    CATCH("C_Encrypt");
+    CATCH(__FUNCTION__);
 
     return CKR_FUNCTION_FAILED;
 }
@@ -708,7 +740,7 @@ CK_RV C_EncryptUpdate
             pulEncryptedPartLen
         );
     }
-    CATCH("C_EncryptUpdate");
+    CATCH(__FUNCTION__);
 
     return CKR_FUNCTION_FAILED;
 }
