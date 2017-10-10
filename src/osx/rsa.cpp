@@ -208,7 +208,6 @@ void osx::RsaPrivateKey::FillPublicKeyStruct()
     LOGGER_FUNCTION_BEGIN;
     
     try {
-        // CFShow(&value);
         CFRef<SecKeyRef> publicKey = SecKeyCopyPublicKeyEx(*value);
         
         if (publicKey.IsEmpty()) {
