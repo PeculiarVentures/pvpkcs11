@@ -114,28 +114,8 @@ Scoped<Buffer> Key::GetId()
 
     try {
         Scoped<CERT_PUBLIC_KEY_INFO> spki = GetPublicKeyInfo();
-        ULONG ulEncodedLen;
-        if (!CryptEncodeObject(
-            X509_ASN_ENCODING,
-            X509_PUBLIC_KEY_INFO,
-            spki.get(),
-            NULL,
-            &ulEncodedLen
-        )) {
-            THROW_MSCAPI_EXCEPTION();
-        }
-        Buffer encoded(ulEncodedLen);
-        if (!CryptEncodeObject(
-            X509_ASN_ENCODING,
-            X509_PUBLIC_KEY_INFO,
-            spki.get(),
-            encoded.data(),
-            &ulEncodedLen
-        )) {
-            THROW_MSCAPI_EXCEPTION();
-        }
 
-        return DIGEST_SHA1(encoded.data(), encoded.size());
+        return DIGEST_SHA1(spki->PublicKey.pbData, spki->PublicKey.cbData);
     }
     CATCH_EXCEPTION
 }
@@ -192,9 +172,9 @@ Scoped<Key> ncrypt::CopyKeyToProvider(
     try {
         // copy key to new Provider
         auto blob = key->ExportKey(pszBlobType, 0);
-        auto keyAlforithm = key->GetBytesW(NCRYPT_ALGORITHM_PROPERTY);
+        auto keyAlgorithm = key->GetBytesW(NCRYPT_ALGORITHM_PROPERTY);
 
-        auto nkey = provider->CreatePersistedKey(keyAlforithm->c_str(), pszContainerName, 0, 0);
+        auto nkey = provider->CreatePersistedKey(keyAlgorithm->c_str(), pszContainerName, 0, 0);
         nkey->SetParam(pszBlobType, blob->data(), blob->size(), NCRYPT_PERSIST_FLAG);
 
         // Set CNG properties

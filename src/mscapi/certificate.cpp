@@ -137,7 +137,7 @@ mscapi::X509Certificate::X509Certificate()
     Add(core::AttributeBytes::New(CKA_X509_CHAIN, NULL, 0, PVF_2));
 }
 
-void X509Certificate::Assign(
+void mscapi::X509Certificate::Assign(
     Scoped<crypt::Certificate>        cert
 )
 {
@@ -182,45 +182,23 @@ void X509Certificate::Assign(
     CATCH_EXCEPTION
 }
 
-Scoped<Buffer> X509Certificate::GetPublicKeyHash(
+Scoped<Buffer> mscapi::X509Certificate::GetPublicKeyHash(
     CK_MECHANISM_TYPE       mechType
 )
 {
 	LOGGER_FUNCTION_BEGIN;
 
     try {
-        // Encode public key info
-        ULONG ulEncodedLen;
-        if (!CryptEncodeObject(
-            X509_ASN_ENCODING,
-            X509_PUBLIC_KEY_INFO,
-            &value->Get()->pCertInfo->SubjectPublicKeyInfo,
-            NULL,
-            &ulEncodedLen
-        )) {
-            THROW_MSCAPI_EXCEPTION();
-        }
-        Buffer encoded(ulEncodedLen);
-        if (!CryptEncodeObject(
-            X509_ASN_ENCODING,
-            X509_PUBLIC_KEY_INFO,
-            &value->Get()->pCertInfo->SubjectPublicKeyInfo,
-            encoded.data(),
-            &ulEncodedLen
-        )) {
-            THROW_MSCAPI_EXCEPTION();
-        }
-
         return Digest(
             mechType,
-            encoded.data(),
-            encoded.size()
+			value->Get()->pCertInfo->SubjectPublicKeyInfo.PublicKey.pbData,
+			value->Get()->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData
         );
     }
     CATCH_EXCEPTION
 }
 
-CK_RV X509Certificate::CreateValues(
+CK_RV mscapi::X509Certificate::CreateValues(
     CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
     CK_ULONG          ulCount     /* attributes in template */
 )
@@ -249,7 +227,7 @@ CK_RV X509Certificate::CreateValues(
     CATCH_EXCEPTION
 }
 
-CK_RV X509Certificate::CopyValues(
+CK_RV mscapi::X509Certificate::CopyValues(
     Scoped<Object>    object,     /* the object which must be copied */
     CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
     CK_ULONG          ulCount     /* attributes in template */
