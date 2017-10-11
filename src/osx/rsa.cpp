@@ -217,9 +217,11 @@ void osx::RsaPrivateKey::FillPublicKeyStruct()
         }
         
         // Get public key SEQUENCE
-        CFRef<CFDataRef> cfKeyData = SecKeyCopyExternalRepresentation(*publicKey, NULL);
-        if (cfKeyData.IsEmpty()) {
-            THROW_EXCEPTION("Error on SecKeyCopyExternalRepresentation");
+        CFRef<CFErrorRef> cfError;
+        CFRef<CFDataRef> cfKeyData = SecKeyCopyExternalRepresentation(*publicKey, &cfError);
+        if (!cfError.IsEmpty()) {
+            CFRef<CFStringRef> errorMessage = CFErrorCopyDescription(*cfError);
+            THROW_EXCEPTION("Error on SecKeyCopyExternalRepresentation. %s", CFStringGetCStringPtr(*errorMessage, kCFStringEncodingUTF8));
         }
         
         // Init ASN1 coder
