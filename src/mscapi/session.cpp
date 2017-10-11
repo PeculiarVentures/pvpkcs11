@@ -36,123 +36,132 @@ void Session::LoadMyStore()
         store->Open(PV_STORE_NAME_MY);
         auto certs = store->GetCertificates();
         for (size_t i = 0; i < certs.size(); i++) {
-            auto cert = certs.at(i);
+			try {
+				auto cert = certs.at(i);
 
-            if (!cert->HasProperty(CERT_KEY_PROV_INFO_PROP_ID)) {
-                continue;
-            }
+				if (!cert->HasProperty(CERT_KEY_PROV_INFO_PROP_ID)) {
+					continue;
+				}
 
-            auto propKeyProvInfo = cert->GetPropertyBytes(CERT_KEY_PROV_INFO_PROP_ID);
-            CRYPT_KEY_PROV_INFO* pKeyProvInfo = (CRYPT_KEY_PROV_INFO*)propKeyProvInfo->data();
+				auto propKeyProvInfo = cert->GetPropertyBytes(CERT_KEY_PROV_INFO_PROP_ID);
+				CRYPT_KEY_PROV_INFO* pKeyProvInfo = (CRYPT_KEY_PROV_INFO*)propKeyProvInfo->data();
 
-            Scoped<core::Object> privateKey;
-            Scoped<core::Object> publicKey;
+				Scoped<core::Object> privateKey;
+				Scoped<core::Object> publicKey;
 
-            if (pKeyProvInfo->dwProvType == 0) {
-                // CNG
-                if (!wmemcmp(MS_KEY_STORAGE_PROVIDER, pKeyProvInfo->pwszProvName, lstrlenW(MS_KEY_STORAGE_PROVIDER))) {
-                    // Get all CNG keys via LoadCngKeys
-                }
-            }
-            else if (
-                pKeyProvInfo->dwProvType == PROV_RSA_FULL ||
-                pKeyProvInfo->dwProvType == PROV_RSA_AES ||
-                pKeyProvInfo->dwProvType == PROV_RSA_SIG ||
-                pKeyProvInfo->dwProvType == PROV_EC_ECDSA_FULL ||
-                pKeyProvInfo->dwProvType == PROV_EC_ECDSA_SIG
-                ) {
-                // CAPI
-                Scoped<crypt::Provider> provider(new crypt::Provider());
-                try {
-                    provider->AcquireContextW(
-                        pKeyProvInfo->pwszContainerName,
-                        pKeyProvInfo->pwszProvName,
-                        pKeyProvInfo->dwProvType,
-                        CRYPT_SILENT
-                    );
-                }
-                catch (...) {
-                    // cannot get key. it can be on smart card
-                    continue;
-                }
-                Scoped<ncrypt::Provider> nprov(new ncrypt::Provider());
-
-                nprov->Open(MS_KEY_STORAGE_PROVIDER, 0);
-                auto key = provider->GetUserKey(pKeyProvInfo->dwKeySpec);
-
-                Scoped<ncrypt::Key> nkey;
-                try {
-                    nkey = nprov->TranslateHandle(provider->Get(), key->Get(), 0, 0);
-                }
-                catch (...) {
-                    try {
-                        // Rutoken throws C0000225 error on NCryptTranslateHandle
-                        nprov->Open(MS_SMART_CARD_KEY_STORAGE_PROVIDER, 0);
-                        nkey = nprov->OpenKey(pKeyProvInfo->pwszContainerName, pKeyProvInfo->dwKeySpec, 0);
-                    }
-                    catch (...) {
-                        // Cannot get key. May be wrong Provider
-                        // Don't use this key
-                        continue;
-                    }
-                }
-
-				try {
-					switch (pKeyProvInfo->dwProvType) {
-					case PROV_RSA_SIG:
-					case PROV_RSA_AES:
-					case PROV_RSA_FULL: {
-						auto rsaPrivateKey = Scoped<RsaPrivateKey>(new RsaPrivateKey());
-						rsaPrivateKey->Assign(nkey);
-						auto rsaPublicKey = Scoped<RsaPublicKey>(new RsaPublicKey());
-						rsaPublicKey->Assign(nkey);
-						privateKey = rsaPrivateKey;
-						publicKey = rsaPublicKey;
-						break;
-					}
-					case PROV_EC_ECDSA_SIG:
-					case PROV_EC_ECDSA_FULL:
-						auto ecPrivateKey = Scoped<EcPrivateKey>(new EcPrivateKey());
-						ecPrivateKey->Assign(nkey);
-						auto ecPublicKey = Scoped<EcPublicKey>(new EcPublicKey());
-						ecPublicKey->Assign(nkey);
-						privateKey = ecPrivateKey;
-						publicKey = ecPublicKey;
-						break;
+				if (pKeyProvInfo->dwProvType == 0) {
+					// CNG
+					if (!wmemcmp(MS_KEY_STORAGE_PROVIDER, pKeyProvInfo->pwszProvName, lstrlenW(MS_KEY_STORAGE_PROVIDER))) {
+						// Get all CNG keys via LoadCngKeys
 					}
 				}
-				catch (...) {
-					// Cannot get key
+				else if (
+					pKeyProvInfo->dwProvType == PROV_RSA_FULL ||
+					pKeyProvInfo->dwProvType == PROV_RSA_AES ||
+					pKeyProvInfo->dwProvType == PROV_RSA_SIG ||
+					pKeyProvInfo->dwProvType == PROV_EC_ECDSA_FULL ||
+					pKeyProvInfo->dwProvType == PROV_EC_ECDSA_SIG
+					) {
+					// CAPI
+					Scoped<crypt::Provider> provider(new crypt::Provider());
+					try {
+						provider->AcquireContextW(
+							pKeyProvInfo->pwszContainerName,
+							pKeyProvInfo->pwszProvName,
+							pKeyProvInfo->dwProvType,
+							CRYPT_SILENT
+						);
+					}
+					catch (...) {
+						// cannot get key. it can be on smart card
+						continue;
+					}
+					Scoped<ncrypt::Provider> nprov(new ncrypt::Provider());
+
+					nprov->Open(MS_KEY_STORAGE_PROVIDER, 0);
+					auto key = provider->GetUserKey(pKeyProvInfo->dwKeySpec);
+
+					Scoped<ncrypt::Key> nkey;
+					try {
+						nkey = nprov->TranslateHandle(provider->Get(), key->Get(), 0, 0);
+					}
+					catch (...) {
+						try {
+							// Rutoken throws C0000225 error on NCryptTranslateHandle
+							nprov->Open(MS_SMART_CARD_KEY_STORAGE_PROVIDER, 0);
+							nkey = nprov->OpenKey(pKeyProvInfo->pwszContainerName, pKeyProvInfo->dwKeySpec, 0);
+						}
+						catch (...) {
+							// Cannot get key. May be wrong Provider
+							// Don't use this key
+							continue;
+						}
+					}
+
+					try {
+						switch (pKeyProvInfo->dwProvType) {
+						case PROV_RSA_SIG:
+						case PROV_RSA_AES:
+						case PROV_RSA_FULL: {
+							auto rsaPrivateKey = Scoped<RsaPrivateKey>(new RsaPrivateKey());
+							rsaPrivateKey->Assign(nkey);
+							auto rsaPublicKey = Scoped<RsaPublicKey>(new RsaPublicKey());
+							rsaPublicKey->Assign(nkey);
+							privateKey = rsaPrivateKey;
+							publicKey = rsaPublicKey;
+							break;
+						}
+						case PROV_EC_ECDSA_SIG:
+						case PROV_EC_ECDSA_FULL:
+							auto ecPrivateKey = Scoped<EcPrivateKey>(new EcPrivateKey());
+							ecPrivateKey->Assign(nkey);
+							auto ecPublicKey = Scoped<EcPublicKey>(new EcPublicKey());
+							ecPublicKey->Assign(nkey);
+							privateKey = ecPrivateKey;
+							publicKey = ecPublicKey;
+							break;
+						}
+					}
+					catch (...) {
+						// Cannot get key
+						LOGGER_DEBUG("%s Cannot get key pwszContainerName:%s", __FUNCTION__, pKeyProvInfo->pwszContainerName);
+					}
 				}
-            }
-            else {
-                continue;
-            }
+				else {
+					continue;
+				}
 
-            Scoped<X509Certificate> x509(new X509Certificate());
-            x509->Assign(cert);
+				Scoped<X509Certificate> x509(new X509Certificate());
+				x509->Assign(cert);
 
-            x509->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-            x509->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
-            x509->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+				x509->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+				x509->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+				x509->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
 
-            this->objects.add(x509);
+				this->objects.add(x509);
 
-            if (privateKey && publicKey) {
-                auto attrID = x509->ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
-                privateKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
-                privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                privateKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
-                privateKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+				if (privateKey && publicKey) {
+					auto attrID = x509->ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
+					privateKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
+					privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+					privateKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+					privateKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
 
-                publicKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
-                publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                publicKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
-                publicKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+					publicKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
+					publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+					publicKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+					publicKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
 
-                this->objects.add(publicKey);
-                this->objects.add(privateKey);
-            }
+					this->objects.add(publicKey);
+					this->objects.add(privateKey);
+				}
+			}
+			catch (Scoped<core::Exception> e) {
+				LOGGER_DEBUG("%s Cannot load certificate. %s", __FUNCTION__, e->what());
+			}
+			catch (...) {
+				LOGGER_DEBUG("%s Cannot load certificate. Uknown error", __FUNCTION__);
+			}
         }
     }
     CATCH_EXCEPTION
@@ -169,17 +178,25 @@ void Session::LoadRequestStore()
         auto certs = requestStore->GetCertificates();
 
         for (ULONG i = 0; i < certs.size(); i++) {
-            auto cert = certs.at(i);
-            if (cert->HasProperty(CERT_PV_REQUEST) && cert->HasProperty(CERT_PV_ID)) {
-                Scoped<X509CertificateRequest> object(new X509CertificateRequest());
-                object->Assign(cert);
+			try {
+				auto cert = certs.at(i);
+				if (cert->HasProperty(CERT_PV_REQUEST) && cert->HasProperty(CERT_PV_ID)) {
+					Scoped<X509CertificateRequest> object(new X509CertificateRequest());
+					object->Assign(cert);
 
-                object->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                object->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
-                object->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+					object->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+					object->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+					object->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
 
-                objects.add(object);
-            }
+					objects.add(object);
+				}
+			}
+			catch (Scoped<core::Exception> e) {
+				LOGGER_DEBUG("Cannot load request from store. %s", e->what());
+			}
+			catch (...) {
+				LOGGER_DEBUG("Cannot load request from store. Unknown exception");
+			}
         }
 
         certStores.push_back(requestStore);
@@ -239,8 +256,11 @@ void Session::LoadCngKeys()
 				objects.add(publicKey);
 				objects.add(privateKey);
 			}
+			catch (Scoped<core::Exception> e) {
+				LOGGER_DEBUG("Cannot load CNG key. %s", e->what());
+			}
 			catch (...) {
-				// TODO make log to PVPKCS11
+				LOGGER_DEBUG("Cannot load CNG key. Unknown error");
 			}
         }
     }
