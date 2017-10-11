@@ -129,15 +129,18 @@ CK_RV osx::RsaPKCS1Sign::Final
             CFRef<CFDataRef> cfHash = CFDataCreate(NULL, hash, hashLen);
             
             SecKeyRef secKey = key->Get();
+            CFRef<CFErrorRef> cfError;
             CFRef<CFDataRef> signature = SecKeyCreateSignature(secKey,
                                                                keyAlgorithm,
                                                                *cfHash,
-                                                               NULL);
+                                                               &cfError);
             
             active = false;
             
-            if (signature.IsEmpty()) {
-                THROW_EXCEPTION("Error on SecKeyCreateSignature");
+            if (!cfError.IsEmpty()) {
+                CFRef<CFStringRef> errorMessage = CFErrorCopyDescription(*cfError);
+                THROW_EXCEPTION("Error on SecKeyCreateSignature. %s",
+                                CFStringGetCStringPtr(*errorMessage, kCFStringEncodingUTF8));
             }
             
             *pulSignatureLen = CFDataGetLength(*signature);
