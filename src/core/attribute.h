@@ -2,6 +2,7 @@
 
 #include "../stdafx.h"
 #include "excep.h"
+#include "name.h"
 #include "collection.h"
 
 namespace core {
@@ -123,6 +124,10 @@ namespace core {
 
         void GetValue(CK_VOID_PTR pData, CK_ULONG_PTR pulDataLen)
         {
+            LOGGER_FUNCTION_BEGIN;
+
+            LOGGER_DEBUG("Attribute::GetValue %s", Name::getAttribute(type));
+
             try {
                 if (pData == NULL) {
                     *pulDataLen = Size();
@@ -140,6 +145,10 @@ namespace core {
 
         void SetValue(CK_VOID_PTR pData, CK_ULONG ulDataLen)
         {
+            LOGGER_FUNCTION_BEGIN;
+
+            LOGGER_DEBUG("Attribute::SetValue %s", Name::getAttribute(type));
+
             try {
                 Check(pData, ulDataLen);
                 value->resize(ulDataLen);

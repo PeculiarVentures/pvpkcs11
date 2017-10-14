@@ -10,7 +10,7 @@ Scoped<Key> Key::Generate(
 {
 	HCRYPTKEY hNewKey = NULL;
 	if (!CryptGenKey(prov->Get(), uiAlgId, dwFlags, &hNewKey)) {
-		THROW_MSCAPI_EXCEPTION();
+		THROW_MSCAPI_EXCEPTION("CryptGenKey");
 	}
 
 	Scoped<Key> result(new Key(hNewKey));
@@ -34,7 +34,7 @@ Scoped<Key> Key::Import(
 		dwFlags,
 		&hNewKey
 	)) {
-		THROW_MSCAPI_EXCEPTION();
+		THROW_MSCAPI_EXCEPTION("CryptImportKey");
 	}
 
 	Scoped<Key> result(new Key(hNewKey));
@@ -55,7 +55,7 @@ Scoped<Key> Key::Import(
 		pInfo,
 		&hNewKey
 	)) {
-		THROW_MSCAPI_EXCEPTION();
+		THROW_MSCAPI_EXCEPTION("CryptImportPublicKeyInfo");
 	}
 
 	Scoped<Key> result(new Key(hNewKey));
@@ -81,7 +81,7 @@ Scoped<Key> Key::Copy()
 {
 	HCRYPTKEY dupKey;
 	if (!CryptDuplicateKey(this->handle, NULL, 0, &dupKey)) {
-		THROW_MSCAPI_EXCEPTION();
+		THROW_MSCAPI_EXCEPTION("CryptDuplicateKey");
 	}
 	return Scoped<Key>(new Key(dupKey));
 }
@@ -89,7 +89,9 @@ Scoped<Key> Key::Copy()
 void Key::Destroy()
 {
 	if (this->handle) {
-		CryptDestroyKey(this->handle);
+        if (!CryptDestroyKey(this->handle)) {
+            THROW_MSCAPI_EXCEPTION("CryptDestroyKey");
+        }
 		this->handle = NULL;
 	}
 }

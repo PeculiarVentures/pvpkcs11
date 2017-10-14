@@ -58,7 +58,7 @@ CK_RV X509CertificateRequest::CreateValues(
             NULL,
             &ulDecodedLen
         )) {
-            THROW_MSCAPI_EXCEPTION();
+            THROW_MSCAPI_EXCEPTION("CryptDecodeObject");
         }
         decoded.resize(ulDecodedLen);
         if (!CryptDecodeObject(
@@ -70,7 +70,7 @@ CK_RV X509CertificateRequest::CreateValues(
             decoded.data(),
             &ulDecodedLen
         )) {
-            THROW_MSCAPI_EXCEPTION();
+            THROW_MSCAPI_EXCEPTION("CryptDecodeObject");
         }
 
         CERT_REQUEST_INFO* requestInfo = (CERT_REQUEST_INFO*)decoded.data();
@@ -88,7 +88,7 @@ CK_RV X509CertificateRequest::CreateValues(
         );
 
         if (!context) {
-            THROW_MSCAPI_EXCEPTION();
+            THROW_MSCAPI_EXCEPTION("CertCreateSelfSignCertificate");
         }
 
         cert = Scoped<crypt::Certificate>(new crypt::Certificate);
@@ -106,7 +106,7 @@ CK_RV X509CertificateRequest::CreateValues(
 
             // remove CERT_KEY_PROV_INFO property
             if (!CertSetCertificateContextProperty(cert->Get(), CERT_KEY_PROV_INFO_PROP_ID, 0, NULL)) {
-                THROW_MSCAPI_EXCEPTION();
+                THROW_MSCAPI_EXCEPTION("CertSetCertificateContextProperty");
             }
         }
 

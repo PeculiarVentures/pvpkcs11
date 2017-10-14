@@ -195,7 +195,11 @@ CK_RV C_GetSlotList(
     CK_ULONG_PTR   pulCount       /* receives number of slots */
 )
 {
-    LOGGER_DEBUG("%s tokenPresent:%d pSlotList:%p pulCount:%d", __FUNCTION__, tokenPresent, pSlotList, *pulCount);
+    LOGGER_DEBUG("%s tokenPresent:%d pSlotList:%s pulCount:%d", 
+                 __FUNCTION__, 
+                 tokenPresent, 
+                 printAddress(pSlotList).c_str(), 
+                 *pulCount);
     
     try
     {

@@ -6,6 +6,8 @@ using namespace mscapi;
 
 CryptoDigest::~CryptoDigest()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     Dispose();
 }
 

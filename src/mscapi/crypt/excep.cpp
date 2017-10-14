@@ -2,6 +2,20 @@
 
 using namespace crypt;
 
+std::string ReplaceAll(const char* str, const char* from, const char* to) {
+    size_t start_pos = 0;
+    std::string res(str);
+    std::string fromStr(from);
+    std::string toStr(to);
+
+    while ((start_pos = res.find(fromStr, start_pos)) != std::string::npos) {
+        res.replace(start_pos, fromStr.length(), to);
+        start_pos += toStr.length();
+    }
+    
+    return res;
+}
+
 Scoped<std::string> GetLastErrorAsString(DWORD code)
 {
 	Scoped<std::string> result(new std::string);
@@ -14,15 +28,25 @@ Scoped<std::string> GetLastErrorAsString(DWORD code)
 		size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			NULL, code, MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
 
-		std::string message(messageBuffer, size);
+		std::string message(messageBuffer);
 
-		//Free the buffer.
+		// Free the buffer.
 		LocalFree(messageBuffer);
+
+        // remove \n\r from message
+        message = ReplaceAll(message.c_str(), "\n", "");
+        message = ReplaceAll(message.c_str(), "\r", "");
 
 		*result += message;
 	}
 
 	return result;
+}
+
+Scoped<std::string> GetLastErrorString()
+{
+    DWORD dwErrorCode = GetLastError();
+    return GetLastErrorAsString(dwErrorCode);
 }
 
 Exception::Exception(
@@ -40,5 +64,5 @@ Exception::Exception(
 	file,
 	line
 ) {
-	this->message = *GetLastErrorAsString(code);
+	this->message = name + std::string(" ") + message + std::string(" ") + *GetLastErrorAsString(code);
 };

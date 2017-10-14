@@ -13,19 +13,29 @@ namespace ncrypt {
 	template<typename T>
 	class Object {
 	public:
-		Object() {}
-		Object(T handle) : handle(handle) {};
+		Object() {
+            LOGGER_FUNCTION_BEGIN;
+        }
+		Object(T handle) : handle(handle) {
+            LOGGER_FUNCTION_BEGIN;
+        };
 
 		void Set(T handle) {
+            LOGGER_FUNCTION_BEGIN;
+
 			this->handle = handle;
 		}
 
 		T Get() {
+            LOGGER_FUNCTION_BEGIN;
+
 			return handle;
 		}
 
 		void GetParam(LPCWSTR pszPropId, BYTE* pbData, DWORD* pdwDataLen, DWORD dwFlags = 0)
 		{
+            LOGGER_FUNCTION_BEGIN;
+
 			NTSTATUS status;
 			if (!pbData) {
 				status = NCryptGetProperty(handle, pszPropId, NULL, 0, pdwDataLen, dwFlags);
@@ -40,6 +50,8 @@ namespace ncrypt {
 
 		DWORD GetNumber(LPCWSTR pszPropId)
 		{
+            LOGGER_FUNCTION_BEGIN;
+
 			try {
 				DWORD dwData;
 				DWORD dwDataLen = sizeof(dwData);
@@ -53,6 +65,8 @@ namespace ncrypt {
 
 		bool GetBoolean(LPCWSTR pszPropId)
 		{
+            LOGGER_FUNCTION_BEGIN;
+
 			try {
 				bool bData;
 				DWORD dwDataLen = sizeof(bData);
@@ -66,6 +80,8 @@ namespace ncrypt {
 
 		Scoped<std::string> GetBytes(LPCWSTR pszPropId)
 		{
+            LOGGER_FUNCTION_BEGIN;
+
 			try {
 				Scoped<std::string> strData(new std::string(""));
 				DWORD dwDataLen = sizeof(strData);
@@ -81,6 +97,8 @@ namespace ncrypt {
 
 		Scoped<std::wstring> GetBytesW(LPCWSTR pszPropId)
 		{
+            LOGGER_FUNCTION_BEGIN;
+
 			try {
 				auto data = GetBytes(pszPropId);
 
@@ -96,6 +114,8 @@ namespace ncrypt {
 			_In_                    ULONG   dwFlags = 0
 		)
 		{
+            LOGGER_FUNCTION_BEGIN;
+
 			NTSTATUS status = NCryptSetProperty(
 				handle,
 				pszProperty,
@@ -114,6 +134,8 @@ namespace ncrypt {
 			ULONG   dwFlags = 0
 		)
 		{
+            LOGGER_FUNCTION_BEGIN;
+
 			try {
 				SetParam(
 					pszProperty,
@@ -131,6 +153,8 @@ namespace ncrypt {
 			ULONG   dwFlags = 0
 		)
 		{
+            LOGGER_FUNCTION_BEGIN;
+
 			try {
 				SetParam(
 					pszProperty,
@@ -174,6 +198,10 @@ namespace ncrypt {
 
 	class Provider : public Object<NCRYPT_PROV_HANDLE> {
 	public:
+        Provider();
+        Provider(
+            NCRYPT_PROV_HANDLE handle
+        );
 		~Provider();
 
         static Scoped<std::wstring> GenerateRandomName();

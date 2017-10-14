@@ -57,7 +57,7 @@ Scoped<Buffer> GetCertificateChain
             NULL,
             &pChainContext))
         {
-            THROW_MSCAPI_EXCEPTION();
+            THROW_MSCAPI_EXCEPTION("CertGetCertificateChain");
         }
 
         if (!pChainContext) {
@@ -306,7 +306,7 @@ void mscapi::X509Certificate::AddToMyStorage()
                 keyProvInfo.dwKeySpec = 0;
 
                 if (!CertSetCertificateContextProperty(cert->Get(), CERT_KEY_PROV_INFO_PROP_ID, 0, &keyProvInfo)) {
-                    THROW_MSCAPI_EXCEPTION();
+                    THROW_MSCAPI_EXCEPTION("CertSetCertificateContextProperty");
                 }
             }
         }

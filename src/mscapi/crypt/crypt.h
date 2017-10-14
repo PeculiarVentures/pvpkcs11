@@ -9,6 +9,8 @@ namespace crypt {
 #define PV_STORE_NAME_MY            "MY"
 #define PV_STORE_NAME_REQUEST       "REQUEST"
 
+    Scoped<std::string> GetLastErrorString();
+
 	/**
 	 * Exception
 	 */
@@ -168,6 +170,9 @@ namespace crypt {
             PUCHAR  pbEncoded,
             DWORD   cbEncoded
         );
+
+        Scoped<std::string> GetName();
+
         void DeleteFromStore();
     protected:
         PCCERT_CONTEXT context;
@@ -196,11 +201,11 @@ namespace crypt {
 
 #define MSCAPI_EXCEPTION_NAME "MSCAPIException"
 
-#define THROW_MSCAPI_CODE_ERROR(dwErrorCode)                        \
-	throw Scoped<core::Exception>(new crypt::Exception(MSCAPI_EXCEPTION_NAME, dwErrorCode, "", __FUNCTION__, __FILE__, __LINE__)); \
+#define THROW_MSCAPI_CODE_ERROR(msFuncName, dwErrorCode)                        \
+	throw Scoped<core::Exception>(new crypt::Exception(MSCAPI_EXCEPTION_NAME, dwErrorCode, msFuncName, __FUNCTION__, __FILE__, __LINE__)); \
 
-#define THROW_MSCAPI_EXCEPTION()                                        \
+#define THROW_MSCAPI_EXCEPTION(msFuncName)                                      \
 	{                                                               \
 		DWORD dwErrorCode = GetLastError();							\
-		THROW_MSCAPI_CODE_ERROR(dwErrorCode); \
+		THROW_MSCAPI_CODE_ERROR(msFuncName, dwErrorCode); \
 	}

@@ -42,6 +42,8 @@ size_t Collection<T>::count()
 template<class T>
 void Collection<T>::add(T item)
 {
+	LOGGER_FUNCTION_BEGIN;
+
 	this->_items.push_back(item);
 }
 
@@ -54,11 +56,15 @@ T Collection<T>::items(size_t index)
 template<class T>
 void Collection<T>::remove(T item)
 {
+	LOGGER_FUNCTION_BEGIN;
+
 	this->_items.erase(std::remove(this->_items.begin(), this->_items.end(), item), this->_items.end());
 }
 
 template<class T>
 void Collection<T>::clear()
 {
+	LOGGER_FUNCTION_BEGIN;
+
 	this->_items.clear();
 }

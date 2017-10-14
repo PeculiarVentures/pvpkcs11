@@ -3,7 +3,36 @@
 
 using namespace ncrypt;
 
-void Provider::Open(
+ncrypt::Provider::Provider() :
+    Object()
+{
+    LOGGER_FUNCTION_BEGIN;
+}
+
+ncrypt::Provider::Provider(
+    NCRYPT_PROV_HANDLE handle
+) :
+    Object(handle)
+{
+    LOGGER_FUNCTION_BEGIN;
+}
+
+ncrypt::Provider::~Provider()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    if (handle) {
+        LOGGER_TRACE("%s %s", __FUNCTION__, "NCryptFreeObject");
+        LOGGER_DEBUG("%s NCryptFreeObject handle:%p", __FUNCTION__, handle);
+        SECURITY_STATUS status = NCryptFreeObject(handle);
+        if (status) {
+            THROW_NT_EXCEPTION(status);
+        }
+        handle = NULL;
+    }
+}
+
+void ncrypt::Provider::Open(
     _In_opt_ LPCWSTR pszProviderName,
     _In_    DWORD   dwFlags
 )
@@ -20,17 +49,7 @@ void Provider::Open(
     }
 }
 
-Provider::~Provider()
-{
-	LOGGER_FUNCTION_BEGIN;
-
-    if (handle) {
-        NCryptFreeObject(handle);
-        handle = NULL;
-    }
-}
-
-Scoped<Key> Provider::OpenKey(
+Scoped<Key> ncrypt::Provider::OpenKey(
     _In_     LPCWSTR pszKeyName,
     _In_opt_ DWORD   dwLegacyKeySpec,
     _In_     DWORD   dwFlags
@@ -53,7 +72,7 @@ Scoped<Key> Provider::OpenKey(
     return Scoped<Key>(new Key(hKey));
 }
 
-Scoped<Key> Provider::TranslateHandle(
+Scoped<Key> ncrypt::Provider::TranslateHandle(
     _In_    HCRYPTPROV hLegacyProv,
     _In_opt_ HCRYPTKEY hLegacyKey,
     _In_opt_ DWORD  dwLegacyKeySpec,
@@ -73,7 +92,7 @@ Scoped<Key> Provider::TranslateHandle(
     return Scoped<Key>(new Key(hKey));
 }
 
-Scoped<Key> Provider::CreatePersistedKey(
+Scoped<Key> ncrypt::Provider::CreatePersistedKey(
     _In_     LPCWSTR pszAlgId,
     _In_opt_ LPCWSTR pszKeyName,
     _In_     DWORD   dwLegacyKeySpec,
@@ -99,7 +118,7 @@ Scoped<Key> Provider::CreatePersistedKey(
     return Scoped<Key>(new Key(hKey));
 }
 
-Scoped<Key> Provider::ImportKey(
+Scoped<Key> ncrypt::Provider::ImportKey(
     _In_        LPCWSTR             pszBlobType,
     _In_reads_bytes_(cbData) PBYTE  pbData,
     _In_        DWORD               cbData,
@@ -120,7 +139,7 @@ Scoped<Key> Provider::ImportKey(
     CATCH_EXCEPTION
 }
 
-Scoped<NCryptKeyNames> Provider::GetKeyNames(
+Scoped<NCryptKeyNames> ncrypt::Provider::GetKeyNames(
     ULONG               dwFlags
 )
 {
@@ -152,7 +171,7 @@ Scoped<NCryptKeyNames> Provider::GetKeyNames(
     CATCH_EXCEPTION
 };
 
-Scoped<std::wstring> Provider::GenerateRandomName()
+Scoped<std::wstring> ncrypt::Provider::GenerateRandomName()
 {
 	LOGGER_FUNCTION_BEGIN;
 

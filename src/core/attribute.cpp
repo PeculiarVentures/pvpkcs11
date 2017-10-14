@@ -1,4 +1,5 @@
 #include "attribute.h"
+#include "name.h"
 
 using namespace core;
 
@@ -128,6 +129,8 @@ std::string GetAttributeName(
     CK_ATTRIBUTE_TYPE   type
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     for (CK_ULONG i = 0; i < sizeof(pAttrInfo); i++) {
         AttributeInfo* item = &pAttrInfo[i];
         if (item->type == type) {
@@ -139,6 +142,8 @@ std::string GetAttributeName(
 
 std::string Attribute::GetName(CK_ULONG type)
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         return GetAttributeName(type);
     }
@@ -148,6 +153,8 @@ std::string Attribute::GetName(CK_ULONG type)
 
 std::string Attribute::Name()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         return GetAttributeName(type);
     }
@@ -156,6 +163,8 @@ std::string Attribute::Name()
 
 CK_BBOOL Attribute::IsEmpty()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         CK_ULONG ulDataLen;
         GetValue(NULL, &ulDataLen);
@@ -167,6 +176,8 @@ CK_BBOOL Attribute::IsEmpty()
 
 CK_BBOOL Attribute::ToBool()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         return To<AttributeBool>()->ToValue();
     }
@@ -175,6 +186,8 @@ CK_BBOOL Attribute::ToBool()
 
 CK_ULONG Attribute::ToNumber()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         return To<AttributeNumber>()->ToValue();
     }
@@ -183,6 +196,8 @@ CK_ULONG Attribute::ToNumber()
 
 Scoped<Buffer> Attribute::ToBytes()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         return To<AttributeBytes>()->ToValue();
     }
@@ -191,6 +206,8 @@ Scoped<Buffer> Attribute::ToBytes()
 
 std::string Attribute::ToString()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         Scoped<Buffer> bytes = To<AttributeBytes>()->ToValue();
         return std::string((char*)bytes->data(), bytes->size());
@@ -228,6 +245,8 @@ void AttributeBytes::Check(
     CK_ULONG            ulDataLen
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     if (pData == NULL) {
         THROW_PKCS11_ATTRIBUTE_VALUE_INVALID();
     }
@@ -238,6 +257,8 @@ void AttributeBytes::Set(
     CK_ULONG    ulDataLen
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         SetValue(pData, ulDataLen);
     }
@@ -246,6 +267,8 @@ void AttributeBytes::Set(
 
 Scoped<Buffer> AttributeBytes::ToValue()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     return value;
 }
 
@@ -276,6 +299,8 @@ void AttributeBool::Check(
     CK_ULONG            ulDataLen
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     if (pData == NULL || sizeof(CK_BBOOL) != ulDataLen) {
         THROW_PKCS11_ATTRIBUTE_VALUE_INVALID();
     }
@@ -285,6 +310,8 @@ void AttributeBool::Set(
     CK_BBOOL value
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         SetValue(&value, sizeof(CK_BBOOL));
     }
@@ -293,6 +320,8 @@ void AttributeBool::Set(
 
 CK_BBOOL AttributeBool::ToValue()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     CK_BBOOL res;
     if (Size() != sizeof(CK_BBOOL)) {
         THROW_PKCS11_EXCEPTION(CKR_GENERAL_ERROR, "Wrong size of stored data");
@@ -328,6 +357,8 @@ void AttributeNumber::Check(
     CK_ULONG            ulDataLen
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     if (pData == NULL || sizeof(CK_ULONG) != ulDataLen) {
         THROW_PKCS11_ATTRIBUTE_VALUE_INVALID();
     }
@@ -335,6 +366,8 @@ void AttributeNumber::Check(
 
 CK_ULONG AttributeNumber::ToValue()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     CK_ULONG res;
     if (Size() != sizeof(CK_ULONG)) {
         THROW_PKCS11_EXCEPTION(CKR_GENERAL_ERROR, "Wrong size of stored data");
@@ -347,6 +380,8 @@ void AttributeNumber::Set(
     CK_ULONG value
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     try {
         SetValue(&value, sizeof(CK_ULONG));
     }
@@ -357,29 +392,36 @@ Scoped<Attribute> Attributes::ItemByType(
     CK_ATTRIBUTE_TYPE   type
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+    LOGGER_DEBUG("%s type:%s", __FUNCTION__, Name::getAttribute(type));
+
     for (CK_ULONG i = 0; i < Size(); i++) {
         Scoped<Attribute> item = ItemByIndex(i);
         if (item->type == type) {
             return item;
         }
     }
-    // Throw error
-    std::string message("");
-    message += "Cannot get attribute " + GetAttributeName(type);
-    THROW_PKCS11_EXCEPTION(CKR_GENERAL_ERROR, message.c_str());
+
+    THROW_PKCS11_EXCEPTION(CKR_GENERAL_ERROR, "Cannot get attribute %s", GetAttributeName(type).c_str());
 }
 
 Scoped<Attribute> Attributes::ItemByIndex(
     CK_ULONG        index
 )
 {
-    return items[index];
+	if (index >= 0 && index < items.size()) {
+		return items[index];
+	}
+
+	THROW_EXCEPTION("Cannot get Attribute by index %d. Out ouf range.", index);
 }
 
 bool Attributes::HasAttribute(
     CK_ATTRIBUTE_TYPE   type
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     for (CK_ULONG i = 0; i < Size(); i++) {
         Scoped<Attribute> item = ItemByIndex(i);
         if (item->type == type) {
@@ -398,6 +440,8 @@ void Attributes::Add(
     Scoped<Attribute> item
 )
 {
+	LOGGER_FUNCTION_BEGIN;
+
     if (HasAttribute(item->type)) {
         std::string message("");
         message += "Attribute " + GetAttributeName(item->type) + " already exists in collection";

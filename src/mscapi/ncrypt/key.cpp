@@ -88,7 +88,7 @@ Scoped<CERT_PUBLIC_KEY_INFO> Key::GetPublicKeyInfo()
             NULL,
             &spkiLen
         )) {
-            THROW_MSCAPI_EXCEPTION();
+            THROW_MSCAPI_EXCEPTION("CryptExportPublicKeyInfo");
         }
         PCERT_PUBLIC_KEY_INFO pSpki = (PCERT_PUBLIC_KEY_INFO)malloc(spkiLen);
         if (!CryptExportPublicKeyInfo(
@@ -98,7 +98,7 @@ Scoped<CERT_PUBLIC_KEY_INFO> Key::GetPublicKeyInfo()
             pSpki,
             &spkiLen
         )) {
-            THROW_MSCAPI_EXCEPTION();
+            THROW_MSCAPI_EXCEPTION("CryptExportPublicKeyInfo");
         }
         return Scoped<CERT_PUBLIC_KEY_INFO>(pSpki, free);
     }
@@ -150,7 +150,7 @@ void LinkKeyToCertificate(
 					keyProvInfo.dwKeySpec = 0;
 
 					if (!CertSetCertificateContextProperty(cert->Get(), CERT_KEY_PROV_INFO_PROP_ID, 0, &keyProvInfo)) {
-						THROW_MSCAPI_EXCEPTION();
+						THROW_MSCAPI_EXCEPTION("CertSetCertificateContextProperty");
 					}
 				}
 			}

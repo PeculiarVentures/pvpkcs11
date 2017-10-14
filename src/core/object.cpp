@@ -6,9 +6,15 @@ using namespace core;
 Object::Object() :
     Attributes()
 {
-    Add(AttributeNumber::New(CKA_CLASS, 0, PVF_1));
+    LOGGER_FUNCTION_BEGIN;
+    LOGGER_DEBUG("New %s", __FUNCTION__);
 
-    handle = reinterpret_cast<CK_OBJECT_HANDLE>(this);
+    try {
+        Add(AttributeNumber::New(CKA_CLASS, 0, PVF_1));
+
+        handle = reinterpret_cast<CK_OBJECT_HANDLE>(this);
+    }
+    CATCH_EXCEPTION
 }
 
 Object::~Object()

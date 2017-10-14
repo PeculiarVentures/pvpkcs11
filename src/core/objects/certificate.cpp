@@ -5,6 +5,9 @@ using namespace core;
 Certificate::Certificate():
     Storage()
 {
+    LOGGER_FUNCTION_BEGIN;
+    LOGGER_DEBUG("New %s", __FUNCTION__);
+
     try {
         ItemByType(CKA_CLASS)->To<AttributeNumber>()->Set(CKO_CERTIFICATE);
 

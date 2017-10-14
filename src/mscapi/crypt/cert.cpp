@@ -14,7 +14,7 @@ Certificate::~Certificate()
 
 void Certificate::Destroy()
 {
-    if (context) {
+    if (context != NULL) {
         CertFreeCertificateContext(context);
         context = NULL;
     }
@@ -41,7 +41,7 @@ Scoped<Certificate> Certificate::Duplicate()
     Scoped<Certificate> res(new Certificate());
     res->context = CertDuplicateCertificateContext(context);
     if (!res->context) {
-        THROW_MSCAPI_EXCEPTION();
+        THROW_MSCAPI_EXCEPTION("CertDuplicateCertificateContext");
     }
 
     return res;
@@ -67,7 +67,7 @@ Scoped<Buffer> Certificate::GetPropertyBytes(
             NULL,
             &ulDataLen
         )) {
-            THROW_MSCAPI_EXCEPTION();
+            THROW_MSCAPI_EXCEPTION("CertGetCertificateContextProperty");
         }
         data->resize(ulDataLen);
         if (!CertGetCertificateContextProperty(
@@ -76,7 +76,7 @@ Scoped<Buffer> Certificate::GetPropertyBytes(
             data->data(),
             &ulDataLen
         )) {
-            THROW_MSCAPI_EXCEPTION();
+            THROW_MSCAPI_EXCEPTION("CertGetCertificateContextProperty");
         }
 
         return data;
@@ -96,7 +96,7 @@ ULONG Certificate::GetPropertyNumber(
             &data,
             &ulDataLen
         )) {
-            THROW_MSCAPI_EXCEPTION();
+            THROW_MSCAPI_EXCEPTION("CertGetCertificateContextProperty");
         }
 
         return data;
@@ -121,7 +121,7 @@ void Certificate::SetPropertyBytes(
             dwFlags,
             &dataBlob
         )) {
-            THROW_MSCAPI_EXCEPTION();
+            THROW_MSCAPI_EXCEPTION("CertSetCertificateContextProperty");
         }
     }
     CATCH_EXCEPTION
@@ -139,7 +139,7 @@ void Certificate::SetPropertyNumber(
             dwFlags,
             &data
         )) {
-            THROW_MSCAPI_EXCEPTION();
+            THROW_MSCAPI_EXCEPTION("CertSetCertificateContextProperty");
         }
     }
     CATCH_EXCEPTION
@@ -157,7 +157,7 @@ void Certificate::Import(
             cbEncoded
         );
         if (!context) {
-            THROW_MSCAPI_EXCEPTION();
+            THROW_MSCAPI_EXCEPTION("CertCreateCertificateContext");
         }
 
         Assign(context);
@@ -165,8 +165,27 @@ void Certificate::Import(
     CATCH_EXCEPTION
 }
 
+Scoped<std::string> crypt::Certificate::GetName()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        char name[512] = { 0 };
+        DWORD nameLen = CertGetNameStringA(Get(), CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, 0, name, 512);
+
+        if (nameLen <= 1) {
+            return Scoped<std::string>(new std::string("Unknow certificate"));
+        } else {
+            return Scoped<std::string>(new std::string(name));
+        }
+    }
+    CATCH_EXCEPTION
+}
+
 void Certificate::DeleteFromStore()
 {
+    LOGGER_FUNCTION_BEGIN;
+
     try {
         if (context->hCertStore) {
             BOOL res = CertDeleteCertificateFromStore(context);
@@ -174,7 +193,7 @@ void Certificate::DeleteFromStore()
             //  this function, even for an error.
             context = NULL;
             if (!res) {
-                THROW_MSCAPI_EXCEPTION();
+                THROW_MSCAPI_EXCEPTION("CertDeleteCertificateFromStore");
             }
         }
     }

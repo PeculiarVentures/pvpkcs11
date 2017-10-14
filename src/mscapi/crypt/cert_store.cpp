@@ -24,7 +24,7 @@ void CertStore::Open(LPCSTR storeName)
     try {
         this->hStore = CertOpenSystemStoreA((HCRYPTPROV)NULL, storeName);
         if (this->hStore == NULL_PTR) {
-            THROW_MSCAPI_EXCEPTION();
+            THROW_MSCAPI_EXCEPTION("CertOpenSystemStoreA");
         }
         this->name = storeName;
         this->opened = true;
@@ -45,7 +45,7 @@ void CertStore::AddCertificate(
             dwFlags,
             &storeCert
         )) {
-            THROW_MSCAPI_EXCEPTION();
+            THROW_MSCAPI_EXCEPTION("CertAddCertificateContextToStore");
         }
 
         cert->Assign(storeCert);
@@ -57,7 +57,9 @@ void CertStore::Close()
 {
     try {
         if (this->hStore) {
-            CertCloseStore(this->hStore, 0);
+            if (!CertCloseStore(this->hStore, 0)) {
+                THROW_MSCAPI_EXCEPTION("CertCloseStore");
+            }
             this->hStore = NULL;
         }
     }
@@ -66,6 +68,8 @@ void CertStore::Close()
 
 std::vector<Scoped<Certificate> > CertStore::GetCertificates()
 {
+	LOGGER_FUNCTION_BEGIN;
+
     std::vector<Scoped<Certificate> > certs;
     // get certificates
     PCCERT_CONTEXT hCert = NULL;
@@ -85,5 +89,8 @@ std::vector<Scoped<Certificate> > CertStore::GetCertificates()
             certs.push_back(cert);
         }
     }
+
+	LOGGER_DEBUG("%s %d items", __FUNCTION__, certs.size());
+
     return certs;
 }

@@ -39,7 +39,7 @@ std::string printAddress
     std::string res = "NULL";
     if (pValue) {
         char buf[20] = {0};
-        sprintf(buf, "%p", pValue);
+        sprintf(buf, "0x%p", pValue);
         res = buf;
     }
     return res;

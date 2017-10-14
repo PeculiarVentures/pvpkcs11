@@ -5,6 +5,9 @@ using namespace core;
 RsaPrivateKey::RsaPrivateKey() :
     PrivateKey()
 {
+    LOGGER_FUNCTION_BEGIN;
+    LOGGER_DEBUG("New %s", __FUNCTION__);
+
     try {
         ItemByType(CKA_KEY_TYPE)->To<AttributeNumber>()->Set(CKK_RSA);
         ItemByType(CKA_KEY_GEN_MECHANISM)->To<AttributeNumber>()->Set(CKM_RSA_PKCS_KEY_PAIR_GEN);

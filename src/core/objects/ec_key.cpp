@@ -7,6 +7,9 @@ using namespace core;
 EcPrivateKey::EcPrivateKey() :
     PrivateKey()
 {
+    LOGGER_FUNCTION_BEGIN;
+    LOGGER_DEBUG("New %s", __FUNCTION__);
+
     try {
         ItemByType(CKA_KEY_TYPE)->To<AttributeNumber>()->Set(CKK_EC);
         ItemByType(CKA_KEY_GEN_MECHANISM)->To<AttributeNumber>()->Set(CKM_ECDSA_KEY_PAIR_GEN);
@@ -22,11 +25,17 @@ EcPrivateKey::EcPrivateKey() :
 EcPublicKey::EcPublicKey() :
     PublicKey()
 {
-    ItemByType(CKA_KEY_TYPE)->To<AttributeNumber>()->Set(CKK_EC);
-    ItemByType(CKA_KEY_GEN_MECHANISM)->To<AttributeNumber>()->Set(CKM_ECDSA_KEY_PAIR_GEN);
+    LOGGER_FUNCTION_BEGIN;
+    LOGGER_DEBUG("New %s", __FUNCTION__);
 
-    Add(AttributeBytes::New(CKA_ECDSA_PARAMS, NULL, 0, PVF_1 | PVF_3));
-    Add(AttributeBytes::New(CKA_EC_POINT, NULL, 0, PVF_1 | PVF_4));
+    try {
+        ItemByType(CKA_KEY_TYPE)->To<AttributeNumber>()->Set(CKK_EC);
+        ItemByType(CKA_KEY_GEN_MECHANISM)->To<AttributeNumber>()->Set(CKM_ECDSA_KEY_PAIR_GEN);
+
+        Add(AttributeBytes::New(CKA_ECDSA_PARAMS, NULL, 0, PVF_1 | PVF_3));
+        Add(AttributeBytes::New(CKA_EC_POINT, NULL, 0, PVF_1 | PVF_4));
+    }
+    CATCH_EXCEPTION
 }
 
 // EC utils

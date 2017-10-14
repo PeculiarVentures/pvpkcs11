@@ -2,54 +2,74 @@
 
 using namespace crypt;
 
-Provider::Provider()
+crypt::Provider::Provider()
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	this->handle = NULL;
 }
 
-Provider::Provider(HCRYPTPROV handle)
+crypt::Provider::Provider(HCRYPTPROV handle)
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	this->handle = handle;
 }
 
-Provider::~Provider()
+crypt::Provider::~Provider()
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	this->Destroy();
 }
 
-HCRYPTPROV Provider::Get()
+HCRYPTPROV crypt::Provider::Get()
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	return handle;
 }
 
-void Provider::Set(HCRYPTPROV handle)
+void crypt::Provider::Set(HCRYPTPROV handle)
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	if (handle) {
 		this->Destroy();
 		this->handle = handle;
 	}
 }
 
-void Provider::Destroy()
+void crypt::Provider::Destroy()
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	this->Destroy(0);
 }
 
-void Provider::Destroy(DWORD dwFlags)
+void crypt::Provider::Destroy(DWORD dwFlags)
 {
-	if (handle) {
-		CryptReleaseContext(handle, dwFlags);
-		handle = NULL;
-	}
+    LOGGER_FUNCTION_BEGIN;
+
+    if (handle) {
+        LOGGER_TRACE("%s %s", __FUNCTION__, "CryptReleaseContext");
+        LOGGER_DEBUG("%s handle:%p dwFlags:%d", __FUNCTION__, handle, dwFlags);
+        if (!CryptReleaseContext(handle, dwFlags)) {
+            THROW_MSCAPI_EXCEPTION("CryptReleaseContext");
+        }
+	    handle = NULL;
+    }
 }
 
-Scoped<Provider> Provider::Create(
+Scoped<Provider> crypt::Provider::Create(
 	LPCSTR    szContainer,
 	LPCSTR    szProvider,
 	DWORD     dwProvType,
 	DWORD     dwFlags
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	try {
 		Scoped<Provider> prov(new Provider());
 		prov->AcquireContext(szContainer, szProvider, dwProvType, dwFlags);
@@ -59,13 +79,15 @@ Scoped<Provider> Provider::Create(
 	CATCH_EXCEPTION;
 }
 
-Scoped<Provider> Provider::CreateW(
+Scoped<Provider> crypt::Provider::CreateW(
 	LPWSTR    szContainer,
 	LPWSTR    szProvider,
 	DWORD     dwProvType,
 	DWORD     dwFlags
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	try {
 		Scoped<Provider> prov(new Provider());
 		prov->AcquireContextW(szContainer, szProvider, dwProvType, dwFlags);
@@ -75,60 +97,68 @@ Scoped<Provider> Provider::CreateW(
 	CATCH_EXCEPTION;
 }
 
-void Provider::AcquireContext(
+void crypt::Provider::AcquireContext(
 	LPCSTR    szContainer,
 	LPCSTR    szProvider,
 	DWORD     dwProvType,
 	DWORD     dwFlags
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	try {
 		// Remove old provider handle
 		this->Destroy();
 		if (!CryptAcquireContextA(&this->handle, szContainer, szProvider, dwProvType, dwFlags)) {
-			THROW_MSCAPI_EXCEPTION();
+			THROW_MSCAPI_EXCEPTION("CryptAcquireContextA");
 		}
 	}
 	CATCH_EXCEPTION;
 }
 
-void Provider::AcquireContextW(
+void crypt::Provider::AcquireContextW(
 	LPWSTR    szContainer,
 	LPWSTR    szProvider,
 	DWORD     dwProvType,
 	DWORD     dwFlags
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	try {
 		// Remove old provider handle
 		this->Destroy();
 		if (!CryptAcquireContextW(&this->handle, szContainer, szProvider, dwProvType, dwFlags)) {
-			THROW_MSCAPI_EXCEPTION();
+			THROW_MSCAPI_EXCEPTION("CryptAcquireContextW");
 		}
 	}
 	CATCH_EXCEPTION;
 }
 
-void Provider::GetParam(
+void crypt::Provider::GetParam(
 	DWORD   dwParam,
 	BYTE    *pbData,
 	DWORD   *pdwDataLen,
 	DWORD   dwFlags
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	try {
 		if (!CryptGetProvParam(this->handle, dwParam, pbData, pdwDataLen, dwFlags)) {
-			THROW_MSCAPI_EXCEPTION();
+			THROW_MSCAPI_EXCEPTION("CryptGetProvParam");
 		}
 	}
 	CATCH_EXCEPTION;
 }
 
-Scoped<Buffer> Provider::GetBufferParam(
+Scoped<Buffer> crypt::Provider::GetBufferParam(
 	DWORD   dwParam,
 	DWORD   dwFlag
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	try {
 		Scoped<Buffer> result(new Buffer());
 		DWORD dwDataLen;
@@ -142,10 +172,12 @@ Scoped<Buffer> Provider::GetBufferParam(
 	CATCH_EXCEPTION;
 }
 
-DWORD Provider::GetNumberParam(
+DWORD crypt::Provider::GetNumberParam(
 	DWORD   dwParam
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	try {
 		DWORD result;
 		DWORD dwDataLen = sizeof(DWORD);
@@ -156,32 +188,40 @@ DWORD Provider::GetNumberParam(
 	CATCH_EXCEPTION;
 }
 
-Scoped<std::string> Provider::GetContainer()
+Scoped<std::string> crypt::Provider::GetContainer()
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	try {
 		return Scoped<std::string>(new std::string((char*)GetBufferParam(PP_CONTAINER)->data()));
 	}
 	CATCH_EXCEPTION;
 }
 
-Scoped<std::string> Provider::GetName()
+Scoped<std::string> crypt::Provider::GetName()
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	try {
 		return Scoped<std::string>(new std::string((char*)GetBufferParam(PP_NAME)->data()));
 	}
 	CATCH_EXCEPTION;
 }
 
-DWORD Provider::GetType()
+DWORD crypt::Provider::GetType()
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	try {
 		return this->GetNumberParam(PP_PROVTYPE);
 	}
 	CATCH_EXCEPTION;
 }
 
-DWORD Provider::GetKeySpec()
+DWORD crypt::Provider::GetKeySpec()
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	try {
 		return this->GetNumberParam(PP_KEYSPEC);
 	}
@@ -190,14 +230,18 @@ DWORD Provider::GetKeySpec()
 
 Scoped<Buffer> crypt::Provider::GetSmartCardGUID()
 {
+    LOGGER_FUNCTION_BEGIN;
+
     try {
         return GetBufferParam(PP_SMARTCARD_GUID, 0);
     }
     CATCH_EXCEPTION
 }
 
-std::vector<Scoped<std::string>> Provider::GetContainers()
+std::vector<Scoped<std::string>> crypt::Provider::GetContainers()
 {
+    LOGGER_FUNCTION_BEGIN;
+
 	std::vector<Scoped<std::string> > res;
 	try {
 		while (true) {
@@ -205,19 +249,21 @@ std::vector<Scoped<std::string>> Provider::GetContainers()
 			res.push_back(container);
 		}
 	}
-	catch (Scoped<core::Exception>) {
-		// Ignore last exception
+	catch (Scoped<core::Exception> e) {
+        LOGGER_ERROR("%s Ignore last exception. %s", __FUNCTION__, e->message.c_str());
 	}
 	return res;
 }
 
-Scoped<Key> Provider::GetUserKey(
+Scoped<Key> crypt::Provider::GetUserKey(
     DWORD           dwKeySpec
 )
 {
+    LOGGER_FUNCTION_BEGIN;
+
     HCRYPTKEY hKey;
     if (!CryptGetUserKey(handle, dwKeySpec, &hKey)) {
-        THROW_MSCAPI_EXCEPTION();
+        THROW_MSCAPI_EXCEPTION("CryptGetUserKey");
     }
     return Scoped<Key>(new Key(hKey));
 }

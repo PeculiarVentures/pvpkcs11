@@ -210,6 +210,7 @@ const char* core::Name::getAttribute(CK_ATTRIBUTE_TYPE value)
         CASE(CKA_DEFAULT_CMS_ATTRIBUTES);
         CASE(CKA_SUPPORTED_CMS_ATTRIBUTES);
         CASE(CKA_ALLOWED_MECHANISMS);
+        CASE(CKA_X509_CHAIN);
         default:
             return NULL;
     }
