@@ -39,3 +39,8 @@ std::string printHandle
 (
  CK_ULONG               ulHandle
  );
+
+std::string printMechanismType
+(
+ CK_MECHANISM_TYPE      mechType
+ );

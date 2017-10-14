@@ -250,7 +250,7 @@ CK_RV C_GetMechanismList
     CK_ULONG_PTR          pulCount         /* gets # of mechanisms */
 )
 {
-    LOGGER_DEBUG("%s slotID:%d pMechanismList:%p pulCount:%d", __FUNCTION__, slotID, pMechanismList, *pulCount);
+    LOGGER_DEBUG("%s slotID:%d pMechanismList:%s pulCount:%d", __FUNCTION__, slotID, printAddress(pMechanismList).c_str(), *pulCount);
     
     try
     {
@@ -268,7 +268,7 @@ CK_RV C_GetMechanismInfo
     CK_MECHANISM_INFO_PTR pInfo    /* receives mechanism info */
 )
 {
-    LOGGER_DEBUG("%s slotID:%d type:0x%08X(%d) pInfo:%p", __FUNCTION__, slotID, type, type, pInfo);
+    LOGGER_DEBUG("%s slotID:%d type:%s pInfo:%p", __FUNCTION__, slotID, printMechanismType(type).c_str(), type, pInfo);
     
     try
     {

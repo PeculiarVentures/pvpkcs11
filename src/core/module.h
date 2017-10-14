@@ -9,6 +9,7 @@ namespace core {
         Collection<Scoped<Slot> > slots;
 
         Module(void);
+        ~Module();
 
         CK_RV Initialize(CK_VOID_PTR   pInitArgs);
         CK_RV Finalize(CK_VOID_PTR pReserved);

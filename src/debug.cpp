@@ -58,3 +58,13 @@ std::string printHandle
     
     return res;
 }
+
+std::string printMechanismType
+(
+ CK_MECHANISM_TYPE      mechType
+ )
+{
+    char buf[256] = { 0 };
+    sprintf(buf, "%s(0x%08lX)", core::Name::getMechanism(mechType), mechType);
+    return std::string(buf);
+}

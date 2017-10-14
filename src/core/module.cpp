@@ -21,8 +21,16 @@ using namespace core;
 
 Module::Module()
 {
+    LOGGER_FUNCTION_BEGIN;
     LOGGER_INFO("Initialize new instance of PKCS#11 module v%d.%d", PVPKCS11_VERSION_MAJOR, PVPKCS11_VERSION_MINOR);
     this->initialized = false;
+}
+
+Module::~Module()
+{
+    LOGGER_FUNCTION_BEGIN;
+    
+    LOGGER_INFO("Close PKCS#11 module");
 }
 
 CK_RV Module::Initialize(
