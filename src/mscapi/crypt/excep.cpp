@@ -28,16 +28,23 @@ Scoped<std::string> GetLastErrorAsString(DWORD code)
 		size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			NULL, code, MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
 
-		std::string message(messageBuffer);
+        if (messageBuffer) {
+            std::string message(messageBuffer);
 
-		// Free the buffer.
-		LocalFree(messageBuffer);
+            // Free the buffer.
+            LocalFree(messageBuffer);
 
-        // remove \n\r from message
-        message = ReplaceAll(message.c_str(), "\n", "");
-        message = ReplaceAll(message.c_str(), "\r", "");
+            // remove \n\r from message
+            message = ReplaceAll(message.c_str(), "\n", "");
+            message = ReplaceAll(message.c_str(), "\r", "");
 
-		*result += message;
+            *result += message;
+        }
+        else {
+            char buf[256] = { 0 };
+            sprintf(buf, "Error code 0x%08lX", code);
+            *result.get() += std::string(buf);
+        }
 	}
 
 	return result;
