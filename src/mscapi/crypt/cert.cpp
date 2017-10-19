@@ -1,5 +1,6 @@
 #include "crypt.h"
 #include "../ncrypt.h"
+#include "../bcrypt.h"
 
 using namespace crypt;
 
@@ -59,7 +60,7 @@ Scoped<Buffer> Certificate::GetPropertyBytes(
     DWORD dwPropId
 ) {
     try {
-        Scoped<Buffer> data(new Buffer());
+        Scoped<Buffer> data(new Buffer(0));
         ULONG ulDataLen;
         if (!CertGetCertificateContextProperty(
             context,
@@ -196,6 +197,76 @@ void Certificate::DeleteFromStore()
                 THROW_MSCAPI_EXCEPTION("CertDeleteCertificateFromStore");
             }
         }
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<ncrypt::Key> crypt::Certificate::GetPublicKey()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        Scoped<ncrypt::Key> publicKey();
+
+        if (HasPrivateKey()) {
+            Scoped<ProviderInfo> provInfo = GetProviderInfo();
+
+            ALG_ID dwAlgId = CertOIDToAlgId(context->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId);
+            DWORD dwProvType = PROV_RSA_FULL;
+            switch (dwAlgId) {
+            case CALG_ECDH:
+            case CALG_ECDSA:
+                dwProvType = PROV_EC_ECDSA_FULL;
+            }
+
+            /*ncrypt::Provider prov;
+            prov.Open(MS_KEY_STORAGE_PROVIDER, 0);
+
+            NCRYPT_KEY_HANDLE hKey = NULL;
+
+            SECURITY_STATUS status = NCryptImportKey(prov.Get(), NULL, BCRYPT_PUBLIC_KEY_BLOB, NULL, &hKey, context->pCertInfo->SubjectPublicKeyInfo.PublicKey.pbData, context->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData, 0);
+            if (status) {
+                THROW_NT_EXCEPTION(status);
+            }
+
+            return Scoped<ncrypt::Key>(new ncrypt::Key(hKey));*/
+
+            BCRYPT_KEY_HANDLE bKey = NULL;
+
+            if (!CryptImportPublicKeyInfoEx2(X509_ASN_ENCODING, &context->pCertInfo->SubjectPublicKeyInfo, 0, NULL, &bKey)) {
+                THROW_MSCAPI_EXCEPTION("CryptImportPublicKeyInfoEx2");
+            }
+
+            bcrypt::Key bcryptKey(bKey);
+
+            return bcryptKey.ToNKey();
+        }
+        else {
+            THROW_EXCEPTION("Cannot get public key for certificate '%s'. ", GetName()->c_str());
+        }
+
+    }
+    CATCH_EXCEPTION
+}
+
+CK_BBOOL crypt::Certificate::HasPrivateKey()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        return HasProperty(CERT_KEY_PROV_INFO_PROP_ID);
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<ProviderInfo> crypt::Certificate::GetProviderInfo()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        Scoped<Buffer> propKeyProvInfo = GetPropertyBytes(CERT_KEY_PROV_INFO_PROP_ID);
+
+        return Scoped<ProviderInfo>(new ProviderInfo(propKeyProvInfo));
     }
     CATCH_EXCEPTION
 }

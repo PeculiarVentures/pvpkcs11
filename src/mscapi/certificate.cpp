@@ -2,6 +2,8 @@
 
 #include "crypt/crypt.h"
 #include "crypto.h"
+#include "ec.h"
+#include "rsa.h"
 
 using namespace mscapi;
 
@@ -24,7 +26,7 @@ Scoped<Buffer> GetCertificateChain
     crypt::Certificate*     cert       // certificate
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         PCCERT_CHAIN_CONTEXT     pChainContext = NULL;
@@ -38,7 +40,7 @@ Scoped<Buffer> GetCertificateChain
         ChainPara.dwRevocationFreshnessTime = 60;
         ChainPara.fCheckRevocationFreshnessTime = TRUE;
         ChainPara.RequestedIssuancePolicy.dwType = USAGE_MATCH_TYPE_AND;
-        ChainPara.RequestedIssuancePolicy. Usage.cUsageIdentifier = 0;
+        ChainPara.RequestedIssuancePolicy.Usage.cUsageIdentifier = 0;
         ChainPara.RequestedIssuancePolicy.Usage.rgpszUsageIdentifier = NULL;
         ChainPara.pftCacheResync = NULL;
         ChainPara.pStrongSignPara = NULL;
@@ -132,7 +134,7 @@ Scoped<Buffer> GetCertificateChain
 mscapi::X509Certificate::X509Certificate()
     : core::X509Certificate()
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     Add(core::AttributeBytes::New(CKA_X509_CHAIN, NULL, 0, PVF_2));
 }
@@ -141,7 +143,7 @@ void mscapi::X509Certificate::Assign(
     Scoped<crypt::Certificate>        cert
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         value = cert;
@@ -186,13 +188,13 @@ Scoped<Buffer> mscapi::X509Certificate::GetPublicKeyHash(
     CK_MECHANISM_TYPE       mechType
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         return Digest(
             mechType,
-			value->Get()->pCertInfo->SubjectPublicKeyInfo.PublicKey.pbData,
-			value->Get()->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData
+            value->Get()->pCertInfo->SubjectPublicKeyInfo.PublicKey.pbData,
+            value->Get()->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData
         );
     }
     CATCH_EXCEPTION
@@ -203,7 +205,7 @@ CK_RV mscapi::X509Certificate::CreateValues(
     CK_ULONG          ulCount     /* attributes in template */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         core::X509Certificate::CreateValues(
@@ -233,7 +235,7 @@ CK_RV mscapi::X509Certificate::CopyValues(
     CK_ULONG          ulCount     /* attributes in template */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         core::X509Certificate::CopyValues(
@@ -260,7 +262,7 @@ CK_RV mscapi::X509Certificate::CopyValues(
 
 void mscapi::X509Certificate::AddToMyStorage()
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         crypt::CertStore store;
@@ -318,7 +320,7 @@ void mscapi::X509Certificate::AddToMyStorage()
 
 CK_RV mscapi::X509Certificate::Destroy()
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         value->DeleteFromStore();
@@ -328,12 +330,139 @@ CK_RV mscapi::X509Certificate::Destroy()
     CATCH_EXCEPTION
 }
 
+Scoped<core::Object> mscapi::X509Certificate::GetPublicKey()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        if (publicKey.get()) {
+            // Return cached data
+            return publicKey;
+        }
+
+        Scoped<ncrypt::Key> key = value->GetPublicKey();
+
+        Scoped<std::wstring> algGroup = key->GetStringW(NCRYPT_ALGORITHM_GROUP_PROPERTY);
+
+        if (algGroup->compare(NCRYPT_RSA_ALGORITHM_GROUP) == 0) {
+            // RSA
+            Scoped<RsaPublicKey> rsaKey(new RsaPublicKey);
+            rsaKey->Assign(key);
+
+            publicKey = rsaKey;
+        }
+        else if (algGroup->compare(NCRYPT_ECDSA_ALGORITHM_GROUP) == 0 ||
+            algGroup->compare(NCRYPT_ECDH_ALGORITHM_GROUP) == 0) {
+            // EC
+            Scoped<EcPublicKey> ecKey(new EcPublicKey);
+            ecKey->Assign(key);
+
+            publicKey = ecKey;
+        }
+        else {
+            std::string name(algGroup->begin(), algGroup->end());
+            THROW_EXCEPTION("Cannot get public key. Unsupported algorithm group in use '%s'", name.c_str());
+        }
+
+        // Set PKCS11 attributes
+        Scoped<Buffer> attrID = ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
+        publicKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
+        publicKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+        publicKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+
+        return publicKey;
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<core::Object> mscapi::X509Certificate::GetPrivateKey()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        if (privateKey.get()) {
+            return privateKey;
+        }
+
+        Scoped<crypt::Certificate> cert = value;
+
+        if (!cert->HasPrivateKey()) {
+            THROW_EXCEPTION("Certificate doesn't have private key");
+        }
+
+        Scoped<core::Object> publicKey = GetPublicKey();
+
+        CK_ULONG attrMech = publicKey->ItemByType(CKA_KEY_GEN_MECHANISM)->ToNumber();
+
+        Scoped<crypt::ProviderInfo> provInfo = cert->GetProviderInfo();
+
+        switch (attrMech) {
+        case CKM_RSA_PKCS_KEY_PAIR_GEN: {
+#pragma region Init RSA key
+            Scoped<RsaPrivateKey> rsaKey(new RsaPrivateKey());
+            rsaKey->Assign(provInfo);
+
+            // Copy public data
+            Scoped<Buffer> attrModulus = publicKey->ItemByType(CKA_MODULUS)->ToBytes();
+            rsaKey->ItemByType(CKA_MODULUS)->SetValue(attrModulus->data(), attrModulus->size());
+
+            Scoped<Buffer> attrPublicExponent = publicKey->ItemByType(CKA_PUBLIC_EXPONENT)->ToBytes();
+            rsaKey->ItemByType(CKA_PUBLIC_EXPONENT)->SetValue(attrPublicExponent->data(), attrPublicExponent->size());
+
+            // if (keyProv->dwKeySpec & AT_KEYEXCHANGE) {
+                rsaKey->ItemByType(CKA_DECRYPT)->To<core::AttributeBool>()->Set(true);
+                rsaKey->ItemByType(CKA_UNWRAP)->To<core::AttributeBool>()->Set(true);
+            // }
+            // if (keyProv->dwKeySpec & AT_SIGNATURE) {
+                rsaKey->ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
+            // }
+
+            privateKey = rsaKey;
+#pragma endregion
+            break;
+        }
+        case CKM_ECDSA_KEY_PAIR_GEN: {
+#pragma region Init EC key
+            Scoped<EcPrivateKey> ecKey(new EcPrivateKey());
+            ecKey->Assign(provInfo);
+
+            // Copy public data
+            Scoped<Buffer> attrEcParams= publicKey->ItemByType(CKA_EC_PARAMS)->ToBytes();
+            ecKey->ItemByType(CKA_EC_PARAMS)->SetValue(attrEcParams->data(), attrEcParams->size());
+
+            // if (keyProv->dwKeySpec & AT_KEYEXCHANGE) {
+                ecKey->ItemByType(CKA_DERIVE)->To<core::AttributeBool>()->Set(true);
+            // }
+            // if (keyProv->dwKeySpec & AT_SIGNATURE) {
+                ecKey->ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
+            // }
+
+            privateKey = ecKey;
+#pragma endregion
+            break;
+        }
+        default:
+            THROW_EXCEPTION("Unsupported mechanism in use %s", core::Name::getMechanism(attrMech));
+        }
+
+        // Set PKCS11 attributes
+        Scoped<Buffer> attrID = ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
+        privateKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
+        privateKey->ItemByType(CKA_PRIVATE)->To<core::AttributeBool>()->Set(true);
+        privateKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+        privateKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+
+        return privateKey;
+    }
+    CATCH_EXCEPTION
+}
+
 CK_RV mscapi::X509Certificate::GetValue
 (
     CK_ATTRIBUTE_PTR  attr
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         switch (attr->type) {

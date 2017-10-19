@@ -29,7 +29,7 @@ CryptoRsaOAEPEncrypt::CryptoRsaOAEPEncrypt(
 CK_RV CryptoRsaOAEPEncrypt::Init
 (
     CK_MECHANISM_PTR        pMechanism,
-    Scoped<core::Object>    hKey
+    Scoped<core::Object>    key
 )
 {
 	LOGGER_FUNCTION_BEGIN;
@@ -69,15 +69,18 @@ CK_RV CryptoRsaOAEPEncrypt::Init
             label = std::string("");
         }
 
-        if (type == CRYPTO_ENCRYPT) {
-            this->key = dynamic_cast<RsaPublicKey*>(hKey.get());
+        CryptoKey* cryptoKey = NULL; 
+        if (this->type == CRYPTO_ENCRYPT) {
+            cryptoKey = dynamic_cast<RsaPublicKey*>(key.get());
         }
         else {
-            this->key = dynamic_cast<RsaPrivateKey*>(hKey.get());
+            cryptoKey = dynamic_cast<RsaPrivateKey*>(key.get());
         }
-        if (!this->key) {
-            THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "Key has wrong type");
+        if (!cryptoKey) {
+            THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "");
         }
+        this->key = cryptoKey->GetNKey();
+        hKey = this->key->Get();
 
         active = true;
 
@@ -118,7 +121,7 @@ CK_RV CryptoRsaOAEPEncrypt::Once(
         NTSTATUS status;
         if (pEncryptedData == NULL) {
             status = fn(
-                this->key->nkey->Get(),
+                hKey,
                 pData, ulDataLen,
                 &paddingInfo,
                 NULL,
@@ -129,7 +132,7 @@ CK_RV CryptoRsaOAEPEncrypt::Once(
         }
         else {
             status = fn(
-                this->key->nkey->Get(),
+                hKey,
                 pData, ulDataLen,
                 &paddingInfo,
                 pEncryptedData,

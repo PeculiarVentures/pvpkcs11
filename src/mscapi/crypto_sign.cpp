@@ -18,7 +18,7 @@ CK_RV RsaPKCS1Sign::Init(
     Scoped<core::Object>    key          /* signature key */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         core::CryptoSign::Init(pMechanism, key);
@@ -56,7 +56,18 @@ CK_RV RsaPKCS1Sign::Init(
             }
         }
 
-        this->key = dynamic_cast<CryptoKey*>(key.get());
+        CryptoKey* cryptoKey = NULL;
+        if (this->type == CRYPTO_VERIFY) {
+            cryptoKey = dynamic_cast<RsaPublicKey*>(key.get());
+        }
+        else {
+            cryptoKey = dynamic_cast<RsaPrivateKey*>(key.get());
+        }
+        if (!cryptoKey) {
+            THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "");
+        }
+        this->key = cryptoKey->GetNKey();
+        hKey = this->key->Get();
 
         digest->Init(&digestMechanism);
 
@@ -72,7 +83,7 @@ CK_RV RsaPKCS1Sign::Update(
     CK_ULONG          ulPartLen  /* count of bytes to sign/verify */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         core::CryptoSign::Update(pPart, ulPartLen);
@@ -89,7 +100,7 @@ CK_RV RsaPKCS1Sign::Final(
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         CryptoSign::Final(pSignature, pulSignatureLen);
@@ -102,7 +113,8 @@ CK_RV RsaPKCS1Sign::Final(
         ULONG ulSignatureLen;
         UCHAR hash[256] = { 0 };
         ULONG hashLen = 256;
-        status = NCryptSignHash(key->nkey->Get(), &paddingInfo, hash, hashLen, NULL, 0, &ulSignatureLen, BCRYPT_PAD_PKCS1);
+        
+        status = NCryptSignHash(hKey, &paddingInfo, hash, hashLen, NULL, 0, &ulSignatureLen, BCRYPT_PAD_PKCS1);
         if (status) {
             THROW_NT_EXCEPTION(status);
         }
@@ -115,7 +127,7 @@ CK_RV RsaPKCS1Sign::Final(
         }
         else {
             digest->Final(hash, &hashLen);
-            status = NCryptSignHash(key->nkey->Get(), &paddingInfo, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, BCRYPT_PAD_PKCS1);
+            status = NCryptSignHash(hKey, &paddingInfo, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, BCRYPT_PAD_PKCS1);
             active = false;
             if (status) {
                 THROW_NT_EXCEPTION(status);
@@ -124,7 +136,15 @@ CK_RV RsaPKCS1Sign::Final(
 
         return CKR_OK;
     }
-    CATCH_EXCEPTION
+    catch (Scoped<core::Exception> e) {
+        active = false;
+        Scoped<core::Exception> newExcep = EXCEPTION(e->what());
+        newExcep->push(e);
+        throw newExcep;
+    }
+    catch (...) {
+        THROW_UNKNOWN_EXCEPTION();
+    }
 }
 
 CK_RV RsaPKCS1Sign::Final(
@@ -132,7 +152,7 @@ CK_RV RsaPKCS1Sign::Final(
     CK_ULONG          ulSignatureLen  /* signature length */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         CryptoSign::Final(pSignature, ulSignatureLen);
@@ -146,7 +166,7 @@ CK_RV RsaPKCS1Sign::Final(
         digest->Final(hash, &hashLen);
 
         status = NCryptVerifySignature(
-            key->nkey->Get(),
+            hKey,
             &paddingInfo,
             hash, hashLen,
             pSignature, ulSignatureLen,
@@ -180,7 +200,7 @@ CK_RV RsaPSSSign::Init(
     Scoped<core::Object>    key          /* signature key */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         core::CryptoSign::Init(pMechanism, key);
@@ -229,7 +249,18 @@ CK_RV RsaPSSSign::Init(
             }
         }
 
-        this->key = dynamic_cast<CryptoKey*>(key.get());
+        CryptoKey* cryptoKey = NULL;
+        if (this->type == CRYPTO_VERIFY) {
+            cryptoKey = dynamic_cast<RsaPublicKey*>(key.get());
+        }
+        else {
+            cryptoKey = dynamic_cast<RsaPrivateKey*>(key.get());
+        }
+        if (!cryptoKey) {
+            THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "");
+        }
+        this->key = cryptoKey->GetNKey();
+        hKey = this->key->Get();
 
         digest->Init(&digestMechanism);
 
@@ -245,7 +276,7 @@ CK_RV RsaPSSSign::Update(
     CK_ULONG          ulPartLen  /* count of bytes to sign/verify */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         core::CryptoSign::Update(pPart, ulPartLen);
@@ -262,7 +293,7 @@ CK_RV RsaPSSSign::Final(
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
 
@@ -274,7 +305,7 @@ CK_RV RsaPSSSign::Final(
         ULONG ulSignatureLen;
         UCHAR hash[256] = { 0 };
         ULONG hashLen = 256;
-        status = NCryptSignHash(key->nkey->Get(), &paddingInfo, hash, hashLen, NULL, 0, &ulSignatureLen, BCRYPT_PAD_PSS);
+        status = NCryptSignHash(hKey, &paddingInfo, hash, hashLen, NULL, 0, &ulSignatureLen, BCRYPT_PAD_PSS);
         if (status) {
             THROW_NT_EXCEPTION(status);
         }
@@ -287,7 +318,7 @@ CK_RV RsaPSSSign::Final(
         }
         else {
             digest->Final(hash, &hashLen);
-            status = NCryptSignHash(key->nkey->Get(), &paddingInfo, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, BCRYPT_PAD_PSS);
+            status = NCryptSignHash(hKey, &paddingInfo, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, BCRYPT_PAD_PSS);
             active = false;
             if (status) {
                 THROW_NT_EXCEPTION(status);
@@ -304,7 +335,7 @@ CK_RV RsaPSSSign::Final(
     CK_ULONG          ulSignatureLen  /* signature length */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         CryptoSign::Final(pSignature, ulSignatureLen);
@@ -318,7 +349,7 @@ CK_RV RsaPSSSign::Final(
         digest->Final(hash, &hashLen);
 
         status = NCryptVerifySignature(
-            key->nkey->Get(),
+            hKey,
             &paddingInfo,
             hash, hashLen,
             pSignature, ulSignatureLen,
@@ -350,7 +381,7 @@ CK_RV EcDSASign::Init(
     Scoped<core::Object>    key          /* signature key */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         core::CryptoSign::Init(pMechanism, key);
@@ -384,7 +415,18 @@ CK_RV EcDSASign::Init(
             }
         }
 
-        this->key = dynamic_cast<CryptoKey*>(key.get());
+        CryptoKey* cryptoKey = NULL;
+        if (this->type == CRYPTO_VERIFY) {
+            cryptoKey = dynamic_cast<EcPublicKey*>(key.get());
+        }
+        else {
+            cryptoKey = dynamic_cast<EcPrivateKey*>(key.get());
+        }
+        if (!cryptoKey) {
+            THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "");
+        }
+        this->key = cryptoKey->GetNKey();
+        hKey = this->key->Get();
 
         digest->Init(&digestMechanism);
 
@@ -400,7 +442,7 @@ CK_RV EcDSASign::Update(
     CK_ULONG          ulPartLen  /* count of bytes to sign/verify */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         core::CryptoSign::Update(pPart, ulPartLen);
@@ -417,7 +459,7 @@ CK_RV EcDSASign::Final(
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         CryptoSign::Final(pSignature, pulSignatureLen);
@@ -428,7 +470,7 @@ CK_RV EcDSASign::Final(
         ULONG ulSignatureLen;
         UCHAR hash[256] = { 0 };
         ULONG hashLen = 256;
-        status = NCryptSignHash(key->nkey->Get(), NULL, hash, hashLen, NULL, 0, &ulSignatureLen, 0);
+        status = NCryptSignHash(hKey, NULL, hash, hashLen, NULL, 0, &ulSignatureLen, 0);
         if (status) {
             THROW_NT_EXCEPTION(status);
         }
@@ -441,7 +483,7 @@ CK_RV EcDSASign::Final(
         }
         else {
             digest->Final(hash, &hashLen);
-            status = NCryptSignHash(key->nkey->Get(), NULL, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, 0);
+            status = NCryptSignHash(hKey, NULL, hash, hashLen, pSignature, ulSignatureLen, pulSignatureLen, 0);
             active = false;
             if (status) {
                 THROW_NT_EXCEPTION(status);
@@ -458,7 +500,7 @@ CK_RV EcDSASign::Final(
     CK_ULONG          ulSignatureLen  /* signature length */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         CryptoSign::Final(pSignature, ulSignatureLen);
@@ -471,7 +513,7 @@ CK_RV EcDSASign::Final(
         digest->Final(hash, &hashLen);
 
         status = NCryptVerifySignature(
-            key->nkey->Get(),
+            hKey,
             NULL,
             hash, hashLen,
             pSignature, ulSignatureLen,

@@ -99,7 +99,8 @@ namespace mscapi {
     protected:
         Scoped<CryptoDigest> digest;
         LPCWSTR              digestAlgorithm;
-        CryptoKey*           key;
+        Scoped<ncrypt::Key>  key;
+        NCRYPT_KEY_HANDLE    hKey;
     };
 
     /**
@@ -144,7 +145,8 @@ namespace mscapi {
         Scoped<CryptoDigest> digest;
         LPCWSTR              digestAlgorithm;
         ULONG                salt;
-        CryptoKey*           key;
+        Scoped<ncrypt::Key>  key;
+        NCRYPT_KEY_HANDLE    hKey;
     };
 
     /**
@@ -187,7 +189,8 @@ namespace mscapi {
 
     protected:
         Scoped<CryptoDigest> digest;
-        CryptoKey*           key;
+        Scoped<ncrypt::Key>  key;
+        NCRYPT_KEY_HANDLE    hKey;
     };
 
     class CryptoEncrypt : public core::CryptoEncrypt {
@@ -233,8 +236,9 @@ namespace mscapi {
         );
 
     protected:
-        CryptoKey*          key;
-        LPWSTR              digestAlg;
+        Scoped<ncrypt::Key>  key;
+        NCRYPT_KEY_HANDLE    hKey;
+        LPWSTR               digestAlg;
     };
 
 }

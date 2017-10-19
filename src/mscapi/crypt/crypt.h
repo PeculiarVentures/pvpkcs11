@@ -3,6 +3,7 @@
 #include "../../stdafx.h"
 #include "../../core/collection.h"
 #include "../../core/excep.h"
+#include "../ncrypt.h"
 
 namespace crypt {
 
@@ -28,6 +29,24 @@ namespace crypt {
 	};
 
     class Key;
+
+    /**
+     * ProviderInfo
+     */
+
+    class ProviderInfo {
+    public:
+        ProviderInfo();
+        ProviderInfo(Scoped<Buffer> buffer);
+
+        void Assign(Scoped<Buffer> buffer);
+
+        CRYPT_KEY_PROV_INFO* Get();
+
+    protected:
+        CRYPT_KEY_PROV_INFO*    info;
+        Scoped<Buffer>          buffer;
+    };
 
 	/**
 	 * Provider
@@ -83,6 +102,8 @@ namespace crypt {
             DWORD           dwKeySpec
         );
 
+        CK_BBOOL HasParam(DWORD dwParam);
+
 
 	protected:
 		HCRYPTPROV handle;
@@ -128,9 +149,14 @@ namespace crypt {
 
 		Scoped<Key> Copy() throw(Exception);
 		void Destroy();
+        Scoped<ncrypt::Key> Translate(
+            Scoped<Provider> prov
+        );
 
 		HCRYPTKEY Get() throw(Exception);
 		void Assign(HCRYPTKEY value);
+
+        HCRYPTKEY* operator &();
 
 	protected:
 		HCRYPTKEY         handle;
@@ -172,6 +198,10 @@ namespace crypt {
         );
 
         Scoped<std::string> GetName();
+
+        Scoped<ProviderInfo> GetProviderInfo();
+        CK_BBOOL HasPrivateKey();
+        Scoped<ncrypt::Key> GetPublicKey();
 
         void DeleteFromStore();
     protected:

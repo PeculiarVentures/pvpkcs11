@@ -139,7 +139,7 @@ void LinkKeyToCertificate(
 					// Create key 
 					CRYPT_KEY_PROV_INFO keyProvInfo;
 
-					auto containerName = key->GetBytesW(NCRYPT_NAME_PROPERTY);
+					auto containerName = key->GetStringW(NCRYPT_NAME_PROPERTY);
 
 					keyProvInfo.pwszContainerName = (LPWSTR) containerName->c_str();
 					keyProvInfo.pwszProvName = MS_KEY_STORAGE_PROVIDER;
@@ -172,7 +172,7 @@ Scoped<Key> ncrypt::CopyKeyToProvider(
     try {
         // copy key to new Provider
         auto blob = key->ExportKey(pszBlobType, 0);
-        auto keyAlgorithm = key->GetBytesW(NCRYPT_ALGORITHM_PROPERTY);
+        auto keyAlgorithm = key->GetStringW(NCRYPT_ALGORITHM_PROPERTY);
 
         auto nkey = provider->CreatePersistedKey(keyAlgorithm->c_str(), pszContainerName, 0, 0);
         nkey->SetParam(pszBlobType, blob->data(), blob->size(), NCRYPT_PERSIST_FLAG);

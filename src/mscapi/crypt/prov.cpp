@@ -1,5 +1,7 @@
 #include "crypt.h"
 
+#include <xstring>
+
 using namespace crypt;
 
 crypt::Provider::Provider()
@@ -128,9 +130,22 @@ void crypt::Provider::AcquireContextW(
 	try {
 		// Remove old provider handle
 		this->Destroy();
+
+        std::wstring wstrContainer(szContainer);
+        std::wstring wstrProvider(szProvider);
+
+        LOGGER_DEBUG("%s CryptAcquireContextW szContainer:'%s' szProvider:'%s' dwProvType:%d dwFlags:%d", 
+            __FUNCTION__,
+            std::string(wstrContainer.begin(), wstrContainer.end()).c_str(),
+            std::string(wstrProvider.begin(), wstrProvider.end()).c_str(),
+            dwProvType,
+            dwFlags
+        );
+
 		if (!CryptAcquireContextW(&this->handle, szContainer, szProvider, dwProvType, dwFlags)) {
 			THROW_MSCAPI_EXCEPTION("CryptAcquireContextW");
 		}
+        LOGGER_DEBUG("%s After CryptAcquireContextW", __FUNCTION__);
 	}
 	CATCH_EXCEPTION;
 }
@@ -266,4 +281,13 @@ Scoped<Key> crypt::Provider::GetUserKey(
         THROW_MSCAPI_EXCEPTION("CryptGetUserKey");
     }
     return Scoped<Key>(new Key(hKey));
+}
+
+CK_BBOOL crypt::Provider::HasParam(DWORD dwParam)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    DWORD dwDataLen = 0;
+
+    return !CryptGetProvParam(handle, dwParam, NULL, &dwDataLen, 0);
 }

@@ -2,7 +2,7 @@
 
 using namespace crypt;
 
-Scoped<Key> Key::Generate(
+Scoped<Key> crypt::Key::Generate(
 	Scoped<Provider>  prov,
 	ALG_ID            uiAlgId,
 	DWORD             dwFlags
@@ -17,7 +17,7 @@ Scoped<Key> Key::Generate(
 	return result;
 }
 
-Scoped<Key> Key::Import(
+Scoped<Key> crypt::Key::Import(
 	Scoped<Provider>  prov,
 	BYTE              *pbData,
 	DWORD             dwDataLen,
@@ -41,7 +41,7 @@ Scoped<Key> Key::Import(
 	return result;
 }
 
-Scoped<Key> Key::Import(
+Scoped<Key> crypt::Key::Import(
 	Scoped<Provider>       prov,
 	DWORD                  dwCertEncodingType,
 	PCERT_PUBLIC_KEY_INFO  pInfo
@@ -62,22 +62,22 @@ Scoped<Key> Key::Import(
 	return result;
 }
 
-Key::Key()
+crypt::Key::Key()
 {
 	this->handle = NULL;
 }
 
-Key::Key(HCRYPTKEY handle)
+crypt::Key::Key(HCRYPTKEY handle)
 {
 	this->handle = handle;
 }
 
-Key::~Key()
+crypt::Key::~Key()
 {
 	this->Destroy();
 }
 
-Scoped<Key> Key::Copy()
+Scoped<Key> crypt::Key::Copy()
 {
 	HCRYPTKEY dupKey;
 	if (!CryptDuplicateKey(this->handle, NULL, 0, &dupKey)) {
@@ -86,7 +86,7 @@ Scoped<Key> Key::Copy()
 	return Scoped<Key>(new Key(dupKey));
 }
 
-void Key::Destroy()
+void crypt::Key::Destroy()
 {
 	if (this->handle) {
         if (!CryptDestroyKey(this->handle)) {
@@ -96,14 +96,33 @@ void Key::Destroy()
 	}
 }
 
-HCRYPTKEY Key::Get()
+HCRYPTKEY crypt::Key::Get()
 {
+    if (!handle) {
+        THROW_PARAM_REQUIRED_EXCEPTION("handle");
+    }
 	return this->handle;
 }
 
-void Key::Assign(HCRYPTKEY value)
+void crypt::Key::Assign(HCRYPTKEY value)
 {
 	this->Destroy();
 	this->handle = value;
 }
 
+Scoped<ncrypt::Key> crypt::Key::Translate(
+    Scoped<Provider> prov
+)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        return ncrypt::Provider::TranslateHandle(prov->Get(), Get(), 0, 0);
+    }
+    CATCH_EXCEPTION
+}
+
+HCRYPTKEY * crypt::Key::operator&()
+{
+    return &this->handle;
+}

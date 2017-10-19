@@ -104,6 +104,7 @@
                         'src/mscapi/ncrypt/key.cpp',
                         # mscapi/crypt
                         'src/mscapi/crypt/prov.cpp',
+                        'src/mscapi/crypt/prov_info.cpp',
                         'src/mscapi/crypt/excep.cpp',
                         'src/mscapi/crypt/cert.cpp',
                         'src/mscapi/crypt/key.cpp',

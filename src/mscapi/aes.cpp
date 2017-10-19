@@ -130,7 +130,7 @@ CK_RV CryptoAesEncrypt::Init
         if (!castKey) {
             THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "Key must be AES");
         }
-        this->key = castKey->bkey->Duplicate();
+        this->key = castKey->GetBKey()->Duplicate();
 
         mechanism = pMechanism->mechanism;
 
@@ -344,7 +344,7 @@ CK_RV CryptoAesGCMEncrypt::Init
         if (!castKey) {
             THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "Key must be AES");
         }
-        this->key = castKey->bkey->Duplicate();
+        this->key = castKey->GetBKey()->Duplicate();
 
         if (pMechanism->mechanism != CKM_AES_GCM) {
             THROW_PKCS11_MECHANISM_INVALID();

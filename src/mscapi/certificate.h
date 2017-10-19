@@ -32,8 +32,13 @@ namespace mscapi {
 
         CK_RV Destroy();
 
+        Scoped<core::Object> GetPublicKey();
+        Scoped<core::Object> GetPrivateKey();
+
     protected:
         Scoped<crypt::Certificate> value;
+        Scoped<core::Object> publicKey;
+        Scoped<core::Object> privateKey;
         
         void AddToMyStorage();
         CK_RV GetValue

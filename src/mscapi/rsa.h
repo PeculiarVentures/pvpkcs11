@@ -65,6 +65,8 @@ namespace mscapi {
 
         void OnKeyAssigned();
 
+        void Import(Scoped<Buffer> data);
+
     protected:
         void FillKeyStruct();
 

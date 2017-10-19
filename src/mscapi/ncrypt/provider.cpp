@@ -24,7 +24,7 @@ ncrypt::Provider::~Provider()
     if (handle) {
         LOGGER_TRACE("%s %s", __FUNCTION__, "NCryptFreeObject");
         LOGGER_DEBUG("%s NCryptFreeObject handle:%p", __FUNCTION__, handle);
-        SECURITY_STATUS status = NCryptFreeObject(handle);
+        NTSTATUS status = NCryptFreeObject(handle);
         if (status) {
             THROW_NT_EXCEPTION(status);
         }
@@ -73,23 +73,23 @@ Scoped<Key> ncrypt::Provider::OpenKey(
 }
 
 Scoped<Key> ncrypt::Provider::TranslateHandle(
-    _In_    HCRYPTPROV hLegacyProv,
-    _In_opt_ HCRYPTKEY hLegacyKey,
-    _In_opt_ DWORD  dwLegacyKeySpec,
-    _In_    DWORD   dwFlags
+    _In_        HCRYPTPROV  hLegacyProv,
+    _In_opt_    HCRYPTKEY   hLegacyKey,
+    _In_opt_    DWORD       dwLegacyKeySpec,
+    _In_        DWORD       dwFlags
 )
 {
 	LOGGER_FUNCTION_BEGIN;
 
-    NCRYPT_PROV_HANDLE hProvider;
-
-    NCRYPT_KEY_HANDLE hKey;
-    NTSTATUS status = NCryptTranslateHandle(&hProvider, &hKey, hLegacyProv, hLegacyKey, dwLegacyKeySpec, dwFlags);
-    if (status) {
-        THROW_NT_EXCEPTION(status);
+    try {
+        NCRYPT_KEY_HANDLE hKey = NULL;
+        NTSTATUS status = NCryptTranslateHandle(NULL, &hKey, hLegacyProv, hLegacyKey, dwLegacyKeySpec, dwFlags);
+        if (status) {
+            THROW_NT_EXCEPTION(status);
+        }
+        return Scoped<Key>(new Key(hKey));
     }
-    NCryptFreeObject(hProvider);
-    return Scoped<Key>(new Key(hKey));
+    CATCH_EXCEPTION
 }
 
 Scoped<Key> ncrypt::Provider::CreatePersistedKey(

@@ -77,7 +77,7 @@ Pkcs11Exception::Pkcs11Exception(
     int                line,
     ...
 ) :
-    Exception(name, message, function, file, line),
+    Exception(name, "", function, file, line),
     code(code)
 {
     va_list args;

@@ -50,8 +50,17 @@ namespace core {
 
 #define EXCEPTION_NAME "Exception"
 
+#define EXCEPTION(message, ...)                                        \
+    Scoped<core::Exception>(new core::Exception(EXCEPTION_NAME, message, __FUNCTION__, __FILE__, __LINE__, ## __VA_ARGS__))
+
 #define THROW_EXCEPTION(message, ...)                                  \
-	throw Scoped<core::Exception>(new core::Exception(EXCEPTION_NAME, message, __FUNCTION__, __FILE__, __LINE__, ## __VA_ARGS__))
+	throw EXCEPTION(message, ## __VA_ARGS__)
+
+#define THROW_PARAM_REQUIRED_EXCEPTION(paramName) \
+    THROW_EXCEPTION("Parameter '%s' is required", paramName)
+
+#define THROW_UNKNOWN_EXCEPTION()                                  \
+	THROW_EXCEPTION("Unexpected error")
 
 #define PKCS11_EXCEPTION_NAME "Pkcs11Exception"
 
@@ -77,5 +86,5 @@ namespace core {
         throw e;                                                        \
     }                                                                   \
     catch(...) {                                                        \
-        THROW_EXCEPTION("Unexpected exception");                        \
+        THROW_UNKNOWN_EXCEPTION();                                      \
     }

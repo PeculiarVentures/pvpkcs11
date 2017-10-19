@@ -321,11 +321,11 @@ CK_RV RsaPublicKey::CreateValues
         NTSTATUS status;
         Scoped<Buffer> buffer(new Buffer);
 
-
-        // Named curve
+        // Get params
         auto publicExponent = tmpl.GetBytes(CKA_PUBLIC_EXPONENT, true, "");
         auto modulus = tmpl.GetBytes(CKA_MODULUS, true, "");
 
+        // fill bcrypt blob
         buffer->resize(sizeof(BCRYPT_RSAKEY_BLOB));
         BCRYPT_RSAKEY_BLOB* header = (BCRYPT_RSAKEY_BLOB*)buffer->data();
         header->Magic = BCRYPT_RSAPUBLIC_MAGIC;
@@ -390,6 +390,16 @@ void RsaPublicKey::OnKeyAssigned()
 
     try {
         FillKeyStruct();
+    }
+    CATCH_EXCEPTION
+}
+
+void mscapi::RsaPublicKey::Import(Scoped<Buffer> data)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        
     }
     CATCH_EXCEPTION
 }

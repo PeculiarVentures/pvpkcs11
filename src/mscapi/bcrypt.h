@@ -4,6 +4,7 @@
 
 #include <bcrypt.h>
 #include "helper.h"
+#include "ncrypt.h"
 
 namespace bcrypt {
 
@@ -61,7 +62,22 @@ namespace bcrypt {
 			CATCH_EXCEPTION;
 		}
 
-		Scoped<std::string> GetBytes(LPCWSTR pszPropId)
+        Scoped<Buffer> GetBuffer(LPCWSTR pszPropId)
+        {
+            try {
+                Scoped<Buffer> res(new Buffer(0));
+                DWORD dwDataLen = 0;
+
+                GetParam(pszPropId, NULL, &dwDataLen);
+                res->resize(dwDataLen);
+                GetParam(pszPropId, (BYTE*)res->c_str(), &dwDataLen);
+
+                return res;
+            }
+            CATCH_EXCEPTION;
+        }
+
+		Scoped<std::string> GetString(LPCWSTR pszPropId)
 		{
 			try {
 				Scoped<std::string> strData(new std::string(""));
@@ -76,10 +92,10 @@ namespace bcrypt {
 			CATCH_EXCEPTION;
 		}
 
-		Scoped<std::wstring> GetBytesW(LPCWSTR pszPropId)
+		Scoped<std::wstring> GetStringW(LPCWSTR pszPropId)
 		{
 			try {
-				auto data = GetBytes(pszPropId);
+				auto data = GetString(pszPropId);
 
 				return Scoped<std::wstring>(new std::wstring((wchar_t*)data->c_str()));
 			}
@@ -160,6 +176,8 @@ namespace bcrypt {
 		);
 
 		Scoped<Key> Duplicate();
+
+        Scoped<ncrypt::Key> ToNKey();
 	};
 
 	class Algorithm : public Object<BCRYPT_ALG_HANDLE> {
