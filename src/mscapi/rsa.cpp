@@ -86,6 +86,7 @@ void RsaPrivateKey::FillPublicKeyStruct()
 	LOGGER_FUNCTION_BEGIN;
 
     try {
+        auto nkey = GetNKey();
         auto buffer = nkey->ExportKey(BCRYPT_RSAPUBLIC_BLOB, 0);
         BYTE* pbKey = buffer->data();
 
@@ -122,7 +123,7 @@ void RsaPrivateKey::FillPrivateKeyStruct()
 	LOGGER_FUNCTION_BEGIN;
 
     try {
-        auto buffer = nkey->ExportKey(BCRYPT_RSAFULLPRIVATE_BLOB, 0);
+        auto buffer = GetNKey()->ExportKey(BCRYPT_RSAFULLPRIVATE_BLOB, 0);
         BYTE* pbKey = buffer->data();
 
         // BCRYPT_RSAKEY_BLOB
@@ -214,13 +215,15 @@ CK_RV RsaPrivateKey::CopyValues(
         auto attrToken = ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue();
         auto attrExtractable = ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->ToValue();
 
-        nkey = ncrypt::CopyKeyToProvider(
-            originalKey->nkey.get(),
+        Scoped<ncrypt::Key> nkey = ncrypt::CopyKeyToProvider(
+            originalKey->GetNKey().get(),
             BCRYPT_RSAFULLPRIVATE_BLOB,
             &provider,
             attrToken ? provider.GenerateRandomName()->c_str() : NULL,
             (attrToken && attrExtractable) || !attrToken
         );
+
+        Assign(nkey);
 
         return CKR_OK;
     }
@@ -232,18 +235,29 @@ CK_RV RsaPrivateKey::Destroy()
 	LOGGER_FUNCTION_BEGIN;
 
     try {
-        nkey->Delete(0);
+        GetNKey()->Delete(0);
 
         return CKR_OK;
     }
     CATCH_EXCEPTION
 }
 
-void RsaPrivateKey::OnKeyAssigned()
+void mscapi::RsaPrivateKey::Assign(Scoped<crypt::ProviderInfo> provInfo)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        CryptoKey::Assign(provInfo);
+    }
+    CATCH_EXCEPTION
+}
+
+void mscapi::RsaPrivateKey::Assign(Scoped<ncrypt::Key> nkey)
 {
 	LOGGER_FUNCTION_BEGIN;
 
     try {
+        CryptoKey::Assign(nkey);
         FillPublicKeyStruct();
     }
     CATCH_EXCEPTION
@@ -256,6 +270,7 @@ void RsaPublicKey::FillKeyStruct()
 	LOGGER_FUNCTION_BEGIN;
 
     try {
+        auto nkey = GetNKey();
         auto buffer = nkey->ExportKey(BCRYPT_RSAPUBLIC_BLOB, 0);
         BYTE* pbKey = buffer->data();
 
@@ -367,7 +382,8 @@ CK_RV RsaPublicKey::CopyValues(
             THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Original key must be RsaPrivateKey");
         }
 
-        nkey = originalKey->nkey;
+        auto nkey = originalKey->GetNKey();
+        Assign(nkey);
 
         return CKR_OK;
     }
@@ -384,11 +400,12 @@ CK_RV RsaPublicKey::Destroy()
     CATCH_EXCEPTION
 }
 
-void RsaPublicKey::OnKeyAssigned()
+void mscapi::RsaPublicKey::Assign(Scoped<ncrypt::Key> nkey)
 {
 	LOGGER_FUNCTION_BEGIN;
 
     try {
+        CryptoKey::Assign(nkey);
         FillKeyStruct();
     }
     CATCH_EXCEPTION

@@ -104,23 +104,21 @@ namespace crypt {
 
         CK_BBOOL HasParam(DWORD dwParam);
 
-
+        void GetParam(
+            DWORD   dwParam,
+            BYTE    *pbData,
+            DWORD   *pdwDataLen,
+            DWORD   dwFlags
+        );
+        Scoped<Buffer> GetBufferParam(
+            DWORD   dwParam,
+            DWORD   dwFlag = 0
+        );
+        DWORD GetNumberParam(
+            DWORD   dwParam
+        );
 	protected:
 		HCRYPTPROV handle;
-
-		void GetParam(
-			DWORD   dwParam,
-			BYTE    *pbData,
-			DWORD   *pdwDataLen,
-			DWORD   dwFlags
-		);
-		Scoped<Buffer> GetBufferParam(
-			DWORD   dwParam,
-			DWORD   dwFlag = 0
-		);
-		DWORD GetNumberParam(
-			DWORD   dwParam
-		);
 
 	};
 

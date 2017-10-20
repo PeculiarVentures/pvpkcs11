@@ -27,7 +27,6 @@ void mscapi::CryptoKey::Assign(
 )
 {
     nkey = key;
-    OnKeyAssigned();
 }
 
 void mscapi::CryptoKey::Assign(
@@ -35,9 +34,6 @@ void mscapi::CryptoKey::Assign(
 )
 {
     bkey = key;
-}
-
-void mscapi::CryptoKey::OnKeyAssigned() {
 }
 
 mscapi::CryptoKeyPair::CryptoKeyPair(
@@ -80,14 +76,14 @@ Scoped<ncrypt::Key> mscapi::CryptoKey::GetNKey()
                 try {
                     nprov.Open(MS_KEY_STORAGE_PROVIDER, 0);
                     key = provider.GetUserKey(provInfo->Get()->dwKeySpec);
-                    return nprov.TranslateHandle(provider.Get(), key->Get(), 0, 0);
+                    nkey = nprov.TranslateHandle(provider.Get(), key->Get(), 0, 0);
                 }
                 catch (Scoped<core::Exception> e) {
                     LOGGER_ERROR(e->what());
                     try {
                         nprov.Open(MS_SMART_CARD_KEY_STORAGE_PROVIDER, 0);
                         key = provider.GetUserKey(provInfo->Get()->dwKeySpec);
-                        return nprov.TranslateHandle(provider.Get(), key->Get(), 0, 0);
+                        nkey = nprov.TranslateHandle(provider.Get(), key->Get(), 0, 0);
                     }
                     catch (Scoped<core::Exception> e) {
                         LOGGER_ERROR(e->what());
@@ -99,9 +95,10 @@ Scoped<ncrypt::Key> mscapi::CryptoKey::GetNKey()
                 // CNG
                 ncrypt::Provider prov;
                 prov.Open(provInfo->Get()->pwszProvName, 0);
-                return prov.OpenKey(provInfo->Get()->pwszContainerName, provInfo->Get()->dwKeySpec, provInfo->Get()->dwFlags);
+                nkey = prov.OpenKey(provInfo->Get()->pwszContainerName, provInfo->Get()->dwKeySpec, provInfo->Get()->dwFlags);
             }
 
+            return nkey;
         }
 
         return nkey;

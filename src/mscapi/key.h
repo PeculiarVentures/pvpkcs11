@@ -26,14 +26,12 @@ namespace mscapi {
             Scoped<crypt::ProviderInfo> provInfo
         );
 
-        virtual void OnKeyAssigned();
-
         Scoped<ncrypt::Key> GetNKey();
         Scoped<bcrypt::Key> GetBKey();
 
     protected:
         Scoped<crypt::ProviderInfo> provInfo;
-
+    private:
         Scoped<ncrypt::Key> nkey;
         Scoped<bcrypt::Key> bkey;
 	};

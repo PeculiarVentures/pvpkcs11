@@ -91,6 +91,7 @@ void EcPrivateKey::FillPublicKeyStruct()
 	LOGGER_FUNCTION_BEGIN;
 
     try {
+        auto nkey = GetNKey();
         auto buffer = nkey->ExportKey(BCRYPT_ECCPUBLIC_BLOB, 0);
         PUCHAR pbKey = buffer->data();
         BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)pbKey;
@@ -138,6 +139,7 @@ void EcPrivateKey::FillPrivateKeyStruct()
 	LOGGER_FUNCTION_BEGIN;
 
     try {
+        auto nkey = GetNKey();
         auto buffer = nkey->ExportKey(BCRYPT_ECCPUBLIC_BLOB, 0);
         PUCHAR pbKey = buffer->data();
         BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)pbKey;
@@ -202,13 +204,14 @@ CK_RV EcPrivateKey::CopyValues(
         auto attrToken = ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue();
         auto attrExtractable = ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->ToValue();
 
-        nkey = ncrypt::CopyKeyToProvider(
-            originalKey->nkey.get(),
+        auto nkey = ncrypt::CopyKeyToProvider(
+            originalKey->GetNKey().get(),
             BCRYPT_ECCPRIVATE_BLOB,
             &provider,
             attrToken ? provider.GenerateRandomName()->c_str() : NULL,
             (attrToken && attrExtractable) || !attrToken
         );
+        CryptoKey::Assign(nkey);
 
         return CKR_OK;
     }
@@ -220,18 +223,29 @@ CK_RV mscapi::EcPrivateKey::Destroy()
 	LOGGER_FUNCTION_BEGIN;
 
     try {
-        nkey->Delete(0);
+        GetNKey()->Delete(0);
 
         return CKR_OK;
     }
     CATCH_EXCEPTION
 }
 
-void EcPrivateKey::OnKeyAssigned()
+void mscapi::EcPrivateKey::Assign(Scoped<crypt::ProviderInfo> provInfo)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        CryptoKey::Assign(provInfo);
+    }
+    CATCH_EXCEPTION
+}
+
+void mscapi::EcPrivateKey::Assign(Scoped<ncrypt::Key> key)
 {
 	LOGGER_FUNCTION_BEGIN;
 
     try {
+        CryptoKey::Assign(key);
         FillPublicKeyStruct();
     }
     CATCH_EXCEPTION
@@ -244,6 +258,7 @@ void EcPublicKey::FillKeyStruct()
 	LOGGER_FUNCTION_BEGIN;
 
     try {
+        auto nkey = GetNKey();
         auto buffer = nkey->ExportKey(BCRYPT_ECCPUBLIC_BLOB, 0);
         PUCHAR pbKey = buffer->data();
         BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)pbKey;
@@ -424,7 +439,8 @@ CK_RV EcPublicKey::CopyValues(
 
         // It'll not be added to storage. Because mscapi slot creates 2 keys (private/public) from 1 key container
 
-        nkey = originalKey->nkey;
+        auto nkey = originalKey->GetNKey();
+        CryptoKey::Assign(nkey);
 
         return CKR_OK;
     }
@@ -441,11 +457,12 @@ CK_RV mscapi::EcPublicKey::Destroy()
     CATCH_EXCEPTION
 }
 
-void EcPublicKey::OnKeyAssigned()
+void mscapi::EcPublicKey::Assign(Scoped<ncrypt::Key> nkey)
 {
 	LOGGER_FUNCTION_BEGIN;
 
     try {
+        CryptoKey::Assign(nkey);
         FillKeyStruct();
     }
     CATCH_EXCEPTION

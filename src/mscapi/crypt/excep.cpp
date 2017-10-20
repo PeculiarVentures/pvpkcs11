@@ -71,5 +71,7 @@ Exception::Exception(
 	file,
 	line
 ) {
-	this->message = name + std::string(" ") + message + std::string(" ") + *GetLastErrorAsString(code);
+    char buf[32] = { 0 };
+    sprintf(buf, "(0x%08lX)", code);
+	this->message = name + std::string(buf) + std::string(" ") + message + std::string(" ") + *GetLastErrorAsString(code);
 };

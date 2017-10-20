@@ -34,7 +34,8 @@ namespace mscapi {
             CK_ULONG                ulCount     /* attributes in template */
         );
 
-        void OnKeyAssigned();
+        void Assign(Scoped<crypt::ProviderInfo> provInfo);
+        void Assign(Scoped<ncrypt::Key> key);
 
         CK_RV Destroy();
 
@@ -65,9 +66,9 @@ namespace mscapi {
             CK_ULONG                ulCount     /* attributes in template */
         );
 
-        void OnKeyAssigned();
-
         CK_RV Destroy();
+
+        void Assign(Scoped<ncrypt::Key> nkey);
 
     protected:
         void FillKeyStruct();

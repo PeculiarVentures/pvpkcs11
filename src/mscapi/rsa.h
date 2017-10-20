@@ -32,7 +32,8 @@ namespace mscapi {
 
         CK_RV Destroy();
 
-        void OnKeyAssigned();
+        void Assign(Scoped<crypt::ProviderInfo> provInfo);
+        void Assign(Scoped<ncrypt::Key> nkey);
 
     protected:
         void FillPublicKeyStruct();
@@ -63,9 +64,9 @@ namespace mscapi {
 
         CK_RV Destroy();
 
-        void OnKeyAssigned();
-
         void Import(Scoped<Buffer> data);
+
+        void Assign(Scoped<ncrypt::Key> nkey);
 
     protected:
         void FillKeyStruct();
