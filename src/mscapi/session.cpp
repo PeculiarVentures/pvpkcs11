@@ -133,12 +133,15 @@ void Session::LoadCngKeys()
         auto keyNames = provider->GetKeyNames(0);
         for (ULONG i = 0; i < keyNames->size(); i++) {
             try {
-                auto keyName = keyNames->at(i);
-                auto key = provider->OpenKey(keyName->pszName, keyName->dwLegacyKeySpec, keyName->dwFlags);
-                auto propAlgGroup = key->GetStringW(NCRYPT_ALGORITHM_GROUP_PROPERTY);
                 Scoped<core::Object> privateKey;
                 Scoped<core::Object> publicKey;
-                if (!wmemcmp(propAlgGroup->c_str(), NCRYPT_RSA_ALGORITHM_GROUP, lstrlenW(NCRYPT_RSA_ALGORITHM_GROUP))) {
+                auto keyName = keyNames->at(i);
+                auto key = provider->OpenKey(keyName->pszName, keyName->dwLegacyKeySpec, keyName->dwFlags);
+
+#pragma region Fill publicKey and privateKey
+                auto propAlgGroup = key->GetStringW(NCRYPT_ALGORITHM_GROUP_PROPERTY);
+
+                if (propAlgGroup->compare(NCRYPT_RSA_ALGORITHM_GROUP) == 0) {
                     auto rsaPrivateKey = Scoped<RsaPrivateKey>(new RsaPrivateKey());
                     rsaPrivateKey->Assign(key);
                     auto rsaPublicKey = Scoped<RsaPublicKey>(new RsaPublicKey());
@@ -146,8 +149,8 @@ void Session::LoadCngKeys()
                     privateKey = rsaPrivateKey;
                     publicKey = rsaPublicKey;
                 }
-                else if (!wmemcmp(propAlgGroup->c_str(), NCRYPT_ECDH_ALGORITHM_GROUP, lstrlenW(NCRYPT_ECDH_ALGORITHM_GROUP)) ||
-                    !wmemcmp(propAlgGroup->c_str(), NCRYPT_ECDSA_ALGORITHM_GROUP, lstrlenW(NCRYPT_ECDSA_ALGORITHM_GROUP))) {
+                else if (propAlgGroup->compare(NCRYPT_ECDH_ALGORITHM_GROUP) == 0 ||
+                    propAlgGroup->compare(NCRYPT_ECDSA_ALGORITHM_GROUP) == 0) {
                     auto ecPrivateKey = Scoped<EcPrivateKey>(new EcPrivateKey());
                     ecPrivateKey->Assign(key);
                     auto ecPublicKey = Scoped<EcPublicKey>(new EcPublicKey());
@@ -159,25 +162,56 @@ void Session::LoadCngKeys()
                     LOGGER_DEBUG("%s Unsupported algorithm %s", __FUNCTION__, propAlgGroup->c_str());
                     continue;
                 }
+#pragma endregion
 
                 auto attrID = key->GetId();
-                privateKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
-                privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                privateKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
-                privateKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+                auto objCount = objects.count();
+                int j = 0;
 
-                publicKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
-                publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                publicKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
-                publicKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+#pragma region Add public key, if not exist in objects
+                for (j = 0; j < objCount; j++) {
+                    Scoped<core::Object> obj = objects.items(j);
+                    if (obj->ItemByType(CKA_CLASS)->ToNumber() == CKO_PUBLIC_KEY &&
+                        obj->ItemByType(CKA_KEY_TYPE)->ToNumber() == publicKey->ItemByType(CKA_KEY_TYPE)->ToNumber() &&
+                        memcmp(obj->ItemByType(CKA_ID)->ToBytes()->data(), attrID->data(), attrID->size()) == 0) {
+                        break;
+                    }
+                }
 
-                LOGGER_DEBUG("%s Add public key", __FUNCTION__);
-                objects.add(publicKey);
-                LOGGER_DEBUG("%s Add private key", __FUNCTION__);
-                objects.add(privateKey);
+                if (j == objCount) {
+                    privateKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
+                    privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                    privateKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+                    privateKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+
+                    LOGGER_DEBUG("%s Add public key", __FUNCTION__);
+                    objects.add(publicKey);
+                }
+#pragma endregion
+
+#pragma region Add private key, if not exist in objects
+                for (j = 0; j < objCount; j++) {
+                    Scoped<core::Object> obj = objects.items(j);
+                    if (obj->ItemByType(CKA_CLASS)->ToNumber() == CKO_PRIVATE_KEY &&
+                        obj->ItemByType(CKA_KEY_TYPE)->ToNumber() == privateKey->ItemByType(CKA_KEY_TYPE)->ToNumber() &&
+                        memcmp(obj->ItemByType(CKA_ID)->ToBytes()->data(), attrID->data(), attrID->size()) == 0) {
+                        break;
+                    }
+                }
+
+                if (j == objCount) {
+                    publicKey->ItemByType(CKA_ID)->SetValue(attrID->data(), attrID->size());
+                    publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                    publicKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
+                    publicKey->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
+
+                    LOGGER_DEBUG("%s Add private key", __FUNCTION__);
+                    objects.add(privateKey);
+                }
+#pragma endregion
             }
             catch (Scoped<core::Exception> e) {
-                LOGGER_DEBUG("%s Cannot load CNG key. %s",__FUNCTION__, e->what());
+                LOGGER_DEBUG("%s Cannot load CNG key. %s", __FUNCTION__, e->what());
             }
             catch (...) {
                 LOGGER_DEBUG("%s Cannot load CNG key. Unknown error", __FUNCTION__);
