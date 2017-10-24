@@ -20,11 +20,15 @@ namespace mscapi {
         );
     };
 
-    class EcPrivateKey : public core::EcPrivateKey, public CryptoKey {
+    class EcPrivateKey : public core::EcPrivateKey, public ObjectKey {
     public:
         EcPrivateKey() :
             core::EcPrivateKey(),
-            CryptoKey()
+            ObjectKey()
+        {}
+        EcPrivateKey(Scoped<CryptoKey> key) :
+            core::EcPrivateKey(),
+            ObjectKey(key)
         {}
 
         CK_RV CopyValues
@@ -33,9 +37,6 @@ namespace mscapi {
             CK_ATTRIBUTE_PTR        pTemplate,  /* specifies attributes */
             CK_ULONG                ulCount     /* attributes in template */
         );
-
-        void Assign(Scoped<crypt::ProviderInfo> provInfo);
-        void Assign(Scoped<ncrypt::Key> key);
 
         CK_RV Destroy();
 
@@ -48,10 +49,16 @@ namespace mscapi {
         );
     };
 
-    class EcPublicKey : public core::EcPublicKey, public CryptoKey {
+    class EcPublicKey : public core::EcPublicKey, public ObjectKey {
     public:
-        EcPublicKey(
-        ) : core::EcPublicKey(), CryptoKey()
+        EcPublicKey() : 
+            core::EcPublicKey(), 
+            ObjectKey()
+        {}
+
+        EcPublicKey(Scoped<CryptoKey> key) :
+            core::EcPublicKey(),
+            ObjectKey(key)
         {}
 
         CK_RV CreateValues
@@ -68,10 +75,8 @@ namespace mscapi {
 
         CK_RV Destroy();
 
-        void Assign(Scoped<ncrypt::Key> nkey);
-
-    protected:
         void FillKeyStruct();
+    protected:
 
         CK_RV GetValue(
             CK_ATTRIBUTE_PTR attr

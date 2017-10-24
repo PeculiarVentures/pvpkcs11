@@ -3,17 +3,15 @@
 #include "../stdafx.h"
 
 #include "../core/objects/aes_key.h"
-#include "key.h"
-#include "ncrypt.h"
 #include "crypto.h"
+#include "bcrypt/key.h"
 
 namespace mscapi {
 
-    class AesKey : public core::AesKey, public CryptoKey {
+    class AesKey : public core::AesKey {
     public:
         AesKey() :
-            core::AesKey(),
-            CryptoKey()
+            core::AesKey()
         {}
 
         static Scoped<core::SecretKey> Generate(
@@ -27,6 +25,11 @@ namespace mscapi {
         );
 
         CK_RV Destroy();
+
+        void SetKey(Scoped<bcrypt::Key> value);
+        Scoped<bcrypt::Key> GetKey();
+    protected:
+        Scoped<bcrypt::Key> key;
     };
 
     class CryptoAesEncrypt : public CryptoEncrypt {

@@ -1,5 +1,8 @@
 #include "ec.h"
 
+#include "ncrypt/provider.h"
+#include "ncrypt/key.h"
+
 using namespace mscapi;
 
 Scoped<CryptoKeyPair> EcKey::Generate(
@@ -50,12 +53,12 @@ Scoped<CryptoKeyPair> EcKey::Generate(
         Scoped<ncrypt::Provider> provider(new ncrypt::Provider());
         provider->Open(MS_KEY_STORAGE_PROVIDER, 0);
 
-        Scoped<ncrypt::Key> key;
+        Scoped<ncrypt::Key> nKey;
         if (!privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue()) {
-            key = provider->CreatePersistedKey(pszAlgorithm, NULL, 0, 0);
+            nKey = provider->CreatePersistedKey(pszAlgorithm, NULL, 0, 0);
         }
         else {
-            key = provider->CreatePersistedKey(pszAlgorithm, provider->GenerateRandomName()->c_str(), 0, 0);
+            nKey = provider->CreatePersistedKey(pszAlgorithm, provider->GenerateRandomName()->c_str(), 0, 0);
         }
 
         // Key Usage
@@ -66,20 +69,22 @@ Scoped<CryptoKeyPair> EcKey::Generate(
         if (publicTemplate->GetBool(CKA_DERIVE, false, false)) {
             keyUsage |= NCRYPT_ALLOW_KEY_AGREEMENT_FLAG;
         }
-        key->SetNumber(NCRYPT_KEY_USAGE_PROPERTY, keyUsage);
+        nKey->SetNumber(NCRYPT_KEY_USAGE_PROPERTY, keyUsage);
 
         auto attrToken = privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue();
         auto attrExtractable = privateKey->ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->ToValue();
         if ((attrToken && attrExtractable) || !attrToken) {
             // Make all session keys extractable. It allows to copy keys from session to storage via export/import
             // This is extractable only for internal usage. Key object will have CKA_EXTRACTABLE with setted value
-            key->SetNumber(NCRYPT_EXPORT_POLICY_PROPERTY, NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG, NCRYPT_PERSIST_FLAG);
+            nKey->SetNumber(NCRYPT_EXPORT_POLICY_PROPERTY, NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG, NCRYPT_PERSIST_FLAG);
         }
 
-        key->Finalize();
+        nKey->Finalize();
 
-        privateKey->Assign(key);
-        publicKey->Assign(key);
+        Scoped<CryptoKey> cryptoKey(new CryptoKey(nKey));
+
+        privateKey->SetKey(cryptoKey);
+        publicKey->SetKey(cryptoKey);
 
         return Scoped<CryptoKeyPair>(new CryptoKeyPair(privateKey, publicKey));
     }
@@ -91,8 +96,8 @@ void EcPrivateKey::FillPublicKeyStruct()
 	LOGGER_FUNCTION_BEGIN;
 
     try {
-        auto nkey = GetNKey();
-        auto buffer = nkey->ExportKey(BCRYPT_ECCPUBLIC_BLOB, 0);
+        auto nkey = GetKey()->GetNKey();
+        auto buffer = nkey->Export(BCRYPT_ECCPUBLIC_BLOB);
         PUCHAR pbKey = buffer->data();
         BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)pbKey;
 
@@ -139,8 +144,8 @@ void EcPrivateKey::FillPrivateKeyStruct()
 	LOGGER_FUNCTION_BEGIN;
 
     try {
-        auto nkey = GetNKey();
-        auto buffer = nkey->ExportKey(BCRYPT_ECCPUBLIC_BLOB, 0);
+        auto nkey = GetKey()->GetNKey();
+        auto buffer = nkey->Export(BCRYPT_ECCPUBLIC_BLOB, 0);
         PUCHAR pbKey = buffer->data();
         BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)pbKey;
         PCHAR pValue = (PCHAR)(pbKey + sizeof(BCRYPT_ECCKEY_BLOB) + (header->cbKey * 2));
@@ -195,7 +200,7 @@ CK_RV EcPrivateKey::CopyValues(
 
         EcPrivateKey* originalKey = dynamic_cast<EcPrivateKey*>(object.get());
         if (!originalKey) {
-            THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Original key must be RsaPrivateKey");
+            THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Original key must be EcPrivateKey");
         }
 
         ncrypt::Provider provider;
@@ -204,14 +209,14 @@ CK_RV EcPrivateKey::CopyValues(
         auto attrToken = ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue();
         auto attrExtractable = ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->ToValue();
 
-        auto nkey = ncrypt::CopyKeyToProvider(
-            originalKey->GetNKey().get(),
+        auto nkey = provider.SetKey(
+            originalKey->GetKey()->GetNKey(),
             BCRYPT_ECCPRIVATE_BLOB,
-            &provider,
             attrToken ? provider.GenerateRandomName()->c_str() : NULL,
             (attrToken && attrExtractable) || !attrToken
         );
-        CryptoKey::Assign(nkey);
+        
+        SetKey(Scoped<CryptoKey>(new CryptoKey(nkey)));
 
         return CKR_OK;
     }
@@ -223,30 +228,9 @@ CK_RV mscapi::EcPrivateKey::Destroy()
 	LOGGER_FUNCTION_BEGIN;
 
     try {
-        GetNKey()->Delete(0);
+        GetKey()->GetNKey()->Delete(0);
 
         return CKR_OK;
-    }
-    CATCH_EXCEPTION
-}
-
-void mscapi::EcPrivateKey::Assign(Scoped<crypt::ProviderInfo> provInfo)
-{
-    LOGGER_FUNCTION_BEGIN;
-
-    try {
-        CryptoKey::Assign(provInfo);
-    }
-    CATCH_EXCEPTION
-}
-
-void mscapi::EcPrivateKey::Assign(Scoped<ncrypt::Key> key)
-{
-	LOGGER_FUNCTION_BEGIN;
-
-    try {
-        CryptoKey::Assign(key);
-        FillPublicKeyStruct();
     }
     CATCH_EXCEPTION
 }
@@ -258,8 +242,8 @@ void EcPublicKey::FillKeyStruct()
 	LOGGER_FUNCTION_BEGIN;
 
     try {
-        auto nkey = GetNKey();
-        auto buffer = nkey->ExportKey(BCRYPT_ECCPUBLIC_BLOB, 0);
+        auto nkey = GetKey()->GetNKey();
+        auto buffer = nkey->Export(BCRYPT_ECCPUBLIC_BLOB, 0);
         PUCHAR pbKey = buffer->data();
         BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)pbKey;
         PCHAR pPoint = (PCHAR)(pbKey + sizeof(BCRYPT_ECCKEY_BLOB));
@@ -409,8 +393,10 @@ CK_RV EcPublicKey::CreateValues
         ncrypt::Provider provider;
         provider.Open(NULL, 0);
 
-        auto key = provider.ImportKey(BCRYPT_ECCPUBLIC_BLOB, buffer->data(), buffer->size(), 0);
-        Assign(key);
+        Scoped<ncrypt::Key> nKey(new ncrypt::Key);
+        nKey->Import(BCRYPT_ECCPUBLIC_BLOB, buffer);
+        
+        SetKey(nKey);
 
         return CKR_OK;
     }
@@ -439,8 +425,7 @@ CK_RV EcPublicKey::CopyValues(
 
         // It'll not be added to storage. Because mscapi slot creates 2 keys (private/public) from 1 key container
 
-        auto nkey = originalKey->GetNKey();
-        CryptoKey::Assign(nkey);
+        SetKey(originalKey->GetKey());
 
         return CKR_OK;
     }
@@ -453,17 +438,6 @@ CK_RV mscapi::EcPublicKey::Destroy()
 
     try {
         return CKR_OK;
-    }
-    CATCH_EXCEPTION
-}
-
-void mscapi::EcPublicKey::Assign(Scoped<ncrypt::Key> nkey)
-{
-	LOGGER_FUNCTION_BEGIN;
-
-    try {
-        CryptoKey::Assign(nkey);
-        FillKeyStruct();
     }
     CATCH_EXCEPTION
 }

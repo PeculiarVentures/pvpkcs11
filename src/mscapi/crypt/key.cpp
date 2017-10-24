@@ -1,128 +1,176 @@
-#include "crypt.h"
+#include "key.h"
+#include "../helper.h"
 
 using namespace crypt;
 
+/*
 Scoped<Key> crypt::Key::Generate(
-	Scoped<Provider>  prov,
-	ALG_ID            uiAlgId,
-	DWORD             dwFlags
+    Scoped<Provider>  prov,
+    ALG_ID            uiAlgId,
+    DWORD             dwFlags
 )
 {
-	HCRYPTKEY hNewKey = NULL;
-	if (!CryptGenKey(prov->Get(), uiAlgId, dwFlags, &hNewKey)) {
-		THROW_MSCAPI_EXCEPTION("CryptGenKey");
-	}
-
-	Scoped<Key> result(new Key(hNewKey));
-	return result;
-}
-
-Scoped<Key> crypt::Key::Import(
-	Scoped<Provider>  prov,
-	BYTE              *pbData,
-	DWORD             dwDataLen,
-	DWORD             dwFlags
-)
-{
-	HCRYPTKEY hNewKey = NULL;
-
-	if (!CryptImportKey(
-		prov->Get(),
-		pbData,
-		dwDataLen,
-		NULL,
-		dwFlags,
-		&hNewKey
-	)) {
-		THROW_MSCAPI_EXCEPTION("CryptImportKey");
-	}
-
-	Scoped<Key> result(new Key(hNewKey));
-	return result;
-}
-
-Scoped<Key> crypt::Key::Import(
-	Scoped<Provider>       prov,
-	DWORD                  dwCertEncodingType,
-	PCERT_PUBLIC_KEY_INFO  pInfo
-)
-{
-	HCRYPTKEY hNewKey = NULL;
-
-	if (!CryptImportPublicKeyInfo(
-		prov->Get(),
-		dwCertEncodingType,
-		pInfo,
-		&hNewKey
-	)) {
-		THROW_MSCAPI_EXCEPTION("CryptImportPublicKeyInfo");
-	}
-
-	Scoped<Key> result(new Key(hNewKey));
-	return result;
-}
-
-crypt::Key::Key()
-{
-	this->handle = NULL;
-}
-
-crypt::Key::Key(HCRYPTKEY handle)
-{
-	this->handle = handle;
-}
-
-crypt::Key::~Key()
-{
-	this->Destroy();
-}
-
-Scoped<Key> crypt::Key::Copy()
-{
-	HCRYPTKEY dupKey;
-	if (!CryptDuplicateKey(this->handle, NULL, 0, &dupKey)) {
-		THROW_MSCAPI_EXCEPTION("CryptDuplicateKey");
-	}
-	return Scoped<Key>(new Key(dupKey));
-}
-
-void crypt::Key::Destroy()
-{
-	if (this->handle) {
-        if (!CryptDestroyKey(this->handle)) {
-            THROW_MSCAPI_EXCEPTION("CryptDestroyKey");
-        }
-		this->handle = NULL;
-	}
-}
-
-HCRYPTKEY crypt::Key::Get()
-{
-    if (!handle) {
-        THROW_PARAM_REQUIRED_EXCEPTION("handle");
+    HCRYPTKEY hNewKey = NULL;
+    if (!CryptGenKey(prov->Get(), uiAlgId, dwFlags, &hNewKey)) {
+        THROW_MSCAPI_EXCEPTION("CryptGenKey");
     }
-	return this->handle;
-}
 
-void crypt::Key::Assign(HCRYPTKEY value)
-{
-	this->Destroy();
-	this->handle = value;
+    Scoped<Key> result(new Key(hNewKey));
+    return result;
 }
+*/
 
-Scoped<ncrypt::Key> crypt::Key::Translate(
-    Scoped<Provider> prov
-)
+void crypt::Key::Dispose()
 {
     LOGGER_FUNCTION_BEGIN;
 
     try {
-        return ncrypt::Provider::TranslateHandle(prov->Get(), Get(), 0, 0);
+        if (!IsEmpty()) {
+            CryptReleaseContext(Get(), 0);
+            Handle::Dispose();
+        }
     }
     CATCH_EXCEPTION
 }
 
-HCRYPTKEY * crypt::Key::operator&()
+void crypt::Key::Open(PCRYPT_KEY_PROV_INFO info)
 {
-    return &this->handle;
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        if (!info) {
+            THROW_EXCEPTION("Parameter '%s' is empty", "info");
+        }
+
+        Open(info->pwszContainerName, info->pwszProvName, info->dwProvType, info->dwFlags);
+    }
+    CATCH_EXCEPTION
+}
+
+void crypt::Key::Open(LPWSTR szContainer, LPWSTR szProvider, DWORD dwProvType, DWORD dwFlags)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        Dispose();
+
+        if (!CryptAcquireContextW(Ref(), szContainer, szProvider, dwProvType, dwFlags)) {
+            THROW_MSCAPI_EXCEPTION("CryptAcquireContextW");
+        }
+    }
+    CATCH_EXCEPTION;
+}
+
+void crypt::Key::GetParam(DWORD dwParam, PBYTE pbData, PDWORD pdwDataLen, DWORD dwFlags)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        if (!CryptGetProvParam(Get(), dwParam, pbData, pdwDataLen, dwFlags)) {
+            THROW_MSCAPI_EXCEPTION("CryptGetProvParam");
+        }
+    }
+    CATCH_EXCEPTION
+}
+
+void crypt::Key::SetParam(DWORD dwParam, PBYTE pbData, DWORD dwFlags)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        if (!CryptSetProvParam(Get(), dwParam, pbData, dwFlags)) {
+            THROW_MSCAPI_EXCEPTION("CryptGetProvParam");
+        }
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<Buffer> crypt::Key::GetBytes(DWORD dwParam)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        Scoped<Buffer> res(new Buffer(0));
+        DWORD dwResLen = 0;
+
+        GetParam(dwParam, NULL, &dwResLen);
+        res->resize(dwResLen);
+        GetParam(dwParam, res->data(), &dwResLen);
+
+        return res;
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<std::string> crypt::Key::GetString(DWORD dwParam)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        Scoped<Buffer> buf = GetBytes(dwParam);
+
+        return Scoped<std::string>(new std::string((PCHAR)buf->data()));
+    }
+    CATCH_EXCEPTION
+}
+
+DWORD crypt::Key::GetNumber(DWORD dwParam)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        DWORD res = 0;
+        DWORD dwResLen = sizeof(DWORD);
+
+        GetParam(dwParam, (PBYTE)&res, &dwResLen);
+
+        return res;
+    }
+    CATCH_EXCEPTION
+}
+
+void crypt::Key::SetBytes(DWORD dwParam, Scoped<Buffer> value)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        SetParam(dwParam, value->data());
+    }
+    CATCH_EXCEPTION
+}
+
+void crypt::Key::SetString(DWORD dwParam, Scoped<std::string> value)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        SetParam(dwParam, (PBYTE)value->c_str());
+    }
+    CATCH_EXCEPTION
+}
+
+void crypt::Key::SetNumber(DWORD dwParam, DWORD value)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        SetParam(dwParam, (PBYTE)&value);
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<Key> crypt::Key::Copy(DWORD dwFlags)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        Scoped<Key> key(new Key());
+
+        if (!CryptDuplicateKey(Get(), NULL, 0, key->Ref())) {
+            THROW_MSCAPI_EXCEPTION("CryptDuplicateKey");
+        }
+
+        key;
+    }
+    CATCH_EXCEPTION
 }

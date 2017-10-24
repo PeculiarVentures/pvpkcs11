@@ -32,7 +32,7 @@ CK_RV CryptoRsaOAEPEncrypt::Init
     Scoped<core::Object>    key
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         if (pMechanism->mechanism != CKM_RSA_PKCS_OAEP) {
@@ -69,18 +69,20 @@ CK_RV CryptoRsaOAEPEncrypt::Init
             label = std::string("");
         }
 
-        CryptoKey* cryptoKey = NULL; 
+        ObjectKey* cryptoKey = NULL;
         if (this->type == CRYPTO_ENCRYPT) {
             cryptoKey = dynamic_cast<RsaPublicKey*>(key.get());
+            if (!cryptoKey) {
+                THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "Key is not RSA public key");
+            }
         }
         else {
             cryptoKey = dynamic_cast<RsaPrivateKey*>(key.get());
+            if (!cryptoKey) {
+                THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "Key is not RSA private key");
+            }
         }
-        if (!cryptoKey) {
-            THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "");
-        }
-        this->key = cryptoKey->GetNKey();
-        hKey = this->key->Get();
+        this->key = cryptoKey->GetKey();
 
         active = true;
 
@@ -96,7 +98,7 @@ CK_RV CryptoRsaOAEPEncrypt::Once(
     CK_ULONG_PTR      pulEncryptedDataLen
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         if (!active) {
@@ -105,8 +107,8 @@ CK_RV CryptoRsaOAEPEncrypt::Once(
 
         BCRYPT_OAEP_PADDING_INFO paddingInfo = {
             digestAlg,                                              // pszAlgId
-            (PUCHAR)    (label.length() ? label.c_str() : NULL),    // pbLabel
-            (ULONG)     label.length()                              // cbLabel
+            (PUCHAR)(label.length() ? label.c_str() : NULL),    // pbLabel
+            (ULONG)label.length()                              // cbLabel
         };
 
         ncryptFn* fn;
@@ -121,7 +123,7 @@ CK_RV CryptoRsaOAEPEncrypt::Once(
         NTSTATUS status;
         if (pEncryptedData == NULL) {
             status = fn(
-                hKey,
+                key->GetNKey()->Get(),
                 pData, ulDataLen,
                 &paddingInfo,
                 NULL,
@@ -132,7 +134,7 @@ CK_RV CryptoRsaOAEPEncrypt::Once(
         }
         else {
             status = fn(
-                hKey,
+                key->GetNKey()->Get(),
                 pData, ulDataLen,
                 &paddingInfo,
                 pEncryptedData,
@@ -150,7 +152,7 @@ CK_RV CryptoRsaOAEPEncrypt::Once(
                 THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "The key identified by the hKey parameter cannot be used for decryption.");
             }
             active = false;
-            THROW_NT_EXCEPTION(status);
+            THROW_NT_EXCEPTION(status, "CryptoRsaOAEPEncrypt::Once");
         }
 
         active = false;
@@ -168,7 +170,7 @@ CK_RV CryptoRsaOAEPEncrypt::Update
     CK_ULONG_PTR      pulEncryptedPartLen
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         THROW_PKCS11_MECHANISM_INVALID();
@@ -182,7 +184,7 @@ CK_RV CryptoRsaOAEPEncrypt::Final
     CK_ULONG_PTR      pulLastEncryptedPartLen
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         active = false;

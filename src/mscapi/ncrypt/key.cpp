@@ -1,58 +1,179 @@
-#include "../ncrypt.h"
-#include "../crypt/crypt.h"
+#include "key.h"
+#include "../helper.h"
 #include "../crypto.h"
+#include "provider.h"
 
 using namespace ncrypt;
 
-Key::Key(
-    NCRYPT_KEY_HANDLE handle
-)
-{
-    this->handle = handle;
-}
+void ncrypt::Key::Dispose() {
+    LOGGER_FUNCTION_BEGIN;
 
-Key::~Key()
-{
-	LOGGER_FUNCTION_BEGIN;
-
-    if (handle) {
-        NCryptFreeObject(handle);
-        handle = NULL;
+    try {
+        if (!IsEmpty()) {
+            NCryptFreeObject(Get());
+            Handle::Dispose();
+        }
     }
+    CATCH_EXCEPTION
 }
 
-void Key::Finalize(
-    ULONG dwFlags
-)
+void ncrypt::Key::Open(PCRYPT_KEY_PROV_INFO info)
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
-    NTSTATUS status = NCryptFinalizeKey(handle, dwFlags);
-    if (status) {
-        THROW_NT_EXCEPTION(status);
+    try {
+        Dispose();
+
+        Provider prov;
+        prov.Open(info->pwszProvName, 0);
+
+        NTSTATUS status = NCryptOpenKey(prov.Get(), Ref(), info->pwszContainerName, info->dwKeySpec, 0);
+        if (status) {
+            THROW_NT_EXCEPTION(status, "NCryptOpenKey");
+        }
     }
+    CATCH_EXCEPTION
 }
 
-Scoped<Buffer> Key::ExportKey(
-    _In_    LPCWSTR pszBlobType,
-    _In_    DWORD   dwFlags
-)
+void ncrypt::Key::GetParam(LPCWSTR pszProperty, PBYTE pbData, PDWORD pdwDataLen, DWORD dwFlags)
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        NTSTATUS status = NCryptGetProperty(Get(), pszProperty, pbData, *pdwDataLen, pdwDataLen, dwFlags);
+        if (status) {
+            THROW_NT_EXCEPTION(status, "NCryptGetProperty");
+        }
+    }
+    CATCH_EXCEPTION
+}
+
+void ncrypt::Key::SetParam(LPCWSTR pszProperty, PBYTE pbData, DWORD dwDataLen, DWORD dwFlags)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        NTSTATUS status = NCryptSetProperty(Get(), pszProperty, pbData, dwDataLen, dwFlags);
+        if (status) {
+            THROW_NT_EXCEPTION(status, "NCryptSetProperty");
+        }
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<Buffer> ncrypt::Key::GetBytes(LPCWSTR pszProperty)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        Scoped<Buffer> res(new Buffer(0));
+        DWORD dwResLen = 0;
+
+        GetParam(pszProperty, NULL, &dwResLen);
+        res->resize(dwResLen);
+        GetParam(pszProperty, res->data(), &dwResLen);
+
+        return res;
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<std::string> ncrypt::Key::GetString(LPCWSTR pszProperty)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        Scoped<Buffer> buf = GetBytes(pszProperty);
+
+        return Scoped<std::string>(new std::string((PCHAR)buf->data()));
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<std::wstring> ncrypt::Key::GetStringW(LPCWSTR pszProperty)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        Scoped<Buffer> buf = GetBytes(pszProperty);
+
+        return Scoped<std::wstring>(new std::wstring((PWCHAR)buf->data()));
+    }
+    CATCH_EXCEPTION
+}
+
+DWORD ncrypt::Key::GetNumber(LPCWSTR pszProperty)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        DWORD res = 0;
+        DWORD dwResLen = sizeof(DWORD);
+
+        GetParam(pszProperty, (PBYTE)&res, &dwResLen);
+
+        return res;
+    }
+    CATCH_EXCEPTION
+}
+
+void ncrypt::Key::SetBytes(LPCWSTR pszProperty, Scoped<Buffer> value, DWORD dwFlags)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        SetParam(pszProperty, value->data(), value->size(), dwFlags);
+    }
+    CATCH_EXCEPTION
+}
+
+void ncrypt::Key::SetString(LPCWSTR pszProperty, Scoped<std::string> value, DWORD dwFlags)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        SetParam(pszProperty, (PBYTE)value->c_str(), value->length(), dwFlags);
+    }
+    CATCH_EXCEPTION
+}
+
+void ncrypt::Key::SetStringW(LPCWSTR pszProperty, Scoped<std::wstring> value, DWORD dwFlags)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        SetString(pszProperty, Scoped<std::string>(new std::string(value->begin(), value->end())), dwFlags);
+    }
+    CATCH_EXCEPTION
+}
+
+void ncrypt::Key::SetNumber(LPCWSTR pszProperty, DWORD value, DWORD dwFlags)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        SetParam(pszProperty, (PBYTE)&value, sizeof(DWORD), dwFlags);
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<Buffer> ncrypt::Key::Export(LPCWSTR pszBlobType, DWORD dwFlags)
+{
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         NTSTATUS status;
 
         Scoped<Buffer> blob(new Buffer());
         ULONG ulBlobLen;
-        status = NCryptExportKey(handle, NULL, pszBlobType, NULL, NULL, 0, &ulBlobLen, dwFlags);
+        status = NCryptExportKey(Get(), NULL, pszBlobType, NULL, NULL, 0, &ulBlobLen, dwFlags);
         if (status) {
-            THROW_NT_EXCEPTION(status);
+            THROW_NT_EXCEPTION(status, "NCryptExportKey");
         }
         blob->resize(ulBlobLen);
-        status = NCryptExportKey(handle, NULL, pszBlobType, NULL, blob->data(), blob->size(), &ulBlobLen, dwFlags);
+        status = NCryptExportKey(Get(), NULL, pszBlobType, NULL, blob->data(), blob->size(), &ulBlobLen, dwFlags);
         if (status) {
-            THROW_NT_EXCEPTION(status);
+            THROW_NT_EXCEPTION(status, "NCryptExportKey");
         }
 
         return blob;
@@ -60,47 +181,47 @@ Scoped<Buffer> Key::ExportKey(
     CATCH_EXCEPTION
 }
 
-void Key::Delete(
-    ULONG           dwFlags
-)
+void ncrypt::Key::Import(LPCWSTR pszBlobType, Scoped<Buffer> data, DWORD dwFlags)
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
-        NTSTATUS status = NCryptDeleteKey(handle, dwFlags);
+        NCRYPT_KEY_HANDLE hKey = NULL;
+
+        Provider prov;
+        prov.Open(MS_KEY_STORAGE_PROVIDER);
+
+        NTSTATUS status = NCryptImportKey(prov.Get(), NULL, pszBlobType, NULL, &hKey, data->data(), data->size(), dwFlags);
         if (status) {
-            THROW_NT_EXCEPTION(status);
+            THROW_NT_EXCEPTION(status, "NCryptImportKey");
+        }
+        Set(hKey);
+    }
+    CATCH_EXCEPTION
+}
+
+void ncrypt::Key::Delete(DWORD dwFlags)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        NTSTATUS status = NCryptDeleteKey(Get(), dwFlags);
+        if (status) {
+            THROW_NT_EXCEPTION(status, "NCryptDeleteKey");
         }
     }
     CATCH_EXCEPTION
 }
 
-Scoped<CERT_PUBLIC_KEY_INFO> Key::GetPublicKeyInfo()
+void ncrypt::Key::Finalize(DWORD dwFlags)
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
-        ULONG spkiLen;
-        if (!CryptExportPublicKeyInfo(
-            handle,
-            0,
-            X509_ASN_ENCODING,
-            NULL,
-            &spkiLen
-        )) {
-            THROW_MSCAPI_EXCEPTION("CryptExportPublicKeyInfo");
+        NTSTATUS status = NCryptFinalizeKey(Get(), dwFlags);
+        if (status) {
+            THROW_NT_EXCEPTION(status, "NCryptFinalizeKey");
         }
-        PCERT_PUBLIC_KEY_INFO pSpki = (PCERT_PUBLIC_KEY_INFO)malloc(spkiLen);
-        if (!CryptExportPublicKeyInfo(
-            handle,
-            0,
-            X509_ASN_ENCODING,
-            pSpki,
-            &spkiLen
-        )) {
-            THROW_MSCAPI_EXCEPTION("CryptExportPublicKeyInfo");
-        }
-        return Scoped<CERT_PUBLIC_KEY_INFO>(pSpki, free);
     }
     CATCH_EXCEPTION
 }
@@ -108,90 +229,14 @@ Scoped<CERT_PUBLIC_KEY_INFO> Key::GetPublicKeyInfo()
 /*
     Calculate ID for key <HASH_SHA1(SPKI)>
 */
-Scoped<Buffer> Key::GetId()
+Scoped<Buffer> ncrypt::Key::GetID()
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
-        Scoped<CERT_PUBLIC_KEY_INFO> spki = GetPublicKeyInfo();
+        Scoped<CERT_PUBLIC_KEY_INFO> spki = ExportPublicKeyInfo(Get());
 
         return DIGEST_SHA1(spki->PublicKey.pbData, spki->PublicKey.cbData);
-    }
-    CATCH_EXCEPTION
-}
-
-void LinkKeyToCertificate(
-    Key*            key
-) 
-{
-	LOGGER_FUNCTION_BEGIN;
-
-	try {
-		crypt::CertStore store;
-		store.Open(PV_STORE_NAME_MY);
-		auto certs = store.GetCertificates();
-		for (ULONG i = 0; i < certs.size(); i++) {
-			auto cert = certs.at(i);
-
-			if (!cert->HasProperty(CERT_KEY_PROV_INFO_PROP_ID)) {
-				auto keySpki = key->GetPublicKeyInfo().get();
-				if (CertComparePublicKeyInfo(X509_ASN_ENCODING, keySpki, &cert->Get()->pCertInfo->SubjectPublicKeyInfo)) {
-					// Create key 
-					CRYPT_KEY_PROV_INFO keyProvInfo;
-
-					auto containerName = key->GetStringW(NCRYPT_NAME_PROPERTY);
-
-					keyProvInfo.pwszContainerName = (LPWSTR) containerName->c_str();
-					keyProvInfo.pwszProvName = MS_KEY_STORAGE_PROVIDER;
-					keyProvInfo.dwProvType = 0;
-					keyProvInfo.dwFlags = 0;
-					keyProvInfo.cProvParam = 0;
-					keyProvInfo.rgProvParam = NULL;
-					keyProvInfo.dwKeySpec = 0;
-
-					if (!CertSetCertificateContextProperty(cert->Get(), CERT_KEY_PROV_INFO_PROP_ID, 0, &keyProvInfo)) {
-						THROW_MSCAPI_EXCEPTION("CertSetCertificateContextProperty");
-					}
-				}
-			}
-		}
-	}
-	CATCH_EXCEPTION
-}
-
-Scoped<Key> ncrypt::CopyKeyToProvider(
-    Key*                key,
-    LPCWSTR             pszBlobType,
-    Provider*           provider,
-    LPCWSTR             pszContainerName,
-    bool                extractable
-)
-{
-	LOGGER_FUNCTION_BEGIN;
-
-    try {
-        // copy key to new Provider
-        auto blob = key->ExportKey(pszBlobType, 0);
-        auto keyAlgorithm = key->GetStringW(NCRYPT_ALGORITHM_PROPERTY);
-
-        auto nkey = provider->CreatePersistedKey(keyAlgorithm->c_str(), pszContainerName, 0, 0);
-        nkey->SetParam(pszBlobType, blob->data(), blob->size(), NCRYPT_PERSIST_FLAG);
-
-        // Set CNG properties
-        // Extractable
-        if (extractable || !pszContainerName) {
-            // All memory keys must be extractable. It allows to save them if needed to storage
-            nkey->SetNumber(NCRYPT_EXPORT_POLICY_PROPERTY, NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG, NCRYPT_PERSIST_FLAG);
-        }
-        // Key usage
-        auto attrKeyUsage = key->GetNumber(NCRYPT_KEY_USAGE_PROPERTY);
-        nkey->SetNumber(NCRYPT_KEY_USAGE_PROPERTY, attrKeyUsage, NCRYPT_PERSIST_FLAG);
-
-        nkey->Finalize();
-
-        LinkKeyToCertificate(nkey.get());
-
-        return nkey;
     }
     CATCH_EXCEPTION
 }

@@ -17,11 +17,11 @@ namespace mscapi {
         );
     };
 
-    class RsaPrivateKey : public core::RsaPrivateKey, public CryptoKey {
+    class RsaPrivateKey : public core::RsaPrivateKey, public ObjectKey {
     public:
         RsaPrivateKey() :
             core::RsaPrivateKey(),
-            CryptoKey()
+            ObjectKey()
         {};
 
         CK_RV CopyValues(
@@ -32,9 +32,6 @@ namespace mscapi {
 
         CK_RV Destroy();
 
-        void Assign(Scoped<crypt::ProviderInfo> provInfo);
-        void Assign(Scoped<ncrypt::Key> nkey);
-
     protected:
         void FillPublicKeyStruct();
         void FillPrivateKeyStruct();
@@ -44,11 +41,16 @@ namespace mscapi {
         );
     };
 
-    class RsaPublicKey : public core::RsaPublicKey, public CryptoKey {
+    class RsaPublicKey : public core::RsaPublicKey, public ObjectKey {
     public:
         RsaPublicKey() :
             core::RsaPublicKey(),
-            CryptoKey()
+            ObjectKey()
+        {};
+
+        RsaPublicKey(Scoped<CryptoKey> key) :
+            core::RsaPublicKey(),
+            ObjectKey(key)
         {};
 
         CK_RV CreateValues(
@@ -66,10 +68,8 @@ namespace mscapi {
 
         void Import(Scoped<Buffer> data);
 
-        void Assign(Scoped<ncrypt::Key> nkey);
-
-    protected:
         void FillKeyStruct();
+    protected:
 
         CK_RV GetValue
         (

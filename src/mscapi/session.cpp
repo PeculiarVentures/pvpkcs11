@@ -8,6 +8,8 @@
 #include "ec.h"
 #include "aes.h"
 
+#include "ncrypt/provider.h"
+
 #include "certificate.h"
 #include "data.h"
 
@@ -32,15 +34,15 @@ void Session::LoadMyStore()
 
     try {
         LOGGER_INFO("%s Reading My storage", __FUNCTION__);
-        Scoped<crypt::CertStore> store(new crypt::CertStore());
+        Scoped<crypt::CertificateStorage> store(new crypt::CertificateStorage());
         this->certStores.push_back(store);
         store->Open(PV_STORE_NAME_MY);
         auto certs = store->GetCertificates();
 
-        for (size_t i = 0; i < certs.size(); i++) {
+        for (size_t i = 0; i < certs->size(); i++) {
             Scoped<std::string> certName(new std::string("unknown"));
             try {
-                auto cert = certs.at(i);
+                auto cert = certs->at(i);
                 certName = cert->GetName();
 
                 LOGGER_INFO("%s Reading certificate '%s'", __FUNCTION__, certName->c_str());
@@ -57,8 +59,8 @@ void Session::LoadMyStore()
                 x509->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(false);
                 x509->ItemByType(CKA_MODIFIABLE)->To<core::AttributeBool>()->Set(false);
 
-                Scoped<core::Object> privateKey = x509->GetPublicKey();
-                Scoped<core::Object> publicKey = x509->GetPrivateKey();
+                Scoped<core::Object> publicKey = x509->GetPublicKey();
+                Scoped<core::Object> privateKey = x509->GetPrivateKey();
 
 #pragma endregion
                 LOGGER_INFO("%s Add certificate '%s'", __FUNCTION__, certName->c_str());
@@ -90,14 +92,14 @@ void Session::LoadRequestStore()
     LOGGER_FUNCTION_BEGIN;
 
     try {
-        Scoped<crypt::CertStore> requestStore(new crypt::CertStore());
+        Scoped<crypt::CertificateStorage> requestStore(new crypt::CertificateStorage);
         requestStore->Open(PV_STORE_NAME_REQUEST);
 
         auto certs = requestStore->GetCertificates();
 
-        for (ULONG i = 0; i < certs.size(); i++) {
+        for (ULONG i = 0; i < certs->size(); i++) {
             try {
-                auto cert = certs.at(i);
+                auto cert = certs->at(i);
                 if (cert->HasProperty(CERT_PV_REQUEST) && cert->HasProperty(CERT_PV_ID)) {
                     Scoped<X509CertificateRequest> object(new X509CertificateRequest());
                     object->Assign(cert);
@@ -136,25 +138,25 @@ void Session::LoadCngKeys()
                 Scoped<core::Object> privateKey;
                 Scoped<core::Object> publicKey;
                 auto keyName = keyNames->at(i);
-                auto key = provider->OpenKey(keyName->pszName, keyName->dwLegacyKeySpec, keyName->dwFlags);
+                auto key = provider->GetKey(keyName->pszName, keyName->dwLegacyKeySpec, keyName->dwFlags);
 
 #pragma region Fill publicKey and privateKey
                 auto propAlgGroup = key->GetStringW(NCRYPT_ALGORITHM_GROUP_PROPERTY);
 
                 if (propAlgGroup->compare(NCRYPT_RSA_ALGORITHM_GROUP) == 0) {
                     auto rsaPrivateKey = Scoped<RsaPrivateKey>(new RsaPrivateKey());
-                    rsaPrivateKey->Assign(key);
+                    rsaPrivateKey->SetKey(key);
                     auto rsaPublicKey = Scoped<RsaPublicKey>(new RsaPublicKey());
-                    rsaPublicKey->Assign(key);
+                    rsaPublicKey->SetKey(key);
                     privateKey = rsaPrivateKey;
                     publicKey = rsaPublicKey;
                 }
                 else if (propAlgGroup->compare(NCRYPT_ECDH_ALGORITHM_GROUP) == 0 ||
                     propAlgGroup->compare(NCRYPT_ECDSA_ALGORITHM_GROUP) == 0) {
                     auto ecPrivateKey = Scoped<EcPrivateKey>(new EcPrivateKey());
-                    ecPrivateKey->Assign(key);
+                    ecPrivateKey->SetKey(key);
                     auto ecPublicKey = Scoped<EcPublicKey>(new EcPublicKey());
-                    ecPublicKey->Assign(key);
+                    ecPublicKey->SetKey(key);
                     privateKey = ecPrivateKey;
                     publicKey = ecPublicKey;
                 }
@@ -164,7 +166,7 @@ void Session::LoadCngKeys()
                 }
 #pragma endregion
 
-                auto attrID = key->GetId();
+                auto attrID = key->GetID();
                 auto objCount = objects.count();
                 int j = 0;
 
@@ -373,7 +375,7 @@ CK_RV mscapi::Session::GenerateRandom(
 
         NTSTATUS status = BCryptGenRandom(NULL, pRandomData, ulRandomLen, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
         if (status) {
-            THROW_NT_EXCEPTION(status);
+            THROW_NT_EXCEPTION(status, "BCryptGenRandom");
         }
 
         return CKR_OK;

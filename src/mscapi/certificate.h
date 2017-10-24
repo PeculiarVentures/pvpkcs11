@@ -2,7 +2,7 @@
 
 #include "../stdafx.h"
 #include "../core/objects/x509_certificate.h"
-#include "crypt/crypt.h"
+#include "crypt/cert.h"
 
 namespace mscapi {
 

@@ -1,5 +1,5 @@
 #include "crypto.h"
-
+#include "bcrypt/provider.h"
 #include "helper.h"
 
 using namespace mscapi;
@@ -39,11 +39,11 @@ CK_RV CryptoDigest::Init
         default:
             THROW_PKCS11_EXCEPTION(CKR_MECHANISM_INVALID, "Unsupported mechanism in use.");
         }
-        algorithm = Scoped<bcrypt::Algorithm>(new bcrypt::Algorithm());
+        algorithm = Scoped<bcrypt::Provider>(new bcrypt::Provider);
         algorithm->Open(pszAlgorithm, MS_PRIMITIVE_PROVIDER, 0);
         NTSTATUS status = BCryptCreateHash(algorithm->Get(), &hDigest, NULL, 0, NULL, 0, 0);
         if (status) {
-            THROW_NT_EXCEPTION(status);
+            THROW_NT_EXCEPTION(status, "BCryptCreateHash");
         }
 
         active = true;
@@ -65,7 +65,7 @@ CK_RV CryptoDigest::Update(
 
         NTSTATUS status = BCryptHashData(hDigest, pPart, ulPartLen, 0);
         if (status) {
-            THROW_NT_EXCEPTION(status);
+            THROW_NT_EXCEPTION(status, "BCryptHashData");
         }
 
         return CKR_OK;
@@ -91,7 +91,7 @@ CK_RV CryptoDigest::Final(
         status = BCryptGetProperty(hDigest, BCRYPT_HASH_LENGTH, (PUCHAR)&ulHashLength, ulDataLen, &ulDataLen, 0);
         if (status) {
             Dispose();
-            THROW_NT_EXCEPTION(status);
+            THROW_NT_EXCEPTION(status, "BCryptGetProperty");
         }
 
         if (pDigest == NULL) {
@@ -106,7 +106,7 @@ CK_RV CryptoDigest::Final(
             status = BCryptFinishHash(hDigest, pDigest, *pulDigestLen, 0);
             Dispose();
             if (status) {
-                THROW_NT_EXCEPTION(status);
+                THROW_NT_EXCEPTION(status, "BCryptFinishHash");
             }
         }
 

@@ -44,6 +44,7 @@
                 'src/core/crypto_sign.cpp',
                 'src/core/crypto_encrypt.cpp',
                 'src/core/name.cpp',
+                'src/core/converter.cpp',
                 'src/core/excep.cpp',
                 'src/core/module.cpp',
                 'src/core/object.cpp',
@@ -92,20 +93,20 @@
                         'src/mscapi/ec.cpp',
                         'src/mscapi/aes.cpp',
                         'src/mscapi/certificate.cpp',
+                        'src/mscapi/crypto_key.cpp',
                         # mscapi/crypto
                         'src/mscapi/crypto_digest.cpp',
                         'src/mscapi/crypto_sign.cpp',
                         'src/mscapi/crypto_encrypt.cpp',
                         # mscapi/bcrypt
-                        'src/mscapi/bcrypt/algorithm.cpp',
+                        'src/mscapi/bcrypt/provider.cpp',
                         'src/mscapi/bcrypt/key.cpp',
                         # mscapi/ncrypt
                         'src/mscapi/ncrypt/provider.cpp',
                         'src/mscapi/ncrypt/key.cpp',
                         # mscapi/crypt
-                        'src/mscapi/crypt/prov.cpp',
+                        'src/mscapi/crypt/hash.cpp',
                         'src/mscapi/crypt/prov_info.cpp',
-                        'src/mscapi/crypt/excep.cpp',
                         'src/mscapi/crypt/cert.cpp',
                         'src/mscapi/crypt/key.cpp',
                         'src/mscapi/crypt/cert_store.cpp'

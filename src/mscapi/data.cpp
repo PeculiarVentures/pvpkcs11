@@ -1,7 +1,7 @@
 #include "data.h"
-
-#include "crypt/crypt.h"
 #include "crypto.h"
+#include "ncrypt/provider.h"
+#include "crypt/cert_store.h"
 
 using namespace mscapi;
 
@@ -13,12 +13,12 @@ void X509CertificateRequest::Assign(
 
     try {
         if (cert->HasProperty(CERT_PV_REQUEST) && cert->HasProperty(CERT_PV_ID)) {
-            auto propRequest = cert->GetPropertyBytes(CERT_PV_REQUEST);
+            auto propRequest = cert->GetBytes(CERT_PV_REQUEST);
 
             ItemByType(CKA_VALUE)->SetValue(propRequest->data(), propRequest->size());
             char *label = "X509 Request";
             ItemByType(CKA_LABEL)->SetValue(label, strlen(label));
-            auto propObjectId = cert->GetPropertyBytes(CERT_PV_ID);
+            auto propObjectId = cert->GetBytes(CERT_PV_ID);
             ItemByType(CKA_OBJECT_ID)->SetValue(propObjectId->data(), propObjectId->size());
 
             this->cert = cert;
@@ -92,16 +92,16 @@ CK_RV X509CertificateRequest::CreateValues(
         }
 
         cert = Scoped<crypt::Certificate>(new crypt::Certificate);
-        cert->Assign(context);
+        cert->Set(context);
 
         // Remove private key for self-signed certificate
         {
-            auto keyProvInfo = cert->GetPropertyBytes(CERT_KEY_PROV_INFO_PROP_ID);
+            auto keyProvInfo = cert->GetBytes(CERT_KEY_PROV_INFO_PROP_ID);
             PCRYPT_KEY_PROV_INFO pKeyProvInfo = (PCRYPT_KEY_PROV_INFO)keyProvInfo->data();
 
             ncrypt::Provider prov;
             prov.Open(MS_KEY_STORAGE_PROVIDER, 0);
-            auto requestKey = prov.OpenKey(pKeyProvInfo->pwszContainerName, pKeyProvInfo->dwKeySpec, pKeyProvInfo->dwFlags);
+            auto requestKey = prov.GetKey(pKeyProvInfo->pwszContainerName, pKeyProvInfo->dwKeySpec, pKeyProvInfo->dwFlags);
             requestKey->Delete(0);
 
             // remove CERT_KEY_PROV_INFO property
@@ -110,12 +110,12 @@ CK_RV X509CertificateRequest::CreateValues(
             }
         }
 
-        cert->SetPropertyBytes(CERT_PV_REQUEST, attrValue.get());
+        cert->SetBytes(CERT_PV_REQUEST, attrValue);
         auto attrObjectId = tmpl.GetBytes(CKA_OBJECT_ID, false);
-        cert->SetPropertyBytes(CERT_PV_ID, attrObjectId.get());
+        cert->SetBytes(CERT_PV_ID, attrObjectId);
 
         if (tmpl.GetBool(CKA_TOKEN, false, false)) {
-            auto requestStore = Scoped<crypt::CertStore>(new crypt::CertStore());
+            auto requestStore = Scoped<crypt::CertificateStorage>(new crypt::CertificateStorage);
             requestStore->Open(PV_STORE_NAME_REQUEST);
 
             requestStore->AddCertificate(cert, CERT_STORE_ADD_ALWAYS);
@@ -151,7 +151,7 @@ CK_RV X509CertificateRequest::CopyValues(
         if (tmpl.GetBool(CKA_TOKEN, false, false)) {
             cert = original->cert->Duplicate();
 
-            auto requestStore = Scoped<crypt::CertStore>(new crypt::CertStore());
+            auto requestStore = Scoped<crypt::CertificateStorage>(new crypt::CertificateStorage);
             requestStore->Open(PV_STORE_NAME_REQUEST);
 
             requestStore->AddCertificate(cert, CERT_STORE_ADD_ALWAYS);

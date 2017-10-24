@@ -1,38 +1,34 @@
-#include "crypt.h"
+#include "cert_store.h"
+#include "../helper.h"
 
+using namespace mscapi;
 using namespace crypt;
 
-CertStore::CertStore()
+void CertificateStorage::Dispose()
 {
-    try {
-        this->hStore = NULL;
-    }
-    CATCH_EXCEPTION;
+    LOGGER_FUNCTION_BEGIN;
+
+    Close();
 }
 
-CertStore::~CertStore()
+void CertificateStorage::Open(LPCSTR storeName)
 {
-    try {
-        this->Close();
-    }
-    catch (...) {
-    }
-}
+    LOGGER_FUNCTION_BEGIN;
 
-void CertStore::Open(LPCSTR storeName)
-{
     try {
-        this->hStore = CertOpenSystemStoreA((HCRYPTPROV)NULL, storeName);
-        if (this->hStore == NULL_PTR) {
+        HCERTSTORE hStore = NULL;
+
+        hStore = CertOpenSystemStoreA((HCRYPTPROV)NULL, storeName);
+        if (!hStore) {
             THROW_MSCAPI_EXCEPTION("CertOpenSystemStoreA");
         }
-        this->name = storeName;
-        this->opened = true;
+        
+        Set(hStore);
     }
-    CATCH_EXCEPTION;
+    CATCH_EXCEPTION
 }
 
-void CertStore::AddCertificate(
+void crypt::CertificateStorage::AddCertificate(
     Scoped<Certificate> cert,
     ULONG               dwFlags
 )
@@ -40,7 +36,7 @@ void CertStore::AddCertificate(
     try {
         PCCERT_CONTEXT storeCert;
         if (!CertAddCertificateContextToStore(
-            hStore,
+            Get(),
             cert->Get(),
             dwFlags,
             &storeCert
@@ -48,49 +44,51 @@ void CertStore::AddCertificate(
             THROW_MSCAPI_EXCEPTION("CertAddCertificateContextToStore");
         }
 
-        cert->Assign(storeCert);
+        cert->Set(storeCert);
     }
     CATCH_EXCEPTION
 }
 
-void CertStore::Close()
+void crypt::CertificateStorage::Close()
 {
     try {
-        if (this->hStore) {
-            if (!CertCloseStore(this->hStore, 0)) {
+        if (!IsEmpty()) {
+            if (!CertCloseStore(Get(), 0)) {
                 THROW_MSCAPI_EXCEPTION("CertCloseStore");
             }
-            this->hStore = NULL;
+            Handle::Dispose();
         }
     }
     CATCH_EXCEPTION;
 }
 
-std::vector<Scoped<Certificate> > CertStore::GetCertificates()
+Scoped<CertificateList> crypt::CertificateStorage::GetCertificates()
 {
 	LOGGER_FUNCTION_BEGIN;
 
-    std::vector<Scoped<Certificate> > certs;
-    // get certificates
-    PCCERT_CONTEXT hCert = NULL;
-    while (true)
-    {
-        hCert = CertEnumCertificatesInStore(
-            this->hStore,
-            hCert
-        );
-        if (hCert == NULL) {
-            break;
+    try {
+        Scoped<CertificateList> certs(new CertificateList(0));
+
+        // get certificates
+        PCCERT_CONTEXT hCert = NULL;
+        while (true)
+        {
+            hCert = CertEnumCertificatesInStore(Get(),hCert);
+            
+            if (!hCert) {
+                break;
+            }
+            else {
+                PCCERT_CONTEXT hCopy = CertDuplicateCertificateContext(hCert);
+                Scoped<Certificate> cert(new Certificate());
+                cert->Set(hCopy);
+                certs->push_back(cert);
+            }
         }
-        else {
-            PCCERT_CONTEXT hCopy = CertDuplicateCertificateContext(hCert);
-            Scoped<Certificate> cert(new Certificate());
-            cert->Assign(hCopy);
-            certs.push_back(cert);
-        }
+
+        LOGGER_DEBUG("%s %d items", __FUNCTION__, certs->size());
+
+        return certs;
     }
-
-	LOGGER_DEBUG("%s %d items", __FUNCTION__, certs.size());
-
-    return certs;
+    CATCH_EXCEPTION
 }

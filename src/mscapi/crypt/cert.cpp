@@ -1,167 +1,76 @@
-#include "crypt.h"
-#include "../ncrypt.h"
-#include "../bcrypt.h"
+#include "cert.h"
+#include "../helper.h"
+#include "../crypto.h"
 
 using namespace crypt;
 
-Certificate::Certificate() :
-    context(NULL)
-{}
-
-Certificate::~Certificate()
+void crypt::Certificate::Dispose()
 {
-    Destroy();
-}
+    LOGGER_FUNCTION_BEGIN;
 
-void Certificate::Destroy()
-{
-    if (context != NULL) {
-        CertFreeCertificateContext(context);
-        context = NULL;
-    }
-}
-
-void Certificate::Assign(
-    PCCERT_CONTEXT context
-)
-{
     try {
-        Destroy();
-        this->context = context;
-    }
-    CATCH_EXCEPTION
-}
-
-PCCERT_CONTEXT Certificate::Get()
-{
-    return context;
-}
-
-Scoped<Certificate> Certificate::Duplicate()
-{
-    Scoped<Certificate> res(new Certificate());
-    res->context = CertDuplicateCertificateContext(context);
-    if (!res->context) {
-        THROW_MSCAPI_EXCEPTION("CertDuplicateCertificateContext");
-    }
-
-    return res;
-}
-
-bool Certificate::HasProperty(
-    DWORD dwPropId
-)
-{
-    ULONG ulDataLen;
-    return CertGetCertificateContextProperty(context, dwPropId, NULL, &ulDataLen);
-}
-
-Scoped<Buffer> Certificate::GetPropertyBytes(
-    DWORD dwPropId
-) {
-    try {
-        Scoped<Buffer> data(new Buffer(0));
-        ULONG ulDataLen;
-        if (!CertGetCertificateContextProperty(
-            context,
-            dwPropId,
-            NULL,
-            &ulDataLen
-        )) {
-            THROW_MSCAPI_EXCEPTION("CertGetCertificateContextProperty");
-        }
-        data->resize(ulDataLen);
-        if (!CertGetCertificateContextProperty(
-            context,
-            dwPropId,
-            data->data(),
-            &ulDataLen
-        )) {
-            THROW_MSCAPI_EXCEPTION("CertGetCertificateContextProperty");
-        }
-
-        return data;
-    }
-    CATCH_EXCEPTION
-}
-
-ULONG Certificate::GetPropertyNumber(
-    DWORD dwPropId
-) {
-    try {
-        ULONG data;
-        ULONG ulDataLen = sizeof(ULONG);
-        if (!CertGetCertificateContextProperty(
-            context,
-            dwPropId,
-            &data,
-            &ulDataLen
-        )) {
-            THROW_MSCAPI_EXCEPTION("CertGetCertificateContextProperty");
-        }
-
-        return data;
-    }
-    CATCH_EXCEPTION
-}
-
-void Certificate::SetPropertyBytes(
-    DWORD           dwPropId,
-    Buffer*         data,
-    DWORD           dwFlags
-) {
-    try {
-        CRYPT_DATA_BLOB dataBlob = {
-            (ULONG) data->size(),           // cbData
-            data->data()                    // pbData
-        };
-
-        if (!CertSetCertificateContextProperty(
-            context,
-            dwPropId,
-            dwFlags,
-            &dataBlob
-        )) {
-            THROW_MSCAPI_EXCEPTION("CertSetCertificateContextProperty");
+        if (!IsEmpty()) {
+            CertFreeCertificateContext(Get());
+            Handle::Dispose();
         }
     }
     CATCH_EXCEPTION
 }
 
-void Certificate::SetPropertyNumber(
-    DWORD           dwPropId,
-    DWORD           data,
-    DWORD           dwFlags
-) {
+Scoped<Certificate> crypt::Certificate::Duplicate()
+{
+    LOGGER_FUNCTION_BEGIN;
+
     try {
-        if (!CertSetCertificateContextProperty(
-            context,
-            dwPropId,
-            dwFlags,
-            &data
-        )) {
-            THROW_MSCAPI_EXCEPTION("CertSetCertificateContextProperty");
+        Scoped<Certificate> res(new Certificate);
+        
+        PCCERT_CONTEXT copyCert = CertDuplicateCertificateContext(Get());
+        if (!copyCert) {
+            THROW_MSCAPI_EXCEPTION("CertDuplicateCertificateContext");
         }
+
+        res->Set(copyCert);
+        return res;
+    }
+    CATCH_EXCEPTION
+
+}
+
+BOOL crypt::Certificate::HasPrivateKey()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    return HasProperty(CERT_KEY_PROV_INFO_PROP_ID);
+}
+
+Scoped<Buffer> crypt::Certificate::GetID()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        CRYPT_BIT_BLOB* pubKeyBlob = &Get()->pCertInfo->SubjectPublicKeyInfo.PublicKey;
+
+        return DIGEST_SHA1(pubKeyBlob->pbData, pubKeyBlob->cbData);
     }
     CATCH_EXCEPTION
 }
 
-void Certificate::Import(
-    PUCHAR  pbEncoded,
-    DWORD   cbEncoded
-)
+Scoped<mscapi::CryptoKey> crypt::Certificate::GetPublicKey()
 {
-    try {
-        PCCERT_CONTEXT context = CertCreateCertificateContext(
-            X509_ASN_ENCODING,
-            pbEncoded,
-            cbEncoded
-        );
-        if (!context) {
-            THROW_MSCAPI_EXCEPTION("CertCreateCertificateContext");
-        }
+    LOGGER_FUNCTION_BEGIN;
 
-        Assign(context);
+    try {
+        return mscapi::CryptoKey::Create(&Get()->pCertInfo->SubjectPublicKeyInfo);
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<mscapi::CryptoKey> crypt::Certificate::GetPrivateKey()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        return Scoped<mscapi::CryptoKey>(new mscapi::CryptoKey(GetProviderInfo()));
     }
     CATCH_EXCEPTION
 }
@@ -176,23 +85,165 @@ Scoped<std::string> crypt::Certificate::GetName()
 
         if (nameLen <= 1) {
             return Scoped<std::string>(new std::string("Unknow certificate"));
-        } else {
+        }
+        else {
             return Scoped<std::string>(new std::string(name));
         }
     }
     CATCH_EXCEPTION
 }
 
-void Certificate::DeleteFromStore()
+Scoped<crypt::ProviderInfo> crypt::Certificate::GetProviderInfo()
 {
     LOGGER_FUNCTION_BEGIN;
 
     try {
-        if (context->hCertStore) {
-            BOOL res = CertDeleteCertificateFromStore(context);
+        Scoped<Buffer> provInfoBuf = GetBytes(CERT_KEY_PROV_INFO_PROP_ID);
+
+        return Scoped<ProviderInfo>(new ProviderInfo(provInfoBuf));
+    }
+    CATCH_EXCEPTION
+}
+
+BOOL crypt::Certificate::HasProperty(DWORD dwPropId)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    DWORD dataLen = 0;
+    return CertGetCertificateContextProperty(Get(), dwPropId, NULL, &dataLen);
+}
+
+void crypt::Certificate::GetProperty(DWORD dwPropId, PBYTE pbData, PDWORD pdwDataLen)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        if (!CertGetCertificateContextProperty(Get(), dwPropId, pbData, pdwDataLen)) {
+            THROW_MSCAPI_EXCEPTION("CertGetCertificateContextProperty");
+        }
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<Buffer> crypt::Certificate::GetBytes(DWORD dwPropId)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        Scoped<Buffer> res(new Buffer(0));
+        DWORD resLen = 0;
+
+        GetProperty(dwPropId, NULL, &resLen);
+        res->resize(resLen);
+        GetProperty(dwPropId, res->data(), &resLen);
+
+        return res;
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<std::string> crypt::Certificate::GetString(DWORD dwPropId)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        Scoped<std::string> res(new std::string(""));
+        DWORD resLen = 0;
+
+        GetProperty(dwPropId, NULL, &resLen);
+        res->resize(resLen);
+        GetProperty(dwPropId, (PBYTE)res->c_str(), &resLen);
+
+        return res;
+    }
+    CATCH_EXCEPTION
+}
+
+DWORD crypt::Certificate::GetNumber(DWORD dwPropId)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        DWORD res = 0;
+        DWORD resLen = sizeof(res);
+
+        GetProperty(dwPropId, (PBYTE)&res, &resLen);
+
+        return res;
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<std::wstring> crypt::Certificate::GetStringW(DWORD dwPropId)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        Scoped<std::wstring> res(new std::wstring(L""));
+        DWORD resLen = 0;
+
+        GetProperty(dwPropId, NULL, &resLen);
+        res->resize(resLen);
+        GetProperty(dwPropId, (PBYTE)res->c_str(), &resLen);
+
+        return res;
+    }
+    CATCH_EXCEPTION
+}
+
+void crypt::Certificate::SetProperty(DWORD dwPropId, PBYTE pbData, DWORD dwFlag)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        if (!CertSetCertificateContextProperty(Get(), dwPropId, dwFlag, pbData)) {
+            THROW_MSCAPI_EXCEPTION("CertSetCertificateContextProperty");
+        }
+    }
+    CATCH_EXCEPTION
+}
+
+void crypt::Certificate::SetBytes(DWORD dwPropId, Scoped<Buffer> value)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        SetProperty(dwPropId, value->data());
+    }
+    CATCH_EXCEPTION
+}
+
+void crypt::Certificate::SetString(DWORD dwPropId, Scoped<std::string> value)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        SetProperty(dwPropId, (PBYTE)value->c_str());
+    }
+    CATCH_EXCEPTION
+}
+
+void crypt::Certificate::SetStringW(DWORD dwPropId, Scoped<std::wstring> value)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        std::string str(value->begin(), value->end());
+        SetProperty(dwPropId, (PBYTE)str.c_str());
+    }
+    CATCH_EXCEPTION
+}
+
+void crypt::Certificate::DeleteFromStore()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        if (Get()->hCertStore) {
+            BOOL res = CertDeleteCertificateFromStore(Get());
             //  NOTE: the pCertContext is always CertFreeCertificateContext'ed by
             //  this function, even for an error.
-            context = NULL;
+            Handle::Dispose();
             if (!res) {
                 THROW_MSCAPI_EXCEPTION("CertDeleteCertificateFromStore");
             }
@@ -201,72 +252,21 @@ void Certificate::DeleteFromStore()
     CATCH_EXCEPTION
 }
 
-Scoped<ncrypt::Key> crypt::Certificate::GetPublicKey()
+void crypt::Certificate::Import(PUCHAR pbData, DWORD dwDataLen)
 {
     LOGGER_FUNCTION_BEGIN;
 
     try {
-        Scoped<ncrypt::Key> publicKey();
-
-        if (HasPrivateKey()) {
-            Scoped<ProviderInfo> provInfo = GetProviderInfo();
-
-            ALG_ID dwAlgId = CertOIDToAlgId(context->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId);
-            DWORD dwProvType = PROV_RSA_FULL;
-            switch (dwAlgId) {
-            case CALG_ECDH:
-            case CALG_ECDSA:
-                dwProvType = PROV_EC_ECDSA_FULL;
-            }
-
-            /*ncrypt::Provider prov;
-            prov.Open(MS_KEY_STORAGE_PROVIDER, 0);
-
-            NCRYPT_KEY_HANDLE hKey = NULL;
-
-            SECURITY_STATUS status = NCryptImportKey(prov.Get(), NULL, BCRYPT_PUBLIC_KEY_BLOB, NULL, &hKey, context->pCertInfo->SubjectPublicKeyInfo.PublicKey.pbData, context->pCertInfo->SubjectPublicKeyInfo.PublicKey.cbData, 0);
-            if (status) {
-                THROW_NT_EXCEPTION(status);
-            }
-
-            return Scoped<ncrypt::Key>(new ncrypt::Key(hKey));*/
-
-            BCRYPT_KEY_HANDLE bKey = NULL;
-
-            if (!CryptImportPublicKeyInfoEx2(X509_ASN_ENCODING, &context->pCertInfo->SubjectPublicKeyInfo, 0, NULL, &bKey)) {
-                THROW_MSCAPI_EXCEPTION("CryptImportPublicKeyInfoEx2");
-            }
-
-            bcrypt::Key bcryptKey(bKey);
-
-            return bcryptKey.ToNKey();
-        }
-        else {
-            THROW_EXCEPTION("Cannot get public key for certificate '%s'. ", GetName()->c_str());
+        PCCERT_CONTEXT context = CertCreateCertificateContext(
+            X509_ASN_ENCODING,
+            pbData,
+            dwDataLen
+        );
+        if (!context) {
+            THROW_MSCAPI_EXCEPTION("CertCreateCertificateContext");
         }
 
-    }
-    CATCH_EXCEPTION
-}
-
-CK_BBOOL crypt::Certificate::HasPrivateKey()
-{
-    LOGGER_FUNCTION_BEGIN;
-
-    try {
-        return HasProperty(CERT_KEY_PROV_INFO_PROP_ID);
-    }
-    CATCH_EXCEPTION
-}
-
-Scoped<ProviderInfo> crypt::Certificate::GetProviderInfo()
-{
-    LOGGER_FUNCTION_BEGIN;
-
-    try {
-        Scoped<Buffer> propKeyProvInfo = GetPropertyBytes(CERT_KEY_PROV_INFO_PROP_ID);
-
-        return Scoped<ProviderInfo>(new ProviderInfo(propKeyProvInfo));
+        Set(context);
     }
     CATCH_EXCEPTION
 }

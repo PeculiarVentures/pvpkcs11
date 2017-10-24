@@ -1,42 +1,21 @@
-#include "crypt.h"
+#include "prov_info.h"
 
-crypt::ProviderInfo::ProviderInfo()
+#include "../helper.h"
+
+using namespace crypt;
+
+ProviderInfo::ProviderInfo(Scoped<Buffer> info) :
+    buffer(info),
+    info((CRYPT_KEY_PROV_INFO*)info->data())
 {
-    info = NULL;
 }
 
-crypt::ProviderInfo::ProviderInfo(Scoped<Buffer> buffer) :
-    ProviderInfo()
+
+ProviderInfo::~ProviderInfo()
 {
-    Assign(buffer);
 }
 
-void crypt::ProviderInfo::Assign(Scoped<Buffer> buffer)
+CRYPT_KEY_PROV_INFO * ProviderInfo::Get()
 {
-    LOGGER_FUNCTION_BEGIN;
-
-    try {
-        if (!buffer.get()) {
-            THROW_EXCEPTION("Parameter buffer is empty");
-        }
-
-        this->buffer = buffer;
-        info = reinterpret_cast<CRYPT_KEY_PROV_INFO*>(buffer->data());
-
-    }
-    CATCH_EXCEPTION
-}
-
-CRYPT_KEY_PROV_INFO * crypt::ProviderInfo::Get()
-{
-    LOGGER_FUNCTION_BEGIN;
-
-    try {
-        if (!info) {
-            THROW_EXCEPTION("CRYPT_KEY_PROV_INFO param is empty. Use Assign first");
-        }
-
-        return info;
-    }
-    CATCH_EXCEPTION
+    return info;
 }
