@@ -7,13 +7,13 @@ Scoped<std::string> core::Converter::ToHex(Scoped<Buffer> value)
 
     try {
         std::string res("");
-        PBYTE pValue = value->data();
+        CK_BYTE_PTR pValue = value->data();
 
         for (size_t i = 0; i < value->size(); i++) {
-            CHAR buf[3] = { 0 };
-            sprintf_s(buf, 3, "%02X", pValue[i]);
+            char buf[3] = { 0 };
+            sprintf(buf, "%02X", pValue[i]);
 
-            res += buf;
+            res += std::string(buf);
         }
 
         return Scoped<std::string>(new std::string(res));

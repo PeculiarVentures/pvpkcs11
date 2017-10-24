@@ -39,7 +39,7 @@ using Buffer = std::vector<CK_BYTE>;
 template <typename T>
 using List = std::vector<T>;
 template <typename T>
-using SList = std::vector<Scoped<T>>;
+using SList = std::vector<Scoped<T> >;
 
 /**
  * Set padded string for PKCS#11 structures
