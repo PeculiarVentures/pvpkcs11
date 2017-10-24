@@ -1,7 +1,8 @@
 #include "aes.h"
 #include "helper.h"
 
-#include "bcrypt.h"
+#include "bcrypt/provider.h"
+#include "bcrypt/key.h"
 
 using namespace mscapi;
 
@@ -34,22 +35,22 @@ Scoped<core::SecretKey> AesKey::Generate(
             THROW_PKCS11_EXCEPTION(CKR_ATTRIBUTE_VALUE_INVALID, "CKA_VALUE must be 16, 24 or 32");
         }
 
-        Scoped<bcrypt::Algorithm> provider(new bcrypt::Algorithm());
+        Scoped<bcrypt::Provider> provider(new bcrypt::Provider);
         provider->Open(BCRYPT_AES_ALGORITHM, MS_PRIMITIVE_PROVIDER, 0);
 
         auto secretKey = provider->GenerateRandom(ulKeyLength);
 
-        auto key = provider->GenerateKey(NULL, 0, (PUCHAR)secretKey->c_str(), secretKey->length(), 0);
+        auto key = provider->GenerateKey(NULL, 0, secretKey->data(), secretKey->size(), 0);
 
         // Set properties
 
         aesKey->ItemByType(CKA_VALUE_LEN)->To<core::AttributeNumber>()->Set(ulKeyLength);
-        aesKey->ItemByType(CKA_VALUE)->SetValue((CK_BYTE_PTR)secretKey->c_str(), secretKey->length());
+        aesKey->ItemByType(CKA_VALUE)->SetValue(secretKey->data(), secretKey->size());
 
         // AES keys are not copyable
         aesKey->ItemByType(CKA_COPYABLE)->To<core::AttributeBool>()->Set(CK_FALSE);
 
-        aesKey->Assign(key);
+        aesKey->SetKey(key);
 
         return aesKey;
     }
@@ -80,11 +81,11 @@ CK_RV AesKey::CreateValues(
 
         buffer->insert(buffer->end(), value->begin(), value->end());
 
-        bcrypt::Algorithm provider;
+        bcrypt::Provider provider;
         provider.Open(BCRYPT_AES_ALGORITHM, MS_PRIMITIVE_PROVIDER, 0);
 
         auto key = provider.ImportKey(BCRYPT_KEY_DATA_BLOB, buffer->data(), buffer->size(), 0);
-        Assign(key);
+        SetKey(key);
 
         return CKR_OK;
     }
@@ -97,6 +98,29 @@ CK_RV mscapi::AesKey::Destroy()
 
     try {
         return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
+void mscapi::AesKey::SetKey(Scoped<bcrypt::Key> value)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        key = value;
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<bcrypt::Key> mscapi::AesKey::GetKey()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        if (!key.get()) {
+            THROW_EXCEPTION("Key is empty");
+        }
+        return key;
     }
     CATCH_EXCEPTION
 }
@@ -130,15 +154,15 @@ CK_RV CryptoAesEncrypt::Init
         if (!castKey) {
             THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "Key must be AES");
         }
-        this->key = castKey->bkey->Duplicate();
+        this->key = castKey->GetKey()->Duplicate();
 
         mechanism = pMechanism->mechanism;
 
         switch (mechanism) {
         case CKM_AES_ECB: {
             padding = false;
-            this->key->SetParam(BCRYPT_CHAINING_MODE, (PUCHAR)BCRYPT_CHAIN_MODE_ECB, lstrlenW(BCRYPT_CHAIN_MODE_ECB));
-
+            this->key->ChangeMode(BCRYPT_CHAIN_MODE_ECB);
+            
             break;
         }
         case CKM_AES_CBC:
@@ -153,7 +177,7 @@ CK_RV CryptoAesEncrypt::Init
             }
             iv = Scoped<std::string>(new std::string((PCHAR)pMechanism->pParameter, pMechanism->ulParameterLen));
 
-            this->key->SetParam(BCRYPT_CHAINING_MODE, (PUCHAR)BCRYPT_CHAIN_MODE_CBC, lstrlenW(BCRYPT_CHAIN_MODE_CBC));
+            this->key->ChangeMode(BCRYPT_CHAIN_MODE_CBC);
 
             break;
         }
@@ -276,7 +300,7 @@ void CryptoAesEncrypt::Make(
 
         if (type == CRYPTO_ENCRYPT) {
             if (status = BCryptEncrypt(key->Get(), pbData, dwDataLen, NULL, pbIV, ulIVLen, NULL, 0, &dwEncryptedLen, dwPaddingFlag)) {
-                THROW_NT_EXCEPTION(status);
+                THROW_NT_EXCEPTION(status, "BCryptEncrypt");
             }
             if (pbData == NULL_PTR) {
                 *pdwOutLen = dwEncryptedLen;
@@ -287,13 +311,13 @@ void CryptoAesEncrypt::Make(
             }
             else {
                 if (status = BCryptEncrypt(key->Get(), pbData, dwDataLen, NULL, pbIV, ulIVLen, pbOut, dwEncryptedLen, pdwOutLen, dwPaddingFlag)) {
-                    THROW_NT_EXCEPTION(status);
+                    THROW_NT_EXCEPTION(status, "BCryptEncrypt");
                 }
             }
         }
         else {
             if (status = BCryptDecrypt(key->Get(), pbData, dwDataLen, NULL, pbIV, ulIVLen, NULL, 0, &dwEncryptedLen, dwPaddingFlag)) {
-                THROW_NT_EXCEPTION(status);
+                THROW_NT_EXCEPTION(status, "BCryptDecrypt");
             }
             if (pbData == NULL_PTR) {
                 *pdwOutLen = dwEncryptedLen;
@@ -307,7 +331,7 @@ void CryptoAesEncrypt::Make(
                     if (status == STATUS_DATA_ERROR) {
                         THROW_PKCS11_EXCEPTION(CKR_ENCRYPTED_DATA_INVALID, "Bad encrypted data");
                     }
-                    THROW_NT_EXCEPTION(status);
+                    THROW_NT_EXCEPTION(status, "BCryptDecrypt");
                 }
             }
         }
@@ -344,7 +368,7 @@ CK_RV CryptoAesGCMEncrypt::Init
         if (!castKey) {
             THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "Key must be AES");
         }
-        this->key = castKey->bkey->Duplicate();
+        this->key = castKey->GetKey()->Duplicate();
 
         if (pMechanism->mechanism != CKM_AES_GCM) {
             THROW_PKCS11_MECHANISM_INVALID();
@@ -371,7 +395,8 @@ CK_RV CryptoAesGCMEncrypt::Init
         // tagLength
         tagLength = params->ulTagBits >> 3;
 
-        this->key->SetParam(BCRYPT_CHAINING_MODE, (PUCHAR)BCRYPT_CHAIN_MODE_GCM, lstrlenW(BCRYPT_CHAIN_MODE_GCM));
+        
+        this->key->ChangeMode(BCRYPT_CHAIN_MODE_GCM);
 
         blockLength = this->key->GetNumber(BCRYPT_BLOCK_LENGTH);
 
@@ -412,7 +437,7 @@ CK_RV CryptoAesGCMEncrypt::Once
             status = BCryptEncrypt(key->Get(), pData, ulDataLen, &authInfo, NULL, 0, NULL, 0, &ulOutLen, 0);
             if (status) {
                 active = false;
-                THROW_NT_EXCEPTION(status);
+                THROW_NT_EXCEPTION(status, "BCryptEncrypt");
             }
 
             if (pEncryptedData == NULL) {
@@ -432,7 +457,7 @@ CK_RV CryptoAesGCMEncrypt::Once
                 *pulEncryptedDataLen = ulOutLen + tagLength;
                 active = false;
                 if (status) {
-                    THROW_NT_EXCEPTION(status);
+                    THROW_NT_EXCEPTION(status, "BCryptEncrypt");
                 }
             }
         }
@@ -450,7 +475,7 @@ CK_RV CryptoAesGCMEncrypt::Once
             status = BCryptDecrypt(key->Get(), pData, ulDataLen, &authInfo, NULL, 0, NULL, 0, &ulOutLen, 0);
             if (status) {
                 active = false;
-                THROW_NT_EXCEPTION(status);
+                THROW_NT_EXCEPTION(status, "BCryptDecrypt");
             }
 
             if (pEncryptedData == NULL) {
@@ -465,7 +490,7 @@ CK_RV CryptoAesGCMEncrypt::Once
                 *pulEncryptedDataLen = ulOutLen;
                 active = false;
                 if (status) {
-                    THROW_NT_EXCEPTION(status);
+                    THROW_NT_EXCEPTION(status, "BCryptDecrypt");
                 }
             }
         }

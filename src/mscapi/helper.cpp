@@ -1,25 +1,5 @@
 #include "helper.h"
 
-std::string GetLastErrorAsString()
-{
-    //Get the error message, if any.
-    DWORD errorMessageID = GetLastError();
-    fprintf(stdout, "Error No: %u\n", errorMessageID);
-    if (errorMessageID == 0)
-        return std::string(); //No error message has been recorded
-
-    LPSTR messageBuffer = nullptr;
-    size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL, errorMessageID, MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
-
-    std::string message(messageBuffer, size);
-
-    //Free the buffer.
-    LocalFree(messageBuffer);
-
-    return message;
-}
-
 typedef struct _NT_STATUS_MESSAGE {
     ULONG ulStatus;
     PCHAR pMessage;
@@ -61,3 +41,107 @@ std::string GetNTErrorAsString(NTSTATUS status)
     }
     return "(" + hexCode + ") " + message;
 }
+
+std::string ReplaceAll(const char* str, const char* from, const char* to) {
+    size_t start_pos = 0;
+    std::string res(str);
+    std::string fromStr(from);
+    std::string toStr(to);
+
+    while ((start_pos = res.find(fromStr, start_pos)) != std::string::npos) {
+        res.replace(start_pos, fromStr.length(), to);
+        start_pos += toStr.length();
+    }
+
+    return res;
+}
+
+Scoped<std::string> GetErrorString(DWORD code)
+{
+    Scoped<std::string> result(new std::string);
+    //Get the error message, if any.
+    if (code == 0) {
+        *result.get() += "No error message";
+    }
+    else {
+        LPSTR messageBuffer = nullptr;
+        size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL, code, MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+
+        if (messageBuffer) {
+            std::string message(messageBuffer);
+
+            // Free the buffer.
+            LocalFree(messageBuffer);
+
+            // remove \n\r from message
+            message = ReplaceAll(message.c_str(), "\n", "");
+            message = ReplaceAll(message.c_str(), "\r", "");
+
+            *result += message;
+        }
+        else {
+            char buf[256] = { 0 };
+            sprintf(buf, "Error code 0x%08lX", code);
+            *result.get() += std::string(buf);
+        }
+    }
+
+    return result;
+}
+
+Scoped<std::string> GetLastErrorString()
+{
+    DWORD dwErrorCode = GetLastError();
+    return GetErrorString(dwErrorCode);
+}
+
+Scoped<CERT_PUBLIC_KEY_INFO> ExportPublicKeyInfo(HCRYPTPROV_OR_NCRYPT_KEY_HANDLE hKey)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        ULONG spkiLen;
+        if (!CryptExportPublicKeyInfo(
+            hKey,
+            0,
+            X509_ASN_ENCODING,
+            NULL,
+            &spkiLen
+        )) {
+            THROW_MSCAPI_EXCEPTION("CryptExportPublicKeyInfo");
+        }
+        PCERT_PUBLIC_KEY_INFO pSpki = (PCERT_PUBLIC_KEY_INFO)malloc(spkiLen);
+        if (!CryptExportPublicKeyInfo(
+            hKey,
+            0,
+            X509_ASN_ENCODING,
+            pSpki,
+            &spkiLen
+        )) {
+            THROW_MSCAPI_EXCEPTION("CryptExportPublicKeyInfo");
+        }
+        return Scoped<CERT_PUBLIC_KEY_INFO>(pSpki, free);
+    }
+    CATCH_EXCEPTION
+}
+
+MscapiException::MscapiException(
+    const char*        name,
+    int                code,
+    const char*        message,
+    const char*        function,
+    const char*        file,
+    int                line
+) : Pkcs11Exception(
+    name,
+    code,
+    message,
+    function,
+    file,
+    line
+) {
+    char buf[32] = { 0 };
+    sprintf(buf, "(0x%08lX)", code);
+    this->message = name + std::string(buf) + std::string(" ") + message + std::string(" ") + *GetErrorString(code);
+};

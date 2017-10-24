@@ -4,38 +4,31 @@
 
 #include "../core/objects/private_key.h"
 #include "../core/objects/public_key.h"
-
-#include "ncrypt.h"
-#include "bcrypt.h"
+#include "crypto_key.h"
 
 namespace mscapi {
 
-	class CryptoKey {
-	public:
-        CryptoKey() {};
-
-		void Assign(
-			Scoped<ncrypt::Key> key
-		);
-        void Assign(
-            Scoped<bcrypt::Key> key
+    class CryptoKeyPair {
+    public:
+        CryptoKeyPair(
+            Scoped<core::PrivateKey> privateKey,
+            Scoped<core::PublicKey> publicKey
         );
 
-        virtual void OnKeyAssigned();
+        Scoped<core::PrivateKey> privateKey;
+        Scoped<core::PublicKey>  publicKey;
+    };
 
-		Scoped<ncrypt::Key> nkey;
-        Scoped<bcrypt::Key> bkey;
-	};
+    class ObjectKey {
+    public:
+        ObjectKey() {};
+        ObjectKey(Scoped<CryptoKey> key) : key(key) {};
 
-	class CryptoKeyPair {
-	public:
-		CryptoKeyPair(
-			Scoped<core::PrivateKey> privateKey, 
-			Scoped<core::PublicKey> publicKey
-		);
-
-		Scoped<core::PrivateKey> privateKey;
-		Scoped<core::PublicKey>  publicKey;
-	};
+        Scoped<CryptoKey> GetKey();
+        void SetKey(Scoped<CryptoKey> value);
+        void SetKey(Scoped<Handle<HCRYPTPROV_OR_NCRYPT_KEY_HANDLE>> value);
+    protected:
+        Scoped<CryptoKey> key;
+    };
 
 }

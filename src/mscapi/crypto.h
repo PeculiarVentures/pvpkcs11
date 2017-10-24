@@ -3,8 +3,10 @@
 #include "../stdafx.h"
 #include "../core/crypto.h"
 
-#include "bcrypt.h"
+#include "bcrypt/provider.h"
+#include "crypt/hash.h"
 #include "key.h"
+#include "crypto_key.h"
 #include "helper.h"
 
 namespace mscapi {
@@ -31,7 +33,7 @@ namespace mscapi {
         );
 
     protected:
-        Scoped<bcrypt::Algorithm> algorithm;
+        Scoped<bcrypt::Provider>  algorithm;
         BCRYPT_HASH_HANDLE        hDigest;
 
         void Dispose();
@@ -43,10 +45,11 @@ namespace mscapi {
         CK_ULONG            ulDataLen
     );
 
-#define DIGEST_SHA1(pbData, ulDataLen) mscapi::Digest(CKM_SHA_1, pbData, ulDataLen)
-#define DIGEST_SHA256(pbData, ulDataLen) mscapi::Digest(CKM_SHA256, pbData, ulDataLen)
-#define DIGEST_SHA384(pbData, ulDataLen) mscapi::Digest(CKM_SHA384, pbData, ulDataLen)
-#define DIGEST_SHA512(pbData, ulDataLen) mscapi::Digest(CKM_SHA512, pbData, ulDataLen)
+#define DIGEST(mech, pbData, ulDataLen) mscapi::Digest(mech, pbData, ulDataLen)
+#define DIGEST_SHA1(pbData, ulDataLen) DIGEST(CKM_SHA_1, pbData, ulDataLen)
+#define DIGEST_SHA256(pbData, ulDataLen) DIGEST(CKM_SHA256, pbData, ulDataLen)
+#define DIGEST_SHA384(pbData, ulDataLen) DIGEST(CKM_SHA384, pbData, ulDataLen)
+#define DIGEST_SHA512(pbData, ulDataLen) DIGEST(CKM_SHA512, pbData, ulDataLen)
 
     /**
     * Sign/Verify
@@ -99,7 +102,8 @@ namespace mscapi {
     protected:
         Scoped<CryptoDigest> digest;
         LPCWSTR              digestAlgorithm;
-        CryptoKey*           key;
+        crypt::Hash          cDigest;
+        Scoped<CryptoKey>    key;
     };
 
     /**
@@ -144,7 +148,7 @@ namespace mscapi {
         Scoped<CryptoDigest> digest;
         LPCWSTR              digestAlgorithm;
         ULONG                salt;
-        CryptoKey*           key;
+        Scoped<CryptoKey>    key;
     };
 
     /**
@@ -187,7 +191,7 @@ namespace mscapi {
 
     protected:
         Scoped<CryptoDigest> digest;
-        CryptoKey*           key;
+        Scoped<CryptoKey>  key;
     };
 
     class CryptoEncrypt : public core::CryptoEncrypt {
@@ -233,8 +237,8 @@ namespace mscapi {
         );
 
     protected:
-        CryptoKey*          key;
-        LPWSTR              digestAlg;
+        Scoped<CryptoKey>    key;
+        LPWSTR               digestAlg;
     };
 
 }
