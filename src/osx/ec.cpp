@@ -375,6 +375,38 @@ void osx::EcPrivateKey::Assign(SecKeyRef key)
     CATCH_EXCEPTION
 }
 
+void osx::EcPrivateKey::Assign(SecKeyRef key, Scoped<core::PublicKey> publicKey)
+{
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        Scoped<Buffer> tmpAttr;
+        core::PublicKey * pPubKey = publicKey.get();
+        
+        if (!pPubKey) {
+            THROW_PARAM_REQUIRED_EXCEPTION("publicKey");
+        }
+        
+        // Check public, it must be RSA
+        if (publicKey->ItemByType(CKA_KEY_GEN_MECHANISM)->ToNumber() != CKM_EC_KEY_PAIR_GEN) {
+            THROW_EXCEPTION("Cannot assing key. Public key is not EC");
+        }
+        
+        value = key;
+        
+        // Copy public data
+        
+        CopyObjectAttribute(this, pPubKey, CKA_ID);
+        CopyObjectAttribute(this, pPubKey, CKA_EC_PARAMS);
+        
+        ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(pPubKey->ItemByType(CKA_VERIFY)->ToBool());
+        ItemByType(CKA_DERIVE)->To<core::AttributeBool>()->Set(pPubKey->ItemByType(CKA_DERIVE)->ToBool());
+        
+    }
+    CATCH_EXCEPTION
+}
+
+
 CK_RV osx::EcPrivateKey::CopyValues
 (
  Scoped<core::Object>    object,     /* the object which must be copied */

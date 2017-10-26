@@ -255,33 +255,32 @@ CK_RV osx::Session::Open
                 
                 CFIndex index = 0;
                 while (index < itemsCount) {
-                    SecCertificateRef cert = (SecCertificateRef)CFArrayGetValueAtIndex(*result, index++);
-                    
-                    X509Certificate x509;
-                    x509.Assign(cert, false);
-                    
                     try {
+                        SecCertificateRef cert = (SecCertificateRef)CFArrayGetValueAtIndex(*result, index++);
+                        
+                        X509Certificate x509;
+                        x509.Assign(cert, false);
+                        Scoped<std::string> x509Name = x509.GetName();
+                        LOGGER_INFO("Reading certificate '%s'", x509Name->c_str());
                         
                         Scoped<core::PublicKey> publicKey = x509.GetPublicKey();
-                        
-                        Key* pKey = dynamic_cast<Key*>(publicKey.get());
-                        if (pKey == NULL) {
-                            THROW_EXCEPTION("Cannot convert PublicKey to Key");
-                        }
-                        
                         publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
                         
                         if (x509.HasPrivateKey()) {
                             Scoped<core::PrivateKey> privateKey = x509.GetPrivateKey();
                             privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
                             objects.add(privateKey);
+                            LOGGER_INFO("Private key was added");
                         }
                         objects.add(publicKey);
+                        LOGGER_INFO("Public key was added");
                         
                         Scoped<X509Certificate> x509Copy = x509.Copy();
                         x509Copy->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
                         
+                        
                         objects.add(x509Copy);
+                        LOGGER_INFO("Certificate was added");
                     }
                     catch (Scoped<core::Exception> e) {
                         LOGGER_ERROR("Cannot load certificate. %s", e->what());

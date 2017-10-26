@@ -23,7 +23,22 @@ namespace osx {
     
     class RsaPrivateKey : public core::RsaPrivateKey, public Key {
     public:
+        
+        /**
+         Assig private key
+
+         @param key Private key ref
+         
+         NOTE: method uses SecKeyCopyAttributes which shows dilog if key has not permission for runned application
+         */
         void Assign(SecKeyRef key);
+        /**
+         Assign private key and use public key to fill public data
+
+         @param key Private key ref
+         @param publicKey Public key linked to private key
+         */
+        void Assign(SecKeyRef key, Scoped<core::PublicKey> publicKey);
         
         CK_RV CopyValues(
                          Scoped<core::Object>    object,     /* the object which must be copied */

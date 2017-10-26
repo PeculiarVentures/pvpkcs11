@@ -50,3 +50,21 @@ CK_RV osx::SecItemDestroy(CFTypeRef item, CFStringRef itemClass)
     }
     CATCH_EXCEPTION
 }
+
+void osx::CopyObjectAttribute(core::Object* dst, core::Object * src, CK_ATTRIBUTE_TYPE type)
+{
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        if (!dst) {
+            THROW_PARAM_REQUIRED_EXCEPTION("dst");
+        }
+        if (!src) {
+            THROW_PARAM_REQUIRED_EXCEPTION("src");
+        }
+        
+        Scoped<Buffer> buf = src->ItemByType(type)->ToBytes();
+        dst->ItemByType(type)->SetValue(buf->data(), buf->size());
+    }
+    CATCH_EXCEPTION
+}

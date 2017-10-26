@@ -2,6 +2,7 @@
 
 #include "../stdafx.h"
 #include "../core/excep.h"
+#include "../core/object.h"
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <Security/Security.h>
@@ -9,6 +10,7 @@
 namespace osx {
     
     std::string GetOSXErrorAsString(OSStatus status, const char* funcName);
+    void CopyObjectAttribute(core::Object* dst, core::Object * src, CK_ATTRIBUTE_TYPE type);
     
 #define OSX_EXCEPTION_NAME "OSXException"
     

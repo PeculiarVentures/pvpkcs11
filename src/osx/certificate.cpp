@@ -257,38 +257,56 @@ Scoped<core::PublicKey> osx::X509Certificate::GetPublicKey()
 Scoped<core::PrivateKey> osx::X509Certificate::GetPrivateKey()
 {
     try {
+        OSStatus status = 0;
         CFRef<SecIdentityRef> identity = NULL;
-        SecIdentityCreateWithCertificate(NULL, *value, &identity);
-        if (identity.IsEmpty()) {
-            THROW_EXCEPTION("Error on SecIdentityCreateWithCertificate");
+        Scoped<core::PrivateKey> res;
+        
+        status = SecIdentityCreateWithCertificate(NULL, *value, &identity);
+        if (status) {
+            THROW_OSX_EXCEPTION(status, "SecIdentityCreateWithCertificate");
         }
         
         SecKeyRef privateKey = NULL;
-        SecIdentityCopyPrivateKey(*identity, &privateKey);
-        if (!privateKey) {
-            THROW_EXCEPTION("Cannot get private key");
+        status = SecIdentityCopyPrivateKey(*identity, &privateKey);
+        if (status) {
+            THROW_OSX_EXCEPTION(status, "SecIdentityCopyPrivateKey");
         }
         
-        CFRef<CFDictionaryRef> attributes = SecKeyCopyAttributes(privateKey);
+        // NOTE: SecKeyCopyAttributes shows dialog if key doesn't have permission for using for current app
         
-        CFStringRef cfKeyType = static_cast<CFStringRef>(CFDictionaryGetValue(*attributes, kSecAttrKeyType));
-        Scoped<core::PrivateKey> res;
-        if (CFStringCompare(kSecAttrKeyTypeRSA, cfKeyType, kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
+        Scoped<core::PublicKey> publicKey = GetPublicKey();
+        CK_ULONG ulKeyGenMech = publicKey->ItemByType(CKA_KEY_GEN_MECHANISM)->ToNumber();
+        if (ulKeyGenMech == CKM_RSA_PKCS_KEY_PAIR_GEN) {
             Scoped<RsaPrivateKey> rsaKey(new RsaPrivateKey);
-            rsaKey->Assign(privateKey);
+            rsaKey->Assign(privateKey, publicKey);
             res = rsaKey;
-        } else if (CFStringCompare(kSecAttrKeyTypeEC, cfKeyType, kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
+        } else if (ulKeyGenMech == CKM_EC_KEY_PAIR_GEN) {
             Scoped<EcPrivateKey> ecKey(new EcPrivateKey);
-            ecKey->Assign(privateKey);
+            ecKey->Assign(privateKey, publicKey);
             res = ecKey;
         } else {
             CFRelease(privateKey);
             THROW_EXCEPTION("Unsupported key type");
         }
         
-        Scoped<Buffer> certId = ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
-        
         return res;
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<std::string> osx::X509Certificate::GetName()
+{
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        CFRef<CFStringRef> cfStr = SecCertificateCopySubjectSummary(Get());
+        if (cfStr.IsEmpty()) {
+            LOGGER_DEBUG("Cannot get common name for certificate");
+            return Scoped<std::string>(new std::string("Uknonwn name"));
+        }
+        
+        const char * pStr = CFStringGetCStringPtr(*cfStr, kCFStringEncodingUTF8);
+        return Scoped<std::string>(new std::string(pStr));
     }
     CATCH_EXCEPTION
 }

@@ -131,10 +131,12 @@ void osx::RsaPrivateKey::Assign(SecKeyRef key)
     try {
         value = key;
         
+        LOGGER_INFO("%s Before SecKeyCopyAttributes", __FUNCTION__);
         CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(*value);
         if (!&cfAttributes) {
             THROW_EXCEPTION("Error on SecKeyCopyAttributes");
         }
+        LOGGER_INFO("%s After SecKeyCopyAttributes", __FUNCTION__);
         
         // Check key type
         CFStringRef cfKeyType = (CFStringRef)CFDictionaryGetValue(*cfAttributes, kSecAttrKeyType);
@@ -173,6 +175,39 @@ void osx::RsaPrivateKey::Assign(SecKeyRef key)
         if (CFBooleanGetValue(cfExtractable)) {
             ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->Set(true);
         }
+    }
+    CATCH_EXCEPTION
+}
+
+void osx::RsaPrivateKey::Assign(SecKeyRef key, Scoped<core::PublicKey> publicKey)
+{
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        Scoped<Buffer> tmpAttr;
+        core::PublicKey * pPubKey = publicKey.get();
+        
+        if (!pPubKey) {
+            THROW_PARAM_REQUIRED_EXCEPTION("publicKey");
+        }
+        
+        // Check public, it must be RSA
+        if (publicKey->ItemByType(CKA_KEY_GEN_MECHANISM)->ToNumber() != CKM_RSA_PKCS_KEY_PAIR_GEN) {
+            THROW_EXCEPTION("Cannot assing key. Public key is not RSA");
+        }
+        
+        value = key;
+        
+        // Copy public data
+        
+        CopyObjectAttribute(this, pPubKey, CKA_ID);
+        CopyObjectAttribute(this, pPubKey, CKA_PUBLIC_EXPONENT);
+        CopyObjectAttribute(this, pPubKey, CKA_MODULUS);
+        
+        ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(pPubKey->ItemByType(CKA_VERIFY)->ToBool());
+        ItemByType(CKA_DECRYPT)->To<core::AttributeBool>()->Set(pPubKey->ItemByType(CKA_ENCRYPT)->ToBool());
+        ItemByType(CKA_UNWRAP)->To<core::AttributeBool>()->Set(pPubKey->ItemByType(CKA_WRAP)->ToBool());
+        
     }
     CATCH_EXCEPTION
 }

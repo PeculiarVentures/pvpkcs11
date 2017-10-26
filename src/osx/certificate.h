@@ -45,6 +45,9 @@ namespace osx {
         Scoped<core::PublicKey> GetPublicKey();
         Scoped<core::PrivateKey> GetPrivateKey();
         bool HasPrivateKey();
+        
+        Scoped<std::string> GetName();
+        
         Scoped<X509Certificate> Copy();
         
     protected:
