@@ -171,12 +171,14 @@ Scoped<NCryptKeyNameList> ncrypt::Provider::GetKeyNames(
         void* ptr = NULL;
 
         Scoped<NCryptKeyNameList> res(new NCryptKeyNameList());
-
-        while (!status) {
+        while (true) {
             NCryptKeyName* pKeyName;
             status = NCryptEnumKeys(Get(), NULL, &pKeyName, &ptr, dwFlags);
             if (!status && pKeyName) {
                 res->push_back(Scoped<NCryptKeyName>(pKeyName, NCryptFreeBuffer));
+            }
+            else {
+                break;
             }
         }
         if (ptr) {

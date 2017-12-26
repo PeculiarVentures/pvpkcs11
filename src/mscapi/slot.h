@@ -7,9 +7,6 @@ namespace mscapi {
 	class Slot : public core::Slot {
 	public:
 		Slot();
-
-	protected:
-		Scoped<core::Session> CreateSession();
 	};
 
 }

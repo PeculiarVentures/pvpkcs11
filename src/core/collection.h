@@ -13,6 +13,7 @@ public:
 	size_t count();
 	void add(T item);
 	void remove(T item);
+    void removeAt(int index);
 	T items(size_t index);
 	void clear();
 
@@ -59,6 +60,15 @@ void Collection<T>::remove(T item)
 	LOGGER_FUNCTION_BEGIN;
 
 	this->_items.erase(std::remove(this->_items.begin(), this->_items.end(), item), this->_items.end());
+}
+
+template<class T>
+void Collection<T>::removeAt(int index)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    T item = items(index);
+    this->_items.erase(std::remove(this->_items.begin(), this->_items.end(), item), this->_items.end());
 }
 
 template<class T>

@@ -11,6 +11,7 @@ using namespace core;
 core::Slot::Slot()
 {
     this->tokenInfo = CK_TOKEN_INFO();
+    this->slotID = reinterpret_cast<CK_SLOT_ID>(this);
 }
 
 core::Slot::~Slot()

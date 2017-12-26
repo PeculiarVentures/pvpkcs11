@@ -4,7 +4,9 @@
 #include "debug.h"
 
 #ifdef _WIN32
-#include "mscapi/slot.h"
+#include "mscapi/sys_slot.h"
+#include "mscapi/sc_slot.h"
+#include "mscapi/scard.h"
 #endif // _WIN32
 
 #ifdef __APPLE__
@@ -13,6 +15,9 @@
 // #endif // TARGET_OS_MAC
 #endif // __APPLE__
 
+#ifdef _WIN32
+void LoadSCardSlots();
+#endif // _WIN32
 
 #define CATCH(functionName)                                     \
     catch (Scoped<core::Exception> e) {                         \
@@ -116,15 +121,13 @@ public:
     App() {
 #ifdef _WIN32
         LOGGER_ADD_SLOT("MSCAPI");
-        Scoped<core::Slot> mscapiSlot(new mscapi::Slot());
+        Scoped<core::Slot> mscapiSlot(new mscapi::SystemSlot());
         pkcs11.slots.add(mscapiSlot);
-        mscapiSlot->slotID = pkcs11.slots.count() - 1;
 #endif // _WIN32
 #ifdef __APPLE__
         LOGGER_ADD_SLOT("OSX");
         Scoped<core::Slot> osxSlot(new osx::Slot());
         pkcs11.slots.add(osxSlot);
-        osxSlot->slotID = pkcs11.slots.count() - 1;
 #endif // __APPLE__
     }
 };
@@ -136,7 +139,7 @@ App app = App();
 CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         CHECK_ARGUMENT_NULL(ppFunctionList);
 
@@ -153,8 +156,8 @@ CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList)
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
 {
     LOGGER_DEBUG("%s pInitArgs:%p", __FUNCTION__, pInitArgs);
-    
-    
+
+
     try {
         return pkcs11.Initialize(pInitArgs);
     }
@@ -167,7 +170,7 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
 CK_RV C_Finalize(CK_VOID_PTR pReserved)
 {
     LOGGER_DEBUG("%s pReserved:%p", __FUNCTION__, pReserved);
-    
+
     try {
         return pkcs11.Finalize(pReserved);
     }
@@ -179,7 +182,7 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved)
 CK_RV C_GetInfo(CK_INFO_PTR pInfo)
 {
     LOGGER_DEBUG("%s pInfo:%p", __FUNCTION__, pInfo);
-    
+
     try
     {
         return pkcs11.GetInfo(pInfo);
@@ -195,14 +198,20 @@ CK_RV C_GetSlotList(
     CK_ULONG_PTR   pulCount       /* receives number of slots */
 )
 {
-    LOGGER_DEBUG("%s tokenPresent:%d pSlotList:%s pulCount:%d", 
-                 __FUNCTION__, 
-                 tokenPresent, 
-                 printAddress(pSlotList).c_str(), 
-                 *pulCount);
-    
+    LOGGER_DEBUG("%s tokenPresent:%d pSlotList:%s pulCount:%d",
+        __FUNCTION__,
+        tokenPresent,
+        printAddress(pSlotList).c_str(),
+        *pulCount);
+
     try
     {
+#ifdef _WIN32
+        if (!pSlotList) {
+            LoadSCardSlots();
+        }
+#endif
+
         return pkcs11.GetSlotList(tokenPresent, pSlotList, pulCount);
     }
     CATCH("C_GetSlotList");
@@ -215,8 +224,8 @@ CK_RV C_GetSlotInfo(
     CK_SLOT_INFO_PTR pInfo    /* receives the slot information */
 )
 {
-    LOGGER_DEBUG("%s slotID:%d pInfo:%p", __FUNCTION__, slotID, pInfo);
-    
+    LOGGER_DEBUG("%s slotID:%s pInfo:%p", __FUNCTION__, printHandle(slotID).c_str(), pInfo);
+
     try
     {
         return pkcs11.GetSlotInfo(slotID, pInfo);
@@ -232,8 +241,8 @@ CK_RV C_GetTokenInfo
     CK_TOKEN_INFO_PTR pInfo    /* receives the token information */
 )
 {
-    LOGGER_DEBUG("%s slotID:%d pInfo:%p", __FUNCTION__, slotID, pInfo);
-    
+    LOGGER_DEBUG("%s slotID:%s pInfo:%p", __FUNCTION__, printHandle(slotID).c_str(), pInfo);
+
     try
     {
         return pkcs11.GetTokenInfo(slotID, pInfo);
@@ -250,8 +259,8 @@ CK_RV C_GetMechanismList
     CK_ULONG_PTR          pulCount         /* gets # of mechanisms */
 )
 {
-    LOGGER_DEBUG("%s slotID:%d pMechanismList:%s pulCount:%d", __FUNCTION__, slotID, printAddress(pMechanismList).c_str(), *pulCount);
-    
+    LOGGER_DEBUG("%s slotID:%s pMechanismList:%s pulCount:%d", __FUNCTION__, printHandle(slotID).c_str(), printAddress(pMechanismList).c_str(), *pulCount);
+
     try
     {
         return pkcs11.GetMechanismList(slotID, pMechanismList, pulCount);
@@ -268,8 +277,8 @@ CK_RV C_GetMechanismInfo
     CK_MECHANISM_INFO_PTR pInfo    /* receives mechanism info */
 )
 {
-    LOGGER_DEBUG("%s slotID:%d type:%s pInfo:%p", __FUNCTION__, slotID, printMechanismType(type).c_str(), type, pInfo);
-    
+    LOGGER_DEBUG("%s slotID:%s type:%s pInfo:%p", __FUNCTION__, printHandle(slotID).c_str(), printMechanismType(type).c_str(), type, pInfo);
+
     try
     {
         return pkcs11.GetMechanismInfo(slotID, type, pInfo);
@@ -287,8 +296,8 @@ CK_RV C_InitToken
     CK_UTF8CHAR_PTR pLabel     /* 32-byte token label (blank padded) */
 )
 {
-    LOGGER_DEBUG("%s slotID:%d pPin:%p ulPinLen:%d pLabel:'%s'", __FUNCTION__, slotID, pPin, ulPinLen, pLabel);
-    
+    LOGGER_DEBUG("%s slotID:%s pPin:%p ulPinLen:%d pLabel:'%s'", __FUNCTION__, printHandle(slotID).c_str(), pPin, ulPinLen, pLabel);
+
     try
     {
         return pkcs11.InitToken(slotID, pPin, ulPinLen, pLabel);
@@ -306,7 +315,7 @@ CK_RV C_InitPIN
 )
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try
     {
         return pkcs11.InitPIN(hSession, pPin, ulPinLen);
@@ -326,7 +335,7 @@ CK_RV C_SetPIN
 )
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try
     {
         // return pkcs11.SetPIN(hSession, pOldPin, ulOldLen, pNewPin, ulNewLen);
@@ -346,7 +355,7 @@ CK_RV C_OpenSession
 )
 {
     LOGGER_DEBUG("%s slotID:%d flags:%d pApplication:%p Notify:%p phSession:%p", __FUNCTION__, slotID, flags, pApplication, Notify, phSession);
-    
+
     try
     {
         return pkcs11.OpenSession(slotID, flags, pApplication, Notify, phSession);
@@ -362,7 +371,7 @@ CK_RV C_CloseSession
 )
 {
     LOGGER_DEBUG("%s hSession:%s", __FUNCTION__, printHandle(hSession).c_str());
-    
+
     try
     {
         return pkcs11.CloseSession(hSession);
@@ -377,8 +386,8 @@ CK_RV C_CloseAllSessions
     CK_SLOT_ID     slotID  /* the token's slot */
 )
 {
-    LOGGER_DEBUG("%s slotID:%d", __FUNCTION__, slotID);
-    
+    LOGGER_DEBUG("%s slotID:%s", __FUNCTION__, printHandle(slotID).c_str());
+
     try
     {
         return pkcs11.CloseAllSessions(slotID);
@@ -395,10 +404,10 @@ CK_RV C_GetSessionInfo
 )
 {
     LOGGER_DEBUG("%s hSession:%s pInfo:%s",
-                 __FUNCTION__,
-                 printHandle(hSession).c_str(),
-                 printAddress(pInfo).c_str());
-    
+        __FUNCTION__,
+        printHandle(hSession).c_str(),
+        printAddress(pInfo).c_str());
+
     try
     {
         return pkcs11.GetSessionInfo(hSession, pInfo);
@@ -416,7 +425,7 @@ CK_RV C_GetOperationState
 )
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -430,7 +439,7 @@ CK_RV C_SetOperationState
 )
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -443,10 +452,10 @@ CK_RV C_Login
 )
 {
     LOGGER_DEBUG("%s hSession:%s userType:%d",
-                 __FUNCTION__,
-                 printHandle(hSession).c_str(),
-                 userType);
-    
+        __FUNCTION__,
+        printHandle(hSession).c_str(),
+        userType);
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -457,9 +466,9 @@ CK_RV C_Logout
 )
 {
     LOGGER_DEBUG("%s hSession:%s",
-                 __FUNCTION__,
-                 printHandle(hSession).c_str());
-    
+        __FUNCTION__,
+        printHandle(hSession).c_str());
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -475,11 +484,11 @@ CK_RV C_CreateObject
 )
 {
     LOGGER_DEBUG("%s hSession:%s pTemplate:%s phObject:%s",
-                 __FUNCTION__,
-                 printHandle(hSession).c_str(),
-                 printTemplate(pTemplate, ulCount).c_str(),
-                 printAddress(phObject).c_str());
-    
+        __FUNCTION__,
+        printHandle(hSession).c_str(),
+        printTemplate(pTemplate, ulCount).c_str(),
+        printAddress(phObject).c_str());
+
     try {
         return pkcs11.CreateObject(
             hSession,
@@ -501,15 +510,15 @@ CK_RV C_CopyObject
     CK_ATTRIBUTE_PTR     pTemplate,   /* template for new object */
     CK_ULONG             ulCount,     /* attributes in template */
     CK_OBJECT_HANDLE_PTR phNewObject  /* receives handle of copy */
-    )
+)
 {
     LOGGER_DEBUG("%s hSession:%s hObject:%s",
-                 __FUNCTION__,
-                 printHandle(hSession).c_str(),
-                 printHandle(hObject).c_str(),
-                 printTemplate(pTemplate, ulCount).c_str(),
-                 printAddress(phNewObject).c_str());
-    
+        __FUNCTION__,
+        printHandle(hSession).c_str(),
+        printHandle(hObject).c_str(),
+        printTemplate(pTemplate, ulCount).c_str(),
+        printAddress(phNewObject).c_str());
+
     try {
         return pkcs11.CopyObject(
             hSession,
@@ -528,13 +537,13 @@ CK_RV C_DestroyObject
 (
     CK_SESSION_HANDLE hSession,  /* the session's handle */
     CK_OBJECT_HANDLE  hObject    /* the object's handle */
-    )
+)
 {
     LOGGER_DEBUG("%s hSession:%s hObject:%s",
-                 __FUNCTION__,
-                 printHandle(hSession).c_str(),
-                 printHandle(hObject).c_str());
-    
+        __FUNCTION__,
+        printHandle(hSession).c_str(),
+        printHandle(hObject).c_str());
+
     try {
         return pkcs11.DestroyObject(
             hSession,
@@ -551,10 +560,10 @@ CK_RV C_GetObjectSize
     CK_SESSION_HANDLE hSession,  /* the session's handle */
     CK_OBJECT_HANDLE  hObject,   /* the object's handle */
     CK_ULONG_PTR      pulSize    /* receives size of object */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -567,14 +576,14 @@ CK_RV C_GetAttributeValue
     CK_OBJECT_HANDLE  hObject,    /* the object's handle */
     CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes; gets values */
     CK_ULONG          ulCount     /* attributes in template */
-    )
+)
 {
     LOGGER_DEBUG("%s hSssion:%s hObject:%s pTemplate:%s",
-                 __FUNCTION__,
-                 printHandle(hSession).c_str(),
-                 printHandle(hObject).c_str(),
-                 printTemplate(pTemplate, ulCount).c_str());
-    
+        __FUNCTION__,
+        printHandle(hSession).c_str(),
+        printHandle(hObject).c_str(),
+        printTemplate(pTemplate, ulCount).c_str());
+
     try {
         return pkcs11.GetAttributeValue(hSession, hObject, pTemplate, ulCount);
     }
@@ -592,19 +601,19 @@ CK_RV C_SetAttributeValue
     CK_OBJECT_HANDLE  hObject,    /* the object's handle */
     CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes and values */
     CK_ULONG          ulCount     /* attributes in template */
-    )
+)
 {
     LOGGER_DEBUG("%s hSssion:%s hObject:%s pTemplate:%s",
-                 __FUNCTION__,
-                 printHandle(hSession).c_str(),
-                 printHandle(hObject).c_str(),
-                 printTemplate(pTemplate, ulCount).c_str());
-    
+        __FUNCTION__,
+        printHandle(hSession).c_str(),
+        printHandle(hObject).c_str(),
+        printTemplate(pTemplate, ulCount).c_str());
+
     try {
         return pkcs11.SetAttributeValue(hSession, hObject, pTemplate, ulCount);
     }
     CATCH(__FUNCTION__);
-    
+
     return CKR_FUNCTION_FAILED;
 
 }
@@ -617,13 +626,13 @@ CK_RV C_FindObjectsInit
     CK_SESSION_HANDLE hSession,   /* the session's handle */
     CK_ATTRIBUTE_PTR  pTemplate,  /* attribute values to match */
     CK_ULONG          ulCount     /* attributes in search template */
-    )
+)
 {
     LOGGER_DEBUG("%s hSession:%s pTemplate:%s",
-                 __FUNCTION__,
-                 printHandle(hSession).c_str(),
-                 printTemplate(pTemplate, ulCount).c_str());
-    
+        __FUNCTION__,
+        printHandle(hSession).c_str(),
+        printTemplate(pTemplate, ulCount).c_str());
+
     try {
         return pkcs11.FindObjectsInit(hSession, pTemplate, ulCount);
     }
@@ -642,10 +651,10 @@ CK_RV C_FindObjects
     CK_OBJECT_HANDLE_PTR phObject,          /* gets obj. handles */
     CK_ULONG             ulMaxObjectCount,  /* max handles to get */
     CK_ULONG_PTR         pulObjectCount     /* actual # returned */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.FindObjects(hSession, phObject, ulMaxObjectCount, pulObjectCount);
     }
@@ -660,10 +669,10 @@ CK_RV C_FindObjects
 CK_RV C_FindObjectsFinal
 (
     CK_SESSION_HANDLE hSession  /* the session's handle */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.FindObjectsFinal(hSession);
     }
@@ -682,10 +691,10 @@ CK_RV C_EncryptInit
     CK_SESSION_HANDLE hSession,    /* the session's handle */
     CK_MECHANISM_PTR  pMechanism,  /* the encryption mechanism */
     CK_OBJECT_HANDLE  hKey         /* handle of encryption key */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.EncryptInit(hSession, pMechanism, hKey);
     }
@@ -703,10 +712,10 @@ CK_RV C_Encrypt
     CK_ULONG          ulDataLen,           /* bytes of plaintext */
     CK_BYTE_PTR       pEncryptedData,      /* gets ciphertext */
     CK_ULONG_PTR      pulEncryptedDataLen  /* gets c-text size */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.Encrypt(
             hSession,
@@ -731,10 +740,10 @@ CK_RV C_EncryptUpdate
     CK_ULONG          ulPartLen,          /* plaintext data length */
     CK_BYTE_PTR       pEncryptedPart,     /* gets ciphertext */
     CK_ULONG_PTR      pulEncryptedPartLen /* gets c-text size */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.EncryptUpdate(
             hSession,
@@ -757,10 +766,10 @@ CK_RV C_EncryptFinal
     CK_SESSION_HANDLE hSession,                /* session handle */
     CK_BYTE_PTR       pLastEncryptedPart,      /* last c-text */
     CK_ULONG_PTR      pulLastEncryptedPartLen  /* gets last size */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.EncryptFinal(
             hSession,
@@ -780,10 +789,10 @@ CK_RV C_DecryptInit
     CK_SESSION_HANDLE hSession,    /* the session's handle */
     CK_MECHANISM_PTR  pMechanism,  /* the decryption mechanism */
     CK_OBJECT_HANDLE  hKey         /* handle of decryption key */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.DecryptInit(
             hSession,
@@ -805,10 +814,10 @@ CK_RV C_Decrypt
     CK_ULONG          ulEncryptedDataLen, /* ciphertext length */
     CK_BYTE_PTR       pData,              /* gets plaintext */
     CK_ULONG_PTR      pulDataLen          /* gets p-text size */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.Decrypt(
             hSession,
@@ -833,10 +842,10 @@ CK_RV C_DecryptUpdate
     CK_ULONG          ulEncryptedPartLen,  /* input length */
     CK_BYTE_PTR       pPart,               /* gets plaintext */
     CK_ULONG_PTR      pulPartLen           /* p-text size */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.DecryptUpdate(
             hSession,
@@ -859,10 +868,10 @@ CK_RV C_DecryptFinal
     CK_SESSION_HANDLE hSession,       /* the session's handle */
     CK_BYTE_PTR       pLastPart,      /* gets plaintext */
     CK_ULONG_PTR      pulLastPartLen  /* p-text size */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.DecryptFinal(
             hSession,
@@ -882,10 +891,10 @@ CK_RV C_DigestInit
 (
     CK_SESSION_HANDLE hSession,   /* the session's handle */
     CK_MECHANISM_PTR  pMechanism  /* the digesting mechanism */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.DigestInit(hSession, pMechanism);
     }
@@ -903,10 +912,10 @@ CK_RV C_Digest
     CK_ULONG          ulDataLen,    /* bytes of data to digest */
     CK_BYTE_PTR       pDigest,      /* gets the message digest */
     CK_ULONG_PTR      pulDigestLen  /* gets digest length */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.Digest(hSession, pData, ulDataLen, pDigest, pulDigestLen);
     }
@@ -923,10 +932,10 @@ CK_RV C_DigestUpdate
     CK_SESSION_HANDLE hSession,  /* the session's handle */
     CK_BYTE_PTR       pPart,     /* data to be digested */
     CK_ULONG          ulPartLen  /* bytes of data to be digested */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.DigestUpdate(hSession, pPart, ulPartLen);
     }
@@ -943,10 +952,10 @@ CK_RV C_DigestKey
 (
     CK_SESSION_HANDLE hSession,  /* the session's handle */
     CK_OBJECT_HANDLE  hKey       /* secret key to digest */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.DigestKey(hSession, hKey);
     }
@@ -963,10 +972,10 @@ CK_RV C_DigestFinal
     CK_SESSION_HANDLE hSession,     /* the session's handle */
     CK_BYTE_PTR       pDigest,      /* gets the message digest */
     CK_ULONG_PTR      pulDigestLen  /* gets byte count of digest */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.DigestFinal(hSession, pDigest, pulDigestLen);
     }
@@ -988,10 +997,10 @@ CK_RV C_SignInit
     CK_SESSION_HANDLE hSession,    /* the session's handle */
     CK_MECHANISM_PTR  pMechanism,  /* the signature mechanism */
     CK_OBJECT_HANDLE  hKey         /* handle of signature key */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.SignInit(hSession, pMechanism, hKey);
     }
@@ -1011,10 +1020,10 @@ CK_RV C_Sign
     CK_ULONG          ulDataLen,       /* count of bytes to sign */
     CK_BYTE_PTR       pSignature,      /* gets the signature */
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.Sign(hSession, pData, ulDataLen, pSignature, pulSignatureLen);
     }
@@ -1032,10 +1041,10 @@ CK_RV C_SignUpdate
     CK_SESSION_HANDLE hSession,  /* the session's handle */
     CK_BYTE_PTR       pPart,     /* the data to sign */
     CK_ULONG          ulPartLen  /* count of bytes to sign */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.SignUpdate(hSession, pPart, ulPartLen);
     }
@@ -1052,10 +1061,10 @@ CK_RV C_SignFinal
     CK_SESSION_HANDLE hSession,        /* the session's handle */
     CK_BYTE_PTR       pSignature,      /* gets the signature */
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.SignFinal(hSession, pSignature, pulSignatureLen);
     }
@@ -1072,10 +1081,10 @@ CK_RV C_SignRecoverInit
     CK_SESSION_HANDLE hSession,   /* the session's handle */
     CK_MECHANISM_PTR  pMechanism, /* the signature mechanism */
     CK_OBJECT_HANDLE  hKey        /* handle of the signature key */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1089,10 +1098,10 @@ CK_RV C_SignRecover
     CK_ULONG          ulDataLen,       /* count of bytes to sign */
     CK_BYTE_PTR       pSignature,      /* gets the signature */
     CK_ULONG_PTR      pulSignatureLen  /* gets signature length */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1108,10 +1117,10 @@ CK_RV C_VerifyInit
     CK_SESSION_HANDLE hSession,    /* the session's handle */
     CK_MECHANISM_PTR  pMechanism,  /* the verification mechanism */
     CK_OBJECT_HANDLE  hKey         /* verification key */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.VerifyInit(hSession, pMechanism, hKey);
     }
@@ -1131,10 +1140,10 @@ CK_RV C_Verify
     CK_ULONG          ulDataLen,      /* length of signed data */
     CK_BYTE_PTR       pSignature,     /* signature */
     CK_ULONG          ulSignatureLen  /* signature length*/
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.Verify(hSession, pData, ulDataLen, pSignature, ulSignatureLen);
     }
@@ -1152,10 +1161,10 @@ CK_RV C_VerifyUpdate
     CK_SESSION_HANDLE hSession,  /* the session's handle */
     CK_BYTE_PTR       pPart,     /* signed data */
     CK_ULONG          ulPartLen  /* length of signed data */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.VerifyUpdate(hSession, pPart, ulPartLen);
     }
@@ -1172,10 +1181,10 @@ CK_RV C_VerifyFinal
     CK_SESSION_HANDLE hSession,       /* the session's handle */
     CK_BYTE_PTR       pSignature,     /* signature to verify */
     CK_ULONG          ulSignatureLen  /* signature length */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.VerifyFinal(hSession, pSignature, ulSignatureLen);
     }
@@ -1192,10 +1201,10 @@ CK_RV C_VerifyRecoverInit
     CK_SESSION_HANDLE hSession,    /* the session's handle */
     CK_MECHANISM_PTR  pMechanism,  /* the verification mechanism */
     CK_OBJECT_HANDLE  hKey         /* verification key */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1209,10 +1218,10 @@ CK_RV C_VerifyRecover
     CK_ULONG          ulSignatureLen,  /* signature length */
     CK_BYTE_PTR       pData,           /* gets signed data */
     CK_ULONG_PTR      pulDataLen       /* gets signed data length */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1229,10 +1238,10 @@ CK_RV C_DigestEncryptUpdate
     CK_ULONG          ulPartLen,           /* plaintext length */
     CK_BYTE_PTR       pEncryptedPart,      /* gets ciphertext */
     CK_ULONG_PTR      pulEncryptedPartLen  /* gets c-text length */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1246,10 +1255,10 @@ CK_RV C_DecryptDigestUpdate
     CK_ULONG          ulEncryptedPartLen,  /* ciphertext length */
     CK_BYTE_PTR       pPart,               /* gets plaintext */
     CK_ULONG_PTR      pulPartLen           /* gets plaintext length */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1263,10 +1272,10 @@ CK_RV C_SignEncryptUpdate
     CK_ULONG          ulPartLen,           /* plaintext length */
     CK_BYTE_PTR       pEncryptedPart,      /* gets ciphertext */
     CK_ULONG_PTR      pulEncryptedPartLen  /* gets c-text length */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1280,10 +1289,10 @@ CK_RV C_DecryptVerifyUpdate
     CK_ULONG          ulEncryptedPartLen,  /* ciphertext length */
     CK_BYTE_PTR       pPart,               /* gets plaintext */
     CK_ULONG_PTR      pulPartLen           /* gets p-text length */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1300,10 +1309,10 @@ CK_RV C_GenerateKey
     CK_ATTRIBUTE_PTR     pTemplate,   /* template for new key */
     CK_ULONG             ulCount,     /* # of attributes in template */
     CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.GenerateKey(
             hSession,
@@ -1331,10 +1340,10 @@ CK_RV C_GenerateKeyPair
     CK_ULONG             ulPrivateKeyAttributeCount,  /* # private attributes */
     CK_OBJECT_HANDLE_PTR phPublicKey,                 /* gets pub. key handle */
     CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.GenerateKeyPair(
             hSession,
@@ -1362,10 +1371,10 @@ CK_RV C_WrapKey
     CK_OBJECT_HANDLE  hKey,            /* key to be wrapped */
     CK_BYTE_PTR       pWrappedKey,     /* gets wrapped key */
     CK_ULONG_PTR      pulWrappedKeyLen /* gets wrapped key size */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1382,10 +1391,10 @@ CK_RV C_UnwrapKey
     CK_ATTRIBUTE_PTR     pTemplate,         /* new key template */
     CK_ULONG             ulAttributeCount,  /* template length */
     CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1400,10 +1409,10 @@ CK_RV C_DeriveKey
     CK_ATTRIBUTE_PTR     pTemplate,         /* new key template */
     CK_ULONG             ulAttributeCount,  /* template length */
     CK_OBJECT_HANDLE_PTR phKey              /* gets new handle */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.DeriveKey(
             hSession,
@@ -1428,10 +1437,10 @@ CK_RV C_SeedRandom
     CK_SESSION_HANDLE hSession,  /* the session's handle */
     CK_BYTE_PTR       pSeed,     /* the seed material */
     CK_ULONG          ulSeedLen  /* length of seed material */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.SeedRandom(hSession, pSeed, ulSeedLen);
     }
@@ -1445,10 +1454,10 @@ CK_RV C_GenerateRandom
     CK_SESSION_HANDLE hSession,    /* the session's handle */
     CK_BYTE_PTR       RandomData,  /* receives the random data */
     CK_ULONG          ulRandomLen  /* # of bytes to generate */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     try {
         return pkcs11.GenerateRandom(hSession, RandomData, ulRandomLen);
     }
@@ -1465,10 +1474,10 @@ CK_RV C_GenerateRandom
 CK_RV C_GetFunctionStatus
 (
     CK_SESSION_HANDLE hSession  /* the session's handle */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1478,10 +1487,10 @@ CK_RV C_GetFunctionStatus
 CK_RV C_CancelFunction
 (
     CK_SESSION_HANDLE hSession  /* the session's handle */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
@@ -1496,9 +1505,140 @@ CK_RV C_WaitForSlotEvent
     CK_FLAGS flags,        /* blocking/nonblocking flag */
     CK_SLOT_ID_PTR pSlot,  /* location that receives the slot ID */
     CK_VOID_PTR pRserved   /* reserved.  Should be NULL_PTR */
-    )
+)
 {
     LOGGER_DEBUG("%s", __FUNCTION__);
-    
+
     return CKR_FUNCTION_NOT_SUPPORTED;
 }
+
+#ifdef _WIN32
+Scoped<scard::Context> pcsc;
+void LoadSCardSlots()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        auto slots = pkcs11.slots;
+        List<Scoped<mscapi::SmartCardSlot>> scSlots;
+        if (!pcsc.get()) {
+            pcsc = Scoped<scard::Context>(new scard::Context);
+        }
+
+        pcsc->Initialize(SCARD_SCOPE_SYSTEM);
+        auto readers = pcsc->GetReaders();
+        for (int i = 0; i < readers.size(); i++) {
+            auto reader = readers.at(i);
+            try {
+                reader->Connect(SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1);
+                auto atr = reader->GetAttributeBytes(SCARD_ATTR_ATR_STRING);
+                auto cards = pcsc->GetCards(atr);
+                for (int j = 0; j < cards.size(); j++) {
+                    auto card = cards.at(j);
+                    Scoped<std::string> sp;
+                    DWORD spType;
+                    if (card->HasProviderName(SCARD_PROVIDER_KSP)) {
+                        sp = card->GetProviderName(SCARD_PROVIDER_KSP);
+                        spType = SCARD_PROVIDER_KSP;
+                    }
+                    else if (card->HasProviderName(SCARD_PROVIDER_CSP)) {
+                        sp = card->GetProviderName(SCARD_PROVIDER_CSP);
+                        spType = SCARD_PROVIDER_CSP;
+                    }
+                    else {
+                        THROW_SCARD_EXCEPTION(SCARD_F_UNKNOWN_ERROR, "NoProviderName");
+                    }
+
+                    Scoped<mscapi::SmartCardSlot> slot(new mscapi::SmartCardSlot(
+                        reader->name->c_str(),
+                        sp->c_str(),
+                        spType
+                    ));
+
+                    scSlots.push_back(slot);
+                }
+            }
+            catch (Scoped<core::Exception> e) {
+                if (e->name.compare(SCARD_EXCEPTION_NAME) == 0) {
+                    MscapiException* msExcep = (MscapiException*)e.get();
+                    switch (msExcep->code)
+                    {
+                    case SCARD_W_REMOVED_CARD:
+                        // None
+                        break;
+                    default:
+                        throw e;
+                    }
+                }
+                else {
+                    throw e;
+                }
+            }
+        }
+
+        for (int i = 0; i < scSlots.size(); i++) {
+            auto scSlot = scSlots.at(i);
+            // LOGGER_INFO("SC: %s", scSlot->readerName->c_str(), scSlot->provName->c_str());
+        }
+
+#pragma region Remove odd slots
+        List<int> oddIndexes;
+        for (int i = 0; i < pkcs11.slots.count(); i++) {
+            auto slot = pkcs11.slots.items(i);
+            mscapi::SmartCardSlot* p11Slot = dynamic_cast<mscapi::SmartCardSlot*>(slot.get());
+            if (p11Slot) {
+                int j = 0;
+                for (j; j < scSlots.size(); j++) {
+                    Scoped<mscapi::SmartCardSlot> scSlot = scSlots.at(j);
+                    if (scSlot->readerName->compare(p11Slot->readerName->c_str()) == 0) {
+                        break; // slot found
+                    }
+                }
+                if (j == scSlots.size()) {
+                    oddIndexes.push_back(i);
+                }
+            }
+        }
+        for (int i = oddIndexes.size(); i > 0; i--) {
+            auto index = oddIndexes.at(i - 1);
+            auto slot = pkcs11.slots.items(index);
+            mscapi::SmartCardSlot* p11Slot = dynamic_cast<mscapi::SmartCardSlot*>(slot.get());
+            if (p11Slot) {
+                LOGGER_INFO("Remove SmartCard slot '%s'", p11Slot->readerName->c_str());
+            }
+                pkcs11.slots.removeAt(i);
+        }
+#pragma endregion
+
+#pragma region Add new slots
+        for (int i = 0; i < scSlots.size(); i++) {
+            auto scSlot = scSlots.at(i);
+            int j = 0;
+            for (j; j < pkcs11.slots.count(); j++) {
+                auto slot = pkcs11.slots.items(j);
+                mscapi::SmartCardSlot* p11Slot = dynamic_cast<mscapi::SmartCardSlot*>(slot.get());
+                if (p11Slot) {
+                    if (scSlot->readerName->compare(p11Slot->readerName->c_str()) == 0) {
+                        break; // slot found
+                    }
+                }
+            }
+            if (j == pkcs11.slots.count()) {
+                LOGGER_INFO("Add SmartCard slot '%s'", scSlot->readerName->c_str());
+                LOGGER_DEBUG("SmartCard %s:'%s'", scSlot->provType == SCARD_PROVIDER_CSP ? "CSP" : "KSP", scSlot->provName->c_str());
+                pkcs11.slots.add(scSlot);
+            }
+        }
+#pragma endregion
+    }
+    catch (Scoped<core::Exception> e) {
+        if (e->name.compare(SCARD_EXCEPTION_NAME)) {
+            LOGGER_ERROR(e->what());
+        }
+        else {
+            throw e;
+        }
+    }
+}
+
+#endif // _WIN32
