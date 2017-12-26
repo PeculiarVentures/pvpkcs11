@@ -106,9 +106,33 @@ Scoped<Buffer> crypt::ProviderInfo::GetBytes(DWORD dwParam)
         if (status) {
             THROW_NT_EXCEPTION(status, "OpenKey");
         }
+        
         if (NCryptIsKeyHandle(handle)) {
             // CNG
-            THROW_EXCEPTION("Not implemented");
+            LPCWSTR propID;
+            switch (dwParam) {
+            case PP_SMARTCARD_GUID:
+                propID = NCRYPT_SMARTCARD_GUID_PROPERTY;
+                break;
+            case PP_SMARTCARD_READER:
+                propID = NCRYPT_READER_PROPERTY;
+                break;
+            default:
+                FreeKey(handle);
+                THROW_EXCEPTION("Unsupported property of Provider dwParam:%d", dwParam);
+            }
+            DWORD dataLen = 0;
+            status = NCryptGetProperty(handle, propID, NULL, 0, &dataLen, 0);
+            if (status) {
+                FreeKey(handle);
+                THROW_MSCAPI_CODE_ERROR(MSCAPI_EXCEPTION_NAME, "CryptGetProvParam", status);
+            }
+            res->resize(dataLen);
+            status = NCryptGetProperty(handle, propID, res->data(), res->size(), &dataLen, 0);
+            if (status) {
+                FreeKey(handle);
+                THROW_MSCAPI_CODE_ERROR(MSCAPI_EXCEPTION_NAME, "CryptGetProvParam", status);
+            }
         }
         else {
             // CAPI
@@ -126,7 +150,6 @@ Scoped<Buffer> crypt::ProviderInfo::GetBytes(DWORD dwParam)
             }
         }
 
-        FreeKey(handle);
         return res;
     }
     CATCH_EXCEPTION
