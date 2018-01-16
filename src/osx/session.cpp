@@ -310,30 +310,35 @@ CK_RV osx::Session::Open
                 
                 CFIndex index = 0;
                 while (index < arrayCount) {
-                    SecKeyRef secKey = (SecKeyRef)CFArrayGetValueAtIndex(*result, index++);
-                    Scoped<core::Object> key = SecKeyCopyObject(secKey);
-                    
-                    // Don't add tokens which were added before
-                    CK_LONG searchIndex = 0;
-                    while (searchIndex < objects.count()) {
-                        Scoped<core::Object> object = objects.items(searchIndex++);
-                        if (object->ItemByType(CKA_CLASS)->ToNumber() == key->ItemByType(CKA_CLASS)->ToNumber() &&
-                            object->ItemByType(CKA_KEY_TYPE)->ToNumber() == key->ItemByType(CKA_KEY_TYPE)->ToNumber()) {
-                            Scoped<Buffer> keyId1 = object->ItemByType(CKA_ID)->ToBytes();
-                            Scoped<Buffer> keyId2 = key->ItemByType(CKA_ID)->ToBytes();
-                            if (keyId1->size() == keyId2->size() &&
-                                !memcmp(keyId1->data(), keyId2->data(), keyId1->size())) {
-                                break;
+                    try {
+                        SecKeyRef secKey = (SecKeyRef)CFArrayGetValueAtIndex(*result, index++);
+                        Scoped<core::Object> key = SecKeyCopyObject(secKey);
+                        
+                        // Don't add tokens which were added before
+                        CK_LONG searchIndex = 0;
+                        while (searchIndex < objects.count()) {
+                            Scoped<core::Object> object = objects.items(searchIndex++);
+                            if (object->ItemByType(CKA_CLASS)->ToNumber() == key->ItemByType(CKA_CLASS)->ToNumber() &&
+                                object->ItemByType(CKA_KEY_TYPE)->ToNumber() == key->ItemByType(CKA_KEY_TYPE)->ToNumber()) {
+                                Scoped<Buffer> keyId1 = object->ItemByType(CKA_ID)->ToBytes();
+                                Scoped<Buffer> keyId2 = key->ItemByType(CKA_ID)->ToBytes();
+                                if (keyId1->size() == keyId2->size() &&
+                                    !memcmp(keyId1->data(), keyId2->data(), keyId1->size())) {
+                                    break;
+                                }
                             }
                         }
+                        if (searchIndex < objects.count()) {
+                            continue;
+                        }
+                        
+                        key->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                        
+                        objects.add(key);
                     }
-                    if (searchIndex < objects.count()) {
-                        continue;
+                    catch (Scoped<core::Exception> e) {
+                        LOGGER_ERROR("Cannot load key. %s", e->what());
                     }
-                    
-                    key->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-                    
-                    objects.add(key);
                 }
             }
         }

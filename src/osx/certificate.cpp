@@ -299,14 +299,21 @@ Scoped<std::string> osx::X509Certificate::GetName()
     LOGGER_FUNCTION_BEGIN;
     
     try {
+        Scoped<std::string> res(new std::string("Unknown name"));
         CFRef<CFStringRef> cfStr = SecCertificateCopySubjectSummary(Get());
         if (cfStr.IsEmpty()) {
             LOGGER_DEBUG("Cannot get common name for certificate");
-            return Scoped<std::string>(new std::string("Uknonwn name"));
+            return res;
         }
         
         const char * pStr = CFStringGetCStringPtr(*cfStr, kCFStringEncodingUTF8);
-        return Scoped<std::string>(new std::string(pStr));
+        if (!pStr) {
+            LOGGER_ERROR("Cannot get string in CFStringGetCStringPtr");
+            return res;
+        }
+        else {
+            return Scoped<std::string>(new std::string(pStr));
+        }
     }
     CATCH_EXCEPTION
 }

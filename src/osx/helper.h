@@ -63,7 +63,7 @@ throw Scoped<core::Exception>(new core::Pkcs11Exception(OSX_EXCEPTION_NAME, CKR_
         }
         
         bool IsEmpty() {
-            return value == NULL;
+            return !value;
         }
         
     protected:
