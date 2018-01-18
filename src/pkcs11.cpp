@@ -1625,7 +1625,7 @@ void LoadSCardSlots()
             }
             if (j == pkcs11.slots.count()) {
                 LOGGER_INFO("Add SmartCard slot '%s'", scSlot->readerName->c_str());
-                LOGGER_DEBUG("SmartCard %s:'%s'", scSlot->provType == SCARD_PROVIDER_CSP ? "CSP" : "KSP", scSlot->provName->c_str());
+                LOGGER_INFO("SmartCard %s:'%s'", scSlot->provType == SCARD_PROVIDER_CSP ? "CSP" : "KSP", scSlot->provName->c_str());
                 pkcs11.slots.add(scSlot);
             }
         }

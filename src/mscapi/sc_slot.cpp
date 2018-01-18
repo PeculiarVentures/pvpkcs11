@@ -76,7 +76,7 @@ mscapi::SmartCardSlot::SmartCardSlot(
 Scoped<core::Session> mscapi::SmartCardSlot::CreateSession()
 {
     LOGGER_FUNCTION_BEGIN;
-
+    
     try {
         return Scoped<core::Session>(new SmartCardSession(
             readerName->c_str(), 

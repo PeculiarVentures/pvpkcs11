@@ -41,6 +41,7 @@ CK_RV mscapi::SmartCardSession::Open(
             Scoped<std::string> certName(new std::string("unknown"));
             try {
                 auto cert = certs->at(i);
+                certName = cert->GetName();
                 auto info = cert->GetProviderInfo();
                 if (info->IsAccassible()) {
                     auto scName = info->GetSmartCardReader();

@@ -8,6 +8,9 @@ namespace mscapi {
     public:
         Scoped<std::string> readerName;
         Scoped<std::string> provName;
+        // Type of crypto provider
+        // - SCARD_PROVIDER_CSP
+        // - SCARD_PROVIDER_KSP
         DWORD               provType;
 
         // Constructor
