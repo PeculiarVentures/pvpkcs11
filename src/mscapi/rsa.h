@@ -19,9 +19,9 @@ namespace mscapi {
 
     class RsaPrivateKey : public core::RsaPrivateKey, public ObjectKey {
     public:
-        RsaPrivateKey() :
+        RsaPrivateKey(LPWSTR pszProvName = MS_KEY_STORAGE_PROVIDER, DWORD dwProvType = 0, LPWSTR pszScope = L"") :
             core::RsaPrivateKey(),
-            ObjectKey()
+            ObjectKey(pszProvName, dwProvType, pszScope)
         {};
 
         CK_RV CopyValues(
@@ -43,9 +43,9 @@ namespace mscapi {
 
     class RsaPublicKey : public core::RsaPublicKey, public ObjectKey {
     public:
-        RsaPublicKey() :
+        RsaPublicKey(LPWSTR pszProvName = MS_KEY_STORAGE_PROVIDER, DWORD dwProvType = 0, LPWSTR pszScope = L"") :
             core::RsaPublicKey(),
-            ObjectKey()
+            ObjectKey(pszProvName, dwProvType, pszScope)
         {};
 
         RsaPublicKey(Scoped<CryptoKey> key) :

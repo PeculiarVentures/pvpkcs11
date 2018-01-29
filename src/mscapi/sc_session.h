@@ -1,6 +1,7 @@
 #pragma once
 
 #include "session.h"
+#include "certificate.h"
 
 namespace mscapi {
 
@@ -38,16 +39,16 @@ namespace mscapi {
     //        CK_OBJECT_HANDLE_PTR phKey        /* gets handle of new key */
     //    );
 
-    //    CK_RV GenerateKeyPair
-    //    (
-    //        CK_MECHANISM_PTR     pMechanism,                  /* key-gen mechanism */
-    //        CK_ATTRIBUTE_PTR     pPublicKeyTemplate,          /* template for pub. key */
-    //        CK_ULONG             ulPublicKeyAttributeCount,   /* # pub. attributes */
-    //        CK_ATTRIBUTE_PTR     pPrivateKeyTemplate,         /* template for private key */
-    //        CK_ULONG             ulPrivateKeyAttributeCount,  /* # private attributes */
-    //        CK_OBJECT_HANDLE_PTR phPublicKey,                 /* gets pub. key handle */
-    //        CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
-    //    );
+        CK_RV GenerateKeyPair
+        (
+            CK_MECHANISM_PTR     pMechanism,                  /* key-gen mechanism */
+            CK_ATTRIBUTE_PTR     pPublicKeyTemplate,          /* template for pub. key */
+            CK_ULONG             ulPublicKeyAttributeCount,   /* # pub. attributes */
+            CK_ATTRIBUTE_PTR     pPrivateKeyTemplate,         /* template for private key */
+            CK_ULONG             ulPrivateKeyAttributeCount,  /* # private attributes */
+            CK_OBJECT_HANDLE_PTR phPublicKey,                 /* gets pub. key handle */
+            CK_OBJECT_HANDLE_PTR phPrivateKey                 /* gets private key handle */
+        );
 
         Scoped<core::Object> CreateObject
         (
@@ -61,6 +62,17 @@ namespace mscapi {
             CK_ATTRIBUTE_PTR     pTemplate,   /* template for new object */
             CK_ULONG             ulCount      /* attributes in template */
         ); 
+
+        CK_RV DestroyObject(
+            CK_OBJECT_HANDLE  hObject   /* the object's handle */
+        );
+    
+    protected:
+        void LoadProvider();
+        void LoadProviderCSP();
+        void LoadProviderKSP();
+        void DestroyCertificate(X509Certificate* x509);
+        Scoped<CryptoKey> GetPrivateKey(Buffer* keyID);
     };
 
 }

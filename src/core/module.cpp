@@ -1124,12 +1124,8 @@ CK_RV Module::DestroyObject(
         CHECK_INITIALIZED();
 
         Scoped<Session> session = getSession(hSession);
-        Scoped<Object> object = session->GetObject(hObject);
 
-        object->Destroy();
-        session->objects.remove(object);
-
-        return CKR_OK;
+        return session->DestroyObject(hObject);
     }
     CATCH_EXCEPTION
 }

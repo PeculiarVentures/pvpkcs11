@@ -37,12 +37,14 @@ CK_RV CryptoSign::Once(
     try {
         try {
             Update(pData, ulDataLen);
+            Final(pSignature, pulSignatureLen);
         }
         catch (Scoped<core::Exception> e) {
             active = false;
             throw e;
         }
-        return Final(pSignature, pulSignatureLen);
+        
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -58,8 +60,15 @@ CK_RV CryptoSign::Once(
 )
 {
     try {
-        Update(pData, ulDataLen);
-        return Final(pSignature, ulSignatureLen);
+        try {
+            Update(pData, ulDataLen);
+            Final(pSignature, ulSignatureLen);
+        }
+        catch (Scoped<core::Exception> e) {
+            active = false;
+            throw e;
+        }
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }

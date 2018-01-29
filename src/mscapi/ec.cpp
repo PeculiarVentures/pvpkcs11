@@ -166,8 +166,10 @@ CK_RV EcPrivateKey::GetValue(
         core::EcPrivateKey::GetValue(attr);
 
         switch (attr->type) {
+        case CKA_SIGN:
+        case CKA_DERIVE:
         case CKA_EC_PARAMS:
-            if (ItemByType(attr->type)->IsEmpty()) {
+            if (ItemByType(CKA_EC_PARAMS)->IsEmpty()) {
                 FillPublicKeyStruct();
             }
             break;
@@ -204,15 +206,23 @@ CK_RV EcPrivateKey::CopyValues(
         }
 
         ncrypt::Provider provider;
-        provider.Open(MS_KEY_STORAGE_PROVIDER, 0);
+        provider.Open(wstrProvName.c_str(), 0);
 
         auto attrToken = ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue();
         auto attrExtractable = ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->ToValue();
+        
+        std::wstring wstrContainerName = L"";
+        if (wstrScope.length()) {
+            wstrContainerName += wstrScope + provider.GenerateRandomName()->c_str();
+        }
+        else {
+            wstrContainerName = provider.GenerateRandomName()->c_str();
+        }
 
         auto nkey = provider.SetKey(
             originalKey->GetKey()->GetNKey(),
             BCRYPT_ECCPRIVATE_BLOB,
-            attrToken ? provider.GenerateRandomName()->c_str() : NULL,
+            attrToken ? wstrContainerName.c_str() : NULL,
             (attrToken && attrExtractable) || !attrToken
         );
         
@@ -297,9 +307,11 @@ CK_RV EcPublicKey::GetValue(
         core::EcPublicKey::GetValue(attr);
 
         switch (attr->type) {
+        case CKA_VERIFY:
+        case CKA_DERIVE:
         case CKA_EC_PARAMS:
         case CKA_EC_POINT:
-            if (ItemByType(attr->type)->IsEmpty()) {
+            if (ItemByType(CKA_EC_POINT)->IsEmpty()) {
                 FillKeyStruct();
             }
             break;
@@ -389,9 +401,6 @@ CK_RV EcPublicKey::CreateValues
         header->cbKey = keySize;
         buffer->insert(buffer->end(), decodedPoint->X->begin(), decodedPoint->X->end());
         buffer->insert(buffer->end(), decodedPoint->Y->begin(), decodedPoint->Y->end());
-
-        ncrypt::Provider provider;
-        provider.Open(NULL, 0);
 
         Scoped<ncrypt::Key> nKey(new ncrypt::Key);
         nKey->Import(BCRYPT_ECCPUBLIC_BLOB, buffer);

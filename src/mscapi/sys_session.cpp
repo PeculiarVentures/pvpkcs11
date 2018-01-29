@@ -14,118 +14,7 @@
 #include "certificate.h"
 #include "data.h"
 
-#include "Winscard.h"
-#include "scard.h"
-
 using namespace mscapi;
-
-void test() {
-    LOGGER_FUNCTION_BEGIN;
-
-    try {
-        scard::Context context;
-        context.Initialize(SCARD_SCOPE_SYSTEM);
-
-        auto readers = context.GetReaders();
-        for (int i = 0; i < readers.size(); i++) {
-            auto reader = readers.at(i);
-            printf("Reader: %s\n", reader->name->c_str());
-            try {
-                reader->Connect(SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1);
-                auto atr = reader->GetAttributeBytes(SCARD_ATTR_ATR_STRING);
-                auto cards = context.GetCards(atr);
-                for (int j = 0; j < cards.size(); j++) {
-                    auto card = cards.at(j);
-                    auto csp = card->GetProviderName(SCARD_PROVIDER_CSP);
-                    printf("CSP: %s\n", csp->c_str());
-                    auto ksp = card->GetProviderName(SCARD_PROVIDER_KSP);
-                    printf("KSP: %s\n", ksp->c_str());
-                }
-                reader->Disconnect();
-            }
-            catch (Scoped<core::Exception> e) {
-                if (e->name.compare(SCARD_EXCEPTION_NAME) == 0) {
-                    MscapiException* msException = (MscapiException*)e.get();
-                    if (msException->code != SCARD_W_REMOVED_CARD) {
-                        throw e;
-                    }
-                }
-                else {
-                    throw e;
-                }
-            }
-        }
-    }
-    CATCH_EXCEPTION
-}
-
-void test2() {
-    LOGGER_FUNCTION_BEGIN;
-
-    try {
-        NTSTATUS status = ERROR_SUCCESS;
-        SCARDCONTEXT hContext;
-        SCARDHANDLE hCard;
-        PBYTE atr;
-        std::string readers;
-        LPSTR pmszReaders = NULL, pReader, mszCards = NULL, pCard, szProvider = NULL, szContainer;
-        DWORD dwLen = SCARD_AUTOALLOCATE, dwAtrLen;
-
-        status = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &hContext);
-        if (status != SCARD_S_SUCCESS) {
-            THROW_NT_EXCEPTION(status, "SCardEstablishContext");
-        }
-
-        status = SCardListReaders(hContext, SCARD_ALL_READERS, NULL, &dwLen);
-        if (status != SCARD_S_SUCCESS) {
-            THROW_NT_EXCEPTION(status, "SCardListReaders");
-        }
-
-        readers.resize(dwLen);
-
-        status = SCardListReaders(hContext, SCARD_ALL_READERS, (LPSTR)readers.c_str(), &dwLen);
-        if (status != SCARD_S_SUCCESS) {
-            THROW_NT_EXCEPTION(status, "SCardListReaders");
-        }
-
-        puts("Here");
-        // Do something with the multi string of readers.
-        // Output the values.
-        // A double-null terminates the list of values.
-        pReader = (LPSTR)readers.c_str();
-        while ('\0' != *pReader)
-        {
-            // Display the value.
-            // printf("Reader: %s\n", pReader);
-
-            status = SCardConnect(hContext, pReader, SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &hCard, &dwLen);
-            if (status == SCARD_S_SUCCESS) {
-                puts("Card connected");
-            }
-
-            dwLen = SCARD_AUTOALLOCATE;
-            status = SCardGetCardTypeProviderName(hContext, pCard, SCARD_PROVIDER_CSP, NULL, &dwLen);
-            if (status != SCARD_S_SUCCESS) {
-                THROW_NT_EXCEPTION(status, "SCardGetCardTypeProviderName");
-            }
-            std::string provider;
-            provider.resize(dwLen);
-            szProvider = (char *)provider.c_str();
-            status = SCardGetCardTypeProviderName(hContext, pCard, SCARD_PROVIDER_CSP, szProvider, &dwLen);
-            if (status != SCARD_S_SUCCESS) {
-                THROW_NT_EXCEPTION(status, "SCardGetCardTypeProviderName");
-            }
-            printf("Provider: %s\n", provider.c_str());
-
-            // Advance to the next value.
-            pReader = pReader + strlen(pReader) + 1;
-        }
-
-        // Free the memory.
-        SCardFreeMemory(hContext, pmszReaders);
-    }
-    CATCH_EXCEPTION
-}
 
 SystemSession::SystemSession() : mscapi::Session()
 {
@@ -239,7 +128,7 @@ void SystemSession::LoadCngKeys()
         Scoped<ncrypt::Provider> provider(new ncrypt::Provider());
         provider->Open(MS_KEY_STORAGE_PROVIDER, 0);
 
-        auto keyNames = provider->GetKeyNames(0);
+        auto keyNames = provider->GetKeyNames();
         for (ULONG i = 0; i < keyNames->size(); i++) {
             try {
                 Scoped<core::Object> privateKey;
@@ -342,8 +231,6 @@ CK_RV SystemSession::Open
 
     try {
         CK_RV res = core::Session::Open(flags, pApplication, Notify, phSession);
-
-        test();
 
         if (res == CKR_OK) {
             LoadMyStore();

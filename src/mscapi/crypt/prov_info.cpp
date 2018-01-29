@@ -57,12 +57,35 @@ ProviderInfo::ProviderInfo(Scoped<Buffer> info) :
 {
 }
 
+crypt::ProviderInfo::ProviderInfo(
+    LPCWSTR     pwszContainerName,
+    LPCWSTR     pwszProvName,
+    DWORD       dwProvType,
+    DWORD       dwFlags,
+    DWORD       dwKeySpec
+) :
+    pwszContainerName(pwszContainerName),
+    pwszProvName(pwszProvName)
+{
+    buffer = Scoped<Buffer>(new Buffer);
+    buffer->resize(sizeof(CRYPT_KEY_PROV_INFO));
+    info = (CRYPT_KEY_PROV_INFO*)buffer->data();
+
+    info->pwszContainerName = (LPWSTR)this->pwszContainerName.c_str();
+    info->pwszProvName = (LPWSTR)this->pwszProvName.c_str();
+    info->dwProvType = dwProvType;
+    info->dwFlags = dwFlags;
+    info->dwKeySpec= dwKeySpec;
+    info->cProvParam = 0;
+    info->rgProvParam = NULL;
+}
+
 
 ProviderInfo::~ProviderInfo()
 {
 }
 
-bool crypt::ProviderInfo::IsAccassible()
+bool crypt::ProviderInfo::IsAccessible()
 {
     HCRYPTPROV_OR_NCRYPT_KEY_HANDLE handle = 0;
     NTSTATUS status = ERROR_SUCCESS;
@@ -106,7 +129,7 @@ Scoped<Buffer> crypt::ProviderInfo::GetBytes(DWORD dwParam)
         if (status) {
             THROW_NT_EXCEPTION(status, "OpenKey");
         }
-        
+
         if (NCryptIsKeyHandle(handle)) {
             // CNG
             LPCWSTR propID;

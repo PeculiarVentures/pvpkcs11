@@ -165,10 +165,13 @@ CK_RV RsaPrivateKey::GetValue
 
     try {
         switch (attr->type) {
+        case CKA_DECRYPT:
+        case CKA_UNWRAP:
+        case CKA_SIGN:
         case CKA_MODULUS:
         case CKA_PUBLIC_EXPONENT:
         {
-            if (ItemByType(attr->type)->IsEmpty()) {
+            if (ItemByType(CKA_MODULUS)->IsEmpty()) {
                 FillPublicKeyStruct();
             }
             break;
@@ -212,16 +215,23 @@ CK_RV RsaPrivateKey::CopyValues(
         }
 
         ncrypt::Provider provider;
-        provider.Open(MS_KEY_STORAGE_PROVIDER, 0);
+        provider.Open(wstrProvName.c_str(), 0);
 
         auto attrToken = ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue();
         auto attrExtractable = ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->ToValue();
 
+        std::wstring wstrContainerName = L"";
+        if (wstrScope.length()) {
+            wstrContainerName += wstrScope + provider.GenerateRandomName()->c_str();
+        }
+        else {
+            wstrContainerName = provider.GenerateRandomName()->c_str();
+        }
 
         Scoped<ncrypt::Key> nkey = provider.SetKey(
             originalKey->GetKey()->GetNKey(),
-            BCRYPT_RSAFULLPRIVATE_BLOB,
-            attrToken ? provider.GenerateRandomName()->c_str() : NULL,
+            LEGACY_RSAPRIVATE_BLOB,
+            attrToken ? wstrContainerName.c_str() : NULL,
             (attrToken && attrExtractable) || !attrToken
         );
 
@@ -288,10 +298,13 @@ CK_RV RsaPublicKey::GetValue
 
     try {
         switch (attr->type) {
+        case CKA_VERIFY:
+        case CKA_ENCRYPT:
+        case CKA_WRAP:
         case CKA_MODULUS:
         case CKA_MODULUS_BITS:
         case CKA_PUBLIC_EXPONENT: {
-            if (ItemByType(attr->type)->IsEmpty()) {
+            if (ItemByType(CKA_MODULUS)->IsEmpty()) {
                 FillKeyStruct();
             }
             break;

@@ -1549,6 +1549,9 @@ void LoadSCardSlots()
                         THROW_SCARD_EXCEPTION(SCARD_F_UNKNOWN_ERROR, "NoProviderName");
                     }
 
+                    auto deviceName = reader->GetAttributeString(SCARD_ATTR_DEVICE_FRIENDLY_NAME);
+                    LOGGER_INFO("SCard: Device friendly name '%s'", deviceName->c_str());
+
                     Scoped<mscapi::SmartCardSlot> slot(new mscapi::SmartCardSlot(
                         reader->name->c_str(),
                         sp->c_str(),
@@ -1600,13 +1603,13 @@ void LoadSCardSlots()
             }
         }
         for (int i = oddIndexes.size(); i > 0; i--) {
-            auto index = oddIndexes.at(i - 1);
-            auto slot = pkcs11.slots.items(index);
+            int index = oddIndexes.at(i - 1);
+            Scoped<core::Slot> slot = pkcs11.slots.items(index);
             mscapi::SmartCardSlot* p11Slot = dynamic_cast<mscapi::SmartCardSlot*>(slot.get());
             if (p11Slot) {
                 LOGGER_INFO("Remove SmartCard slot '%s'", p11Slot->readerName->c_str());
+                pkcs11.slots.removeAt(index);
             }
-                pkcs11.slots.removeAt(i);
         }
 #pragma endregion
 

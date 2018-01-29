@@ -29,6 +29,27 @@ void ncrypt::Key::Open(PCRYPT_KEY_PROV_INFO info)
 
         NTSTATUS status = NCryptOpenKey(prov.Get(), Ref(), info->pwszContainerName, info->dwKeySpec, 0);
         if (status) {
+            std::wstring wstrContainerName(info->pwszContainerName);
+            std::string strContainerName(wstrContainerName.begin(), wstrContainerName.end());
+            LOGGER_ERROR("Cannot open key '%s' from '%s'", strContainerName.c_str(), prov.GetProviderName()->c_str());
+            THROW_NT_EXCEPTION(status, "NCryptOpenKey");
+        }
+    }
+    CATCH_EXCEPTION
+}
+
+void ncrypt::Key::Open(LPCWSTR pszProvName, LPCWSTR pszKeyName, DWORD dwLegacyKeySpec, DWORD dwFlags)
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        Dispose();
+
+        Provider prov;
+        prov.Open(pszProvName, 0);
+
+        NTSTATUS status = NCryptOpenKey(prov.Get(), Ref(), pszKeyName, dwLegacyKeySpec, dwFlags);
+        if (status) {
             THROW_NT_EXCEPTION(status, "NCryptOpenKey");
         }
     }
@@ -122,7 +143,12 @@ void ncrypt::Key::SetBytes(LPCWSTR pszProperty, Scoped<Buffer> value, DWORD dwFl
     LOGGER_FUNCTION_BEGIN;
 
     try {
-        SetParam(pszProperty, value->data(), value->size(), dwFlags);
+        SetParam(
+            pszProperty,
+            value.get() ? value->data() : NULL,
+            value.get() ? value->size() : 0,
+            dwFlags
+        );
     }
     CATCH_EXCEPTION
 }

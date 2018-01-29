@@ -12,6 +12,12 @@ namespace ncrypt {
 
         void Dispose();
         void Open(PCRYPT_KEY_PROV_INFO info);
+        void Open(
+            _In_    LPCWSTR pszProvName,
+            _In_    LPCWSTR pszKeyName,
+            _In_opt_ DWORD  dwLegacyKeySpec,
+            _In_    DWORD   dwFlags
+        );
 
         /// <summary>Exports a CNG key to a memory BLOB</summary>
         /// <param name='pszBlobType'>

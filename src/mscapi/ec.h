@@ -22,9 +22,9 @@ namespace mscapi {
 
     class EcPrivateKey : public core::EcPrivateKey, public ObjectKey {
     public:
-        EcPrivateKey() :
+        EcPrivateKey(LPWSTR pszProvName = MS_KEY_STORAGE_PROVIDER, DWORD dwProvType = 0, LPWSTR pszScope = L"") :
             core::EcPrivateKey(),
-            ObjectKey()
+            ObjectKey(pszProvName, dwProvType, pszScope)
         {}
         EcPrivateKey(Scoped<CryptoKey> key) :
             core::EcPrivateKey(),
@@ -51,9 +51,9 @@ namespace mscapi {
 
     class EcPublicKey : public core::EcPublicKey, public ObjectKey {
     public:
-        EcPublicKey() : 
+        EcPublicKey(LPWSTR pszProvName = MS_KEY_STORAGE_PROVIDER, DWORD dwProvType = 0, LPWSTR pszScope = L"") :
             core::EcPublicKey(), 
-            ObjectKey()
+            ObjectKey(pszProvName, dwProvType, pszScope)
         {}
 
         EcPublicKey(Scoped<CryptoKey> key) :

@@ -19,9 +19,9 @@ mscapi::SmartCardSlot::SmartCardSlot(
 
     try {
 #pragma region Slot info
-        SET_STRING(this->manufacturerID, MS_SMART_CARD_MANUFACTURIER_ID, 32);
+        SET_STRING(this->manufacturerID, provName, 32);
         SET_STRING(this->description, readerName, 64);
-        this->flags = CKF_TOKEN_INITIALIZED | CKF_RNG;
+        this->flags = CKF_TOKEN_INITIALIZED | CKF_RNG | CKF_REMOVABLE_DEVICE;
         this->hardwareVersion = { 0, 1 };
         this->firmwareVersion = { 0, 1 };
 #pragma endregion
@@ -38,6 +38,7 @@ mscapi::SmartCardSlot::SmartCardSlot(
         this->mechanisms.add(Scoped<core::Mechanism>(new core::Mechanism(CKM_SHA512, 0, 0, CKF_DIGEST)));
 #pragma endregion
 #pragma region RSA
+        this->mechanisms.add(Scoped<core::Mechanism>(new core::Mechanism(CKM_RSA_PKCS_KEY_PAIR_GEN, 1024, 4096, CKF_GENERATE)));
         // PKCS1
         this->mechanisms.add(Scoped<core::Mechanism>(new core::Mechanism(CKM_SHA1_RSA_PKCS, 1024, 4096, CKF_SIGN | CKF_VERIFY)));
         this->mechanisms.add(Scoped<core::Mechanism>(new core::Mechanism(CKM_SHA256_RSA_PKCS, 1024, 4096, CKF_SIGN | CKF_VERIFY)));

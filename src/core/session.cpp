@@ -27,7 +27,7 @@ static void ATTRIBUTE_free(CK_ATTRIBUTE_PTR attr)
     }
 }
 
-static void ATTRIBUTE_set_value(CK_ATTRIBUTE* attr, CK_VOID_PTR pbValue, CK_ULONG ulValueLen)
+void ATTRIBUTE_set_value(CK_ATTRIBUTE* attr, CK_VOID_PTR pbValue, CK_ULONG ulValueLen)
 {
     if (pbValue && ulValueLen) {
         attr->pValue = (CK_VOID_PTR)malloc(ulValueLen);
@@ -35,7 +35,7 @@ static void ATTRIBUTE_set_value(CK_ATTRIBUTE* attr, CK_VOID_PTR pbValue, CK_ULON
     }
 }
 
-static void ATTRIBUTE_copy(CK_ATTRIBUTE* attrDst, CK_ATTRIBUTE* attrSrc)
+void ATTRIBUTE_copy(CK_ATTRIBUTE* attrDst, CK_ATTRIBUTE* attrSrc)
 {
     attrDst->type = attrSrc->type;
     attrDst->ulValueLen = attrSrc->ulValueLen;
@@ -291,6 +291,19 @@ CK_RV Session::FindObjectsFinal()
     this->find.index = 0;
 
     return CKR_OK;
+}
+
+CK_RV core::Session::DestroyObject(CK_OBJECT_HANDLE hObject)
+{
+    try {
+        Scoped<Object> object = GetObject(hObject);
+
+        object->Destroy();
+        objects.remove(object);
+
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
 }
 
 void Session::CheckMechanismType(CK_MECHANISM_TYPE mechanism, CK_ULONG usage)
