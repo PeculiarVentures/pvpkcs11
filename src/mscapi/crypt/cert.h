@@ -14,6 +14,7 @@ namespace crypt {
         void Dispose();
 
         void Import(PUCHAR pbData, DWORD dwDataLen);
+        Scoped<Buffer> Export();
         Scoped<Certificate> Duplicate();
         void DeleteFromStore();
 

@@ -32,7 +32,7 @@ public:
 #define MSCAPI_EXCEPTION_NAME "MSCAPIException"
 
 #define THROW_MSCAPI_CODE_ERROR(expName, msFuncName, dwErrorCode)                        \
-	throw Scoped<core::Exception>(new MscapiException(expName, dwErrorCode, msFuncName, __FUNCTION__, __FILE__, __LINE__)); \
+	throw Scoped<core::Exception>(new MscapiException(expName, dwErrorCode, msFuncName, __FUNCTION__, __FILE__, __LINE__))
 
 #define THROW_MSCAPI_EXCEPTION(msFuncName)                                      \
 		THROW_MSCAPI_CODE_ERROR(MSCAPI_EXCEPTION_NAME, msFuncName, GetLastError())

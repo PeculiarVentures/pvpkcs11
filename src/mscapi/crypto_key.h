@@ -13,7 +13,7 @@ namespace mscapi {
 
         CryptoKey();
         CryptoKey(Scoped<Handle<HCRYPTPROV_OR_NCRYPT_KEY_HANDLE>> key);
-        CryptoKey(HCRYPTPROV_OR_NCRYPT_KEY_HANDLE handle, DWORD dwKeySpec = AT_KEYEXCHANGE);
+        CryptoKey(HCRYPTPROV_OR_NCRYPT_KEY_HANDLE handle, DWORD dwKeySpec = AT_SIGNATURE);
         CryptoKey(Scoped<crypt::ProviderInfo> info);
 
         BOOL IsCNG();

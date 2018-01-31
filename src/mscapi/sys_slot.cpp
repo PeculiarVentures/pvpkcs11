@@ -1,14 +1,14 @@
-#include "slot.h"
-#include "session.h"
+#include "sys_slot.h"
+#include "sys_session.h"
 
 using namespace mscapi;
 
 #define MS_SLOT_NAME "Windows CryptoAPI"
 
-mscapi::Slot::Slot() :
+mscapi::SystemSlot::SystemSlot() :
     core::Slot()
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         SET_STRING(this->manufacturerID, MS_SLOT_NAME, 32);
@@ -18,7 +18,7 @@ mscapi::Slot::Slot() :
         this->firmwareVersion = { 0, 1 };
 
         // Token info
-		SET_STRING(this->tokenInfo.label, MS_SLOT_NAME, 32);
+        SET_STRING(this->tokenInfo.label, MS_SLOT_NAME, 32);
 
         // Add mechanisms
         //   SHA
@@ -55,6 +55,16 @@ mscapi::Slot::Slot() :
         this->mechanisms.add(Scoped<core::Mechanism>(new core::Mechanism(CKM_AES_CBC_PAD, 128, 256, CKF_ENCRYPT | CKF_DECRYPT)));
         this->mechanisms.add(Scoped<core::Mechanism>(new core::Mechanism(CKM_AES_ECB, 128, 256, CKF_ENCRYPT | CKF_DECRYPT)));
         this->mechanisms.add(Scoped<core::Mechanism>(new core::Mechanism(CKM_AES_GCM, 128, 256, CKF_ENCRYPT | CKF_DECRYPT)));
+    }
+    CATCH_EXCEPTION;
+}
+
+Scoped<core::Session> mscapi::SystemSlot::CreateSession()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        return Scoped<core::Session>(new SystemSession());
     }
     CATCH_EXCEPTION;
 }

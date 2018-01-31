@@ -36,12 +36,18 @@ CK_RV CryptoEncrypt::Once
 )
 {
     try {
-        CK_ULONG ulPaddingLen = *pulEncryptedDataLen;
-        Update(pData, ulDataLen, pEncryptedData, &ulPaddingLen);
-        CK_BYTE_PTR pPadding = pEncryptedData + ulPaddingLen;
-        *pulEncryptedDataLen = *pulEncryptedDataLen - ulPaddingLen;
-        Final(pPadding, pulEncryptedDataLen);
-        *pulEncryptedDataLen += ulPaddingLen;
+        try {
+            CK_ULONG ulPaddingLen = *pulEncryptedDataLen;
+            Update(pData, ulDataLen, pEncryptedData, &ulPaddingLen);
+            CK_BYTE_PTR pPadding = pEncryptedData + ulPaddingLen;
+            *pulEncryptedDataLen = *pulEncryptedDataLen - ulPaddingLen;
+            Final(pPadding, pulEncryptedDataLen);
+            *pulEncryptedDataLen += ulPaddingLen;
+        }
+        catch (Scoped<core::Exception> e) {
+            active = false;
+            throw e;
+        }
         return CKR_OK;
     }
     CATCH_EXCEPTION;

@@ -135,12 +135,16 @@ Scoped<Buffer> GetCertificateChain
     CATCH_EXCEPTION
 }
 
-mscapi::X509Certificate::X509Certificate()
+mscapi::X509Certificate::X509Certificate(LPWSTR pszProvName, DWORD dwProvType, LPWSTR pszScope)
     : core::X509Certificate()
 {
     LOGGER_FUNCTION_BEGIN;
 
     Add(core::AttributeBytes::New(CKA_X509_CHAIN, NULL, 0, PVF_2));
+
+    wstrProvName = std::wstring(pszProvName);
+    this->dwProvType = dwProvType;
+    wstrScope = std::wstring(pszScope);
 }
 
 void mscapi::X509Certificate::Assign(
@@ -238,7 +242,12 @@ CK_RV mscapi::X509Certificate::CreateValues(
         Assign(cert);
 
         if (tmpl.GetBool(CKA_TOKEN, false, false)) {
-            AddToMyStorage();
+            if (wstrScope.length()) {
+                AddToSCard();
+            }
+            else {
+                AddToMyStorage();
+            }
         }
 
         return CKR_OK;
@@ -269,7 +278,12 @@ CK_RV mscapi::X509Certificate::CopyValues(
         Assign(cert);
 
         if (tmpl.GetBool(CKA_TOKEN, false, false)) {
-            AddToMyStorage();
+            if (wstrScope.length()) {
+                AddToSCard();
+            }
+            else {
+                AddToMyStorage();
+            }
         }
 
         return CKR_OK;
@@ -298,12 +312,13 @@ void mscapi::X509Certificate::AddToMyStorage()
         ncrypt::Provider provider;
         provider.Open(MS_STORAGE, 0);
         // Looking for equal public key hash through all CNG containers
-        auto provKeyNames = provider.GetKeyNames(NCRYPT_SILENT_FLAG);
+        auto provKeyNames = provider.GetKeyNames(NULL, NCRYPT_SILENT_FLAG);
         for (ULONG i = 0; i < provKeyNames->size(); i++) {
             auto provKeyName = provKeyNames->at(i);
-            auto key = provider.GetKey(provKeyName->pszName, provKeyName->dwLegacyKeySpec, 0);
+            Scoped<ncrypt::Key> key;
             Scoped<Buffer> keySpkiHash;
             try {
+                key = provider.GetKey(provKeyName->pszName, provKeyName->dwLegacyKeySpec, 0);
                 keySpkiHash = key->GetID();
             }
             catch (...) {
@@ -312,8 +327,7 @@ void mscapi::X509Certificate::AddToMyStorage()
                 continue;
             }
             // compare hashes
-            if (!memcmp(certSpkiHash->data(), keySpkiHash->data(), keySpkiHash->size
-            ())) {
+            if (!memcmp(certSpkiHash->data(), keySpkiHash->data(), keySpkiHash->size())) {
                 // Create key info
                 CRYPT_KEY_PROV_INFO keyProvInfo;
 
@@ -323,15 +337,54 @@ void mscapi::X509Certificate::AddToMyStorage()
                 keyProvInfo.dwFlags = provKeyName->dwFlags;
                 keyProvInfo.cProvParam = 0;
                 keyProvInfo.rgProvParam = NULL;
-                keyProvInfo.dwKeySpec = AT_KEYEXCHANGE;
+                keyProvInfo.dwKeySpec = provKeyName->dwLegacyKeySpec;
 
                 if (!CertSetCertificateContextProperty(cert->Get(), CERT_KEY_PROV_INFO_PROP_ID, 0, &keyProvInfo)) {
                     THROW_MSCAPI_EXCEPTION("CertSetCertificateContextProperty");
                 }
+                LOGGER_INFO("Add CERT_KEY_PROV_INFO_PROP_ID to cert '%s'", cert->GetName()->c_str());
             }
         }
 
         store.AddCertificate(cert, CERT_STORE_ADD_ALWAYS);
+    }
+    CATCH_EXCEPTION
+}
+
+void mscapi::X509Certificate::AddToSCard()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        ncrypt::Provider provider;
+        provider.Open(wstrProvName.c_str(), NCRYPT_SILENT_FLAG);
+
+        auto keyNames = provider.GetKeyNames(wstrScope.c_str(), NCRYPT_SILENT_FLAG);
+
+        for (int i = 0; i < keyNames->size(); i++) {
+            auto keyName = keyNames->at(i);
+            std::wstring wstrKeyName(keyName->pszName);
+            std::string strKeyName(wstrKeyName.begin(), wstrKeyName.end());
+
+            try {
+                Scoped<crypt::ProviderInfo> provInfo(new crypt::ProviderInfo(keyName->pszName, wstrProvName.c_str(), 0, 0, keyName->dwLegacyKeySpec));
+                Scoped<mscapi::CryptoKey> cryptoKey(new CryptoKey(provInfo));
+                Scoped<ncrypt::Key> nKey(new ncrypt::Key);
+                nKey->Open(wstrProvName.c_str(), keyName->pszName, keyName->dwLegacyKeySpec, NCRYPT_SILENT_FLAG);
+                auto keyId = nKey->GetID();
+                auto certId = value->GetID();
+               
+                if (memcmp(keyId->data(), certId->data(), keyId->size()) == 0) {
+                    nKey->SetBytes(NCRYPT_CERTIFICATE_PROPERTY, Get()->Export());
+
+                    return;
+                }
+            }
+            catch (Scoped<core::Exception> e) {
+                continue;
+            }
+        }
+        THROW_EXCEPTION("Cannot add certificate to SmartCard. Private key not found");
     }
     CATCH_EXCEPTION
 }
@@ -430,11 +483,11 @@ Scoped<core::Object> mscapi::X509Certificate::GetPrivateKey()
             rsaKey->ItemByType(CKA_PUBLIC_EXPONENT)->SetValue(attrPublicExponent->data(), attrPublicExponent->size());
 
             // if (keyProv->dwKeySpec & AT_KEYEXCHANGE) {
-                rsaKey->ItemByType(CKA_DECRYPT)->To<core::AttributeBool>()->Set(true);
-                rsaKey->ItemByType(CKA_UNWRAP)->To<core::AttributeBool>()->Set(true);
+            rsaKey->ItemByType(CKA_DECRYPT)->To<core::AttributeBool>()->Set(true);
+            rsaKey->ItemByType(CKA_UNWRAP)->To<core::AttributeBool>()->Set(true);
             // }
             // if (keyProv->dwKeySpec & AT_SIGNATURE) {
-                rsaKey->ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
+            rsaKey->ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
             // }
 
             privateKey = rsaKey;
@@ -447,14 +500,14 @@ Scoped<core::Object> mscapi::X509Certificate::GetPrivateKey()
             ecKey->SetKey(Scoped<CryptoKey>(new CryptoKey(provInfo)));
 
             // Copy public data
-            Scoped<Buffer> attrEcParams= publicKey->ItemByType(CKA_EC_PARAMS)->ToBytes();
+            Scoped<Buffer> attrEcParams = publicKey->ItemByType(CKA_EC_PARAMS)->ToBytes();
             ecKey->ItemByType(CKA_EC_PARAMS)->SetValue(attrEcParams->data(), attrEcParams->size());
 
             // if (keyProv->dwKeySpec & AT_KEYEXCHANGE) {
-                ecKey->ItemByType(CKA_DERIVE)->To<core::AttributeBool>()->Set(true);
+            ecKey->ItemByType(CKA_DERIVE)->To<core::AttributeBool>()->Set(true);
             // }
             // if (keyProv->dwKeySpec & AT_SIGNATURE) {
-                ecKey->ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
+            ecKey->ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
             // }
 
             privateKey = ecKey;

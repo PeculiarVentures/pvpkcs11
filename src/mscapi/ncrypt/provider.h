@@ -42,10 +42,16 @@ namespace ncrypt {
         );
 
         Scoped<NCryptKeyNameList> GetKeyNames(
+            LPCWSTR pszScope = NULL,
             ULONG   dwFlags = 0
         );
 
         Scoped<std::wstring> GenerateRandomName();
+
+        Scoped<std::string> GetProviderName();
+
+    protected:
+        std::wstring wstrProvName;
     };
 
 }

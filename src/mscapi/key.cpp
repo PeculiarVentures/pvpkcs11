@@ -12,6 +12,17 @@ mscapi::CryptoKeyPair::CryptoKeyPair(
 }
 
 
+mscapi::ObjectKey::ObjectKey(LPWSTR pszProvName, DWORD dwProvType, LPWSTR pszScope)
+    : wstrProvName(pszProvName), dwProvType(dwProvType), wstrScope(pszScope)
+{
+}
+
+mscapi::ObjectKey::ObjectKey(Scoped<CryptoKey> key)
+    : ObjectKey()
+{
+    this->key = key;
+}
+
 Scoped<CryptoKey> mscapi::ObjectKey::GetKey()
 {
     LOGGER_FUNCTION_BEGIN;

@@ -106,6 +106,10 @@ namespace core {
 
         virtual CK_RV FindObjectsFinal();
 
+        virtual CK_RV DestroyObject(
+            CK_OBJECT_HANDLE  hObject   /* the object's handle */
+        );
+
         /**
          * C_SeedRandom mixes additional seed material into the token's
          * random number generator.

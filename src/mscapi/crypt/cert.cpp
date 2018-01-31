@@ -208,7 +208,11 @@ void crypt::Certificate::SetBytes(DWORD dwPropId, Scoped<Buffer> value)
     LOGGER_FUNCTION_BEGIN;
 
     try {
-        SetProperty(dwPropId, value->data());
+        BLOB blob = {
+            value->size(),
+            value->data()
+        };
+        SetProperty(dwPropId, (PBYTE)&blob);
     }
     CATCH_EXCEPTION
 }
@@ -267,6 +271,21 @@ void crypt::Certificate::Import(PUCHAR pbData, DWORD dwDataLen)
         }
 
         Set(context);
+    }
+    CATCH_EXCEPTION
+}
+
+Scoped<Buffer> crypt::Certificate::Export()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        Scoped<Buffer> res(new Buffer);
+        auto hCert = Get();
+        res->resize(hCert->cbCertEncoded);
+        memcpy(res->data(), hCert->pbCertEncoded, hCert->cbCertEncoded);
+
+        return res;
     }
     CATCH_EXCEPTION
 }

@@ -75,7 +75,8 @@
                         'Crypt32.lib',
                         'Advapi32.lib',
                         'Bcrypt.lib',
-                        'Ncrypt.lib'
+                        'Ncrypt.lib',
+                        'Winscard.lib'
                     ],
                     'msvs_settings': {
                         'VCCLCompilerTool': {
@@ -87,6 +88,11 @@
                         'src/mscapi/helper.cpp',
                         'src/mscapi/session.cpp',
                         'src/mscapi/slot.cpp',
+                        'src/mscapi/sys_session.cpp',
+                        'src/mscapi/sys_slot.cpp',
+                        'src/mscapi/scard.cpp',
+                        'src/mscapi/sc_session.cpp',
+                        'src/mscapi/sc_slot.cpp',
                         'src/mscapi/data.cpp',
                         'src/mscapi/key.cpp',
                         'src/mscapi/rsa.cpp',

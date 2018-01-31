@@ -8,11 +8,6 @@ using namespace core;
 		THROW_PKCS11_EXCEPTION(CKR_CRYPTOKI_NOT_INITIALIZED, "Module is not initialized");	\
 	}
 
-#define CHECK_SLOD_ID(slotID)									\
-	if (!(slotID >= 0 && slotID < this->slots.count())) {		\
-		return CKR_SLOT_ID_INVALID;								\
-	}
-
 #define GET_SESSION(hSession)                                           \
 	Scoped<Session> session = this->getSession(hSession);               \
 	if (!session) {                                                     \
@@ -107,7 +102,7 @@ CK_RV Module::GetSlotList(
                 return CKR_BUFFER_TOO_SMALL;
             }
             for (size_t i = 0; i < this->slots.count(); i++) {
-                pSlotList[i] = i;
+                pSlotList[i] = slots.items(i)->slotID;
             }
         }
         return CKR_OK;
@@ -163,8 +158,8 @@ CK_RV Module::GetMechanismList
     
     try {
         CHECK_INITIALIZED();
-        CHECK_SLOD_ID(slotID);
-        Scoped<Slot> slot = this->slots.items(slotID);
+
+        Scoped<Slot> slot = getSlot(slotID);
         
         return slot->GetMechanismList(pMechanismList, pulCount);
     }
@@ -182,8 +177,8 @@ CK_RV Module::GetMechanismInfo
     
     try {
         CHECK_INITIALIZED();
-        CHECK_SLOD_ID(slotID);
-        Scoped<Slot> slot = this->slots.items(slotID);
+        
+        Scoped<Slot> slot = getSlot(slotID);
         
         return slot->GetMechanismInfo(type, pInfo);
     }
@@ -202,9 +197,8 @@ CK_RV Module::InitToken
     
     try {
         CHECK_INITIALIZED();
-        CHECK_SLOD_ID(slotID);
-        
-        Scoped<Slot> slot = this->slots.items(slotID);
+
+        Scoped<Slot> slot = getSlot(slotID);
         
         return slot->InitToken(pPin, ulPinLen, pLabel);
     }
@@ -241,9 +235,8 @@ CK_RV Module::OpenSession
     
     try {
         CHECK_INITIALIZED();
-        CHECK_SLOD_ID(slotID);
         
-        Scoped<Slot> slot = this->slots.items(slotID);
+        Scoped<Slot> slot = getSlot(slotID);
         return slot->OpenSession(flags, pApplication, Notify, phSession);
     }
     CATCH_EXCEPTION
@@ -310,9 +303,8 @@ CK_RV Module::CloseAllSessions
     
     try {
         CHECK_INITIALIZED();
-        CHECK_SLOD_ID(slotID);
         
-        Scoped<Slot> slot = this->slots.items(slotID);
+        Scoped<Slot> slot = getSlot(slotID);
         return slot->CloseAllSessions();
     }
     CATCH_EXCEPTION
@@ -959,10 +951,13 @@ Scoped<Slot> Module::getSlot(
     LOGGER_FUNCTION_BEGIN;
     
     try {
-        if (!(slotID < slots.count())) {
-            THROW_PKCS11_EXCEPTION(CKR_SLOT_ID_INVALID, "Cannot get Slot by ID");
+        for (int i = 0; i < slots.count(); i++) {
+            Scoped<Slot> slot = slots.items(i);
+            if (slot->slotID == slotID) {
+                return slot;
+            }
         }
-        return slots.items(slotID);
+        THROW_PKCS11_EXCEPTION(CKR_SLOT_ID_INVALID, "Cannot get Slot by ID");
     }
     CATCH_EXCEPTION;
 }
@@ -1129,12 +1124,8 @@ CK_RV Module::DestroyObject(
         CHECK_INITIALIZED();
 
         Scoped<Session> session = getSession(hSession);
-        Scoped<Object> object = session->GetObject(hObject);
 
-        object->Destroy();
-        session->objects.remove(object);
-
-        return CKR_OK;
+        return session->DestroyObject(hObject);
     }
     CATCH_EXCEPTION
 }

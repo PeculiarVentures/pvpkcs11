@@ -30,10 +30,17 @@ CK_RV CryptoDigest::Once(
 )
 {
     try {
-        if (pDigest) {
-            Update(pData, ulDataLen);
+        try {
+            if (pDigest) {
+                Update(pData, ulDataLen);
+            }
+            Final(pDigest, pulDigestLen);
         }
-        return Final(pDigest, pulDigestLen);
+        catch (Scoped<core::Exception> e) {
+            active = false;
+            throw e;
+        }
+        return CKR_OK;
     }
     CATCH_EXCEPTION;
 }
