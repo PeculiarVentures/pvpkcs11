@@ -2,8 +2,8 @@
 #include "../core/objects/data.h"
 #include "crypt/cert.h"
 
-#define CERT_PV_REQUEST    (CERT_FIRST_USER_PROP_ID + 1)
-#define CERT_PV_ID         (CERT_FIRST_USER_PROP_ID + 2)
+#define CERT_PV_REQUEST    0x00008001
+#define CERT_PV_ID         0x00008002
 
 namespace mscapi {
 

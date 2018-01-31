@@ -9,7 +9,7 @@ void X509CertificateRequest::Assign(
     Scoped<crypt::Certificate>  cert
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         if (cert->HasProperty(CERT_PV_REQUEST) && cert->HasProperty(CERT_PV_ID)) {
@@ -35,7 +35,7 @@ CK_RV X509CertificateRequest::CreateValues(
     CK_ULONG          ulCount
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         core::Data::CreateValues(
@@ -43,10 +43,13 @@ CK_RV X509CertificateRequest::CreateValues(
             ulCount
         );
 
-        core::Template tmpl(pTemplate, ulCount);
-        auto attrValue = tmpl.GetBytes(CKA_VALUE, true);
+        CERT_REQUEST_INFO* requestInfo = NULL;
 
-        // try to decode request
+        core::Template tmpl(pTemplate, ulCount);
+        Scoped<Buffer> attrValue = tmpl.GetBytes(CKA_VALUE, true);
+        Scoped<Buffer> attrObjectId = tmpl.GetBytes(CKA_OBJECT_ID, false);
+
+#pragma region Decode request
         Buffer decoded;
         ULONG ulDecodedLen;
         if (!CryptDecodeObject(
@@ -72,14 +75,14 @@ CK_RV X509CertificateRequest::CreateValues(
         )) {
             THROW_MSCAPI_EXCEPTION("CryptDecodeObject");
         }
+        requestInfo = (CERT_REQUEST_INFO*)decoded.data();
+#pragma endregion
 
-        CERT_REQUEST_INFO* requestInfo = (CERT_REQUEST_INFO*)decoded.data();
-
-        // create PCCERT_CONTEXT for request keeping
+#pragma region Create PCCERT_CONTEXT for request keeping
         PCCERT_CONTEXT context = CertCreateSelfSignCertificate(
             NULL,
             &requestInfo->Subject,
-            CERT_CREATE_SELFSIGN_NO_SIGN,
+            CERT_CREATE_SELFSIGN_NO_SIGN | CERT_CREATE_SELFSIGN_NO_KEY_INFO,
             NULL,
             NULL,
             NULL,
@@ -90,35 +93,21 @@ CK_RV X509CertificateRequest::CreateValues(
         if (!context) {
             THROW_MSCAPI_EXCEPTION("CertCreateSelfSignCertificate");
         }
+        cert = Scoped<crypt::Certificate>(new crypt::Certificate(context));
+#pragma endregion
 
-        cert = Scoped<crypt::Certificate>(new crypt::Certificate);
-        cert->Set(context);
-
-        // Remove private key for self-signed certificate
-        {
-            auto keyProvInfo = cert->GetBytes(CERT_KEY_PROV_INFO_PROP_ID);
-            PCRYPT_KEY_PROV_INFO pKeyProvInfo = (PCRYPT_KEY_PROV_INFO)keyProvInfo->data();
-
-            ncrypt::Provider prov;
-            prov.Open(MS_KEY_STORAGE_PROVIDER, 0);
-            auto requestKey = prov.GetKey(pKeyProvInfo->pwszContainerName, pKeyProvInfo->dwKeySpec, pKeyProvInfo->dwFlags);
-            requestKey->Delete(0);
-
-            // remove CERT_KEY_PROV_INFO property
-            if (!CertSetCertificateContextProperty(cert->Get(), CERT_KEY_PROV_INFO_PROP_ID, 0, NULL)) {
-                THROW_MSCAPI_EXCEPTION("CertSetCertificateContextProperty");
-            }
-        }
-
+#pragma region Set attributes
         cert->SetBytes(CERT_PV_REQUEST, attrValue);
-        auto attrObjectId = tmpl.GetBytes(CKA_OBJECT_ID, false);
         cert->SetBytes(CERT_PV_ID, attrObjectId);
+#pragma endregion
 
         if (tmpl.GetBool(CKA_TOKEN, false, false)) {
+#pragma region Add certificate to storage
             auto requestStore = Scoped<crypt::CertificateStorage>(new crypt::CertificateStorage);
             requestStore->Open(PV_STORE_NAME_REQUEST);
 
             requestStore->AddCertificate(cert, CERT_STORE_ADD_ALWAYS);
+#pragma endregion
         }
 
         return CKR_OK;
@@ -127,12 +116,12 @@ CK_RV X509CertificateRequest::CreateValues(
 }
 
 CK_RV X509CertificateRequest::CopyValues(
-    Scoped<Object>    object,   
+    Scoped<Object>    object,
     CK_ATTRIBUTE_PTR  pTemplate,
-    CK_ULONG          ulCount   
+    CK_ULONG          ulCount
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         core::Data::CopyValues(
@@ -164,7 +153,7 @@ CK_RV X509CertificateRequest::CopyValues(
 
 CK_RV X509CertificateRequest::Destroy()
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
     try {
         cert->DeleteFromStore();

@@ -208,7 +208,11 @@ void crypt::Certificate::SetBytes(DWORD dwPropId, Scoped<Buffer> value)
     LOGGER_FUNCTION_BEGIN;
 
     try {
-        SetProperty(dwPropId, value->data());
+        BLOB blob = {
+            value->size(),
+            value->data()
+        };
+        SetProperty(dwPropId, (PBYTE)&blob);
     }
     CATCH_EXCEPTION
 }
