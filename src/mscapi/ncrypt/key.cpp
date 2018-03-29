@@ -168,7 +168,7 @@ void ncrypt::Key::SetStringW(LPCWSTR pszProperty, Scoped<std::wstring> value, DW
     LOGGER_FUNCTION_BEGIN;
 
     try {
-        SetString(pszProperty, Scoped<std::string>(new std::string(value->begin(), value->end())), dwFlags);
+        SetParam(pszProperty, (PBYTE)value->c_str(), value->length() * sizeof(WCHAR), dwFlags);
     }
     CATCH_EXCEPTION
 }

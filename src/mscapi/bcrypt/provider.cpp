@@ -105,7 +105,7 @@ Scoped<bcrypt::Key> bcrypt::Provider::GenerateKey(
             THROW_NT_EXCEPTION(status, "BCryptGenerateSymmetricKey");
         }
 
-        key;
+        return key;
     }
     CATCH_EXCEPTION
 }

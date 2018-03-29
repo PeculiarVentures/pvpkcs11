@@ -1635,7 +1635,7 @@ void LoadSCardSlots()
 #pragma endregion
     }
     catch (Scoped<core::Exception> e) {
-        if (e->name.compare(SCARD_EXCEPTION_NAME)) {
+        if (e->name.compare(SCARD_EXCEPTION_NAME) == 0) {
             LOGGER_ERROR(e->what());
         }
         else {

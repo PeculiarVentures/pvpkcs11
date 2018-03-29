@@ -170,7 +170,7 @@ Scoped<Key> crypt::Key::Copy(DWORD dwFlags)
             THROW_MSCAPI_EXCEPTION("CryptDuplicateKey");
         }
 
-        key;
+        return key;
     }
     CATCH_EXCEPTION
 }

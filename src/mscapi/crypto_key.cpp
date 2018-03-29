@@ -202,6 +202,8 @@ crypt::Key * CryptoKey::GetCKey()
         if (!res) {
             THROW_EXCEPTION("Key is not CAPI");
         }
+
+        return res;
     }
     CATCH_EXCEPTION
 }
@@ -217,6 +219,8 @@ ncrypt::Key * CryptoKey::GetNKey()
         if (!res) {
             THROW_EXCEPTION("Key is not CNG");
         }
+
+        return res;
     }
     CATCH_EXCEPTION
 }

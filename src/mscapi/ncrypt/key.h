@@ -43,7 +43,6 @@ namespace ncrypt {
         void SetStringW(LPCWSTR pszProperty, Scoped<std::wstring> value, DWORD dwFlags = 0);
         void SetNumber(LPCWSTR pszProperty, DWORD value, DWORD dwFlags = 0);
 
-    protected:
         void GetParam(LPCWSTR pszProperty, PBYTE pbData, PDWORD pdwDataLen, DWORD dwFlags = 0);
         void SetParam(LPCWSTR pszProperty, PBYTE pbData, DWORD dwDataLen, DWORD dwFlags = 0);
     };
