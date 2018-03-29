@@ -114,6 +114,16 @@ Scoped<Buffer> Template::GetBytes(CK_ULONG ulType, CK_BBOOL bRequired, const cha
     CATCH_EXCEPTION;
 }
 
+Scoped<std::string> core::Template::GetString(
+    CK_ULONG ulType, 
+    CK_BBOOL bRequired, 
+    const char * cDefaultValue
+)
+{
+    auto buf = GetBytes(ulType, bRequired, cDefaultValue);
+    return Scoped<std::string>(new std::string((char *)buf->data(), buf->size()));
+}
+
 bool Template::HasAttribute(
     CK_ATTRIBUTE_TYPE type
 )
