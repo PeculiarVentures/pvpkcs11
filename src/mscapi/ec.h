@@ -20,16 +20,20 @@ namespace mscapi {
         );
     };
 
-    class EcPrivateKey : public core::EcPrivateKey, public ObjectKey {
+    class EcPrivateKey : public core::EcPrivateKey, public ObjectKey {   
     public:
         EcPrivateKey(LPWSTR pszProvName = MS_KEY_STORAGE_PROVIDER, DWORD dwProvType = 0, LPWSTR pszScope = L"") :
             core::EcPrivateKey(),
             ObjectKey(pszProvName, dwProvType, pszScope)
-        {}
+        {
+            Init();
+        }
         EcPrivateKey(Scoped<CryptoKey> key) :
             core::EcPrivateKey(),
             ObjectKey(key)
-        {}
+        {
+            Init();
+        }
 
         CK_RV CopyValues
         (
@@ -41,6 +45,7 @@ namespace mscapi {
         CK_RV Destroy();
 
     protected:
+        void Init();
         void FillPublicKeyStruct();
         void FillPrivateKeyStruct();
 

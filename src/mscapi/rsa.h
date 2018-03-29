@@ -22,7 +22,10 @@ namespace mscapi {
         RsaPrivateKey(LPWSTR pszProvName = MS_KEY_STORAGE_PROVIDER, DWORD dwProvType = 0, LPWSTR pszScope = L"") :
             core::RsaPrivateKey(),
             ObjectKey(pszProvName, dwProvType, pszScope)
-        {};
+        {
+            Add(core::AttributeBytes::New(CKA_PIN_FRIENDLY_NAME, NULL, 0, PVF_13));
+            Add(core::AttributeBytes::New(CKA_PIN_DESCRIPTION, NULL, 0, PVF_13));
+        };
 
         CK_RV CopyValues(
             Scoped<core::Object>    object,     /* the object which must be copied */
@@ -35,6 +38,7 @@ namespace mscapi {
     protected:
         void FillPublicKeyStruct();
         void FillPrivateKeyStruct();
+        void FillPinData();
 
         CK_RV GetValue(
             CK_ATTRIBUTE_PTR attr

@@ -138,7 +138,13 @@ void LinkKeyToCertificate(
     CATCH_EXCEPTION
 }
 
-Scoped<Key> ncrypt::Provider::SetKey(Key* key, LPCWSTR pszBlobType, LPCWSTR pszContainerName, bool extractable)
+Scoped<Key> ncrypt::Provider::SetKey(
+    Key*                key,
+    LPCWSTR             pszBlobType,
+    LPCWSTR             pszContainerName,
+    bool                extractable,
+    NCRYPT_UI_POLICY    *uiPolicy
+)
 {
     LOGGER_FUNCTION_BEGIN;
 
@@ -160,6 +166,12 @@ Scoped<Key> ncrypt::Provider::SetKey(Key* key, LPCWSTR pszBlobType, LPCWSTR pszC
         // Key usage
         auto attrKeyUsage = key->GetNumber(NCRYPT_KEY_USAGE_PROPERTY);
         nkey->SetNumber(NCRYPT_KEY_USAGE_PROPERTY, attrKeyUsage, NCRYPT_PERSIST_FLAG);
+
+        // Protect key
+        if (uiPolicy) {
+            nkey->SetParam(NCRYPT_UI_POLICY_PROPERTY, (PBYTE)uiPolicy, sizeof(NCRYPT_UI_POLICY));
+        }
+
 
         nkey->Finalize();
 

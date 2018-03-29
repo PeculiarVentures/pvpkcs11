@@ -63,10 +63,10 @@ Scoped<CryptoKeyPair> EcKey::Generate(
 
         // Key Usage
         ULONG keyUsage = 0;
-        if (publicTemplate->GetBool(CKA_SIGN, false, false) || publicTemplate->GetBool(CKA_VERIFY, false, false)) {
+        if (privateTemplate->GetBool(CKA_SIGN, false, false) || publicTemplate->GetBool(CKA_VERIFY, false, false)) {
             keyUsage |= NCRYPT_ALLOW_SIGNING_FLAG;
         }
-        if (publicTemplate->GetBool(CKA_DERIVE, false, false)) {
+        if (privateTemplate->GetBool(CKA_DERIVE, false, false)) {
             keyUsage |= NCRYPT_ALLOW_KEY_AGREEMENT_FLAG;
         }
         nKey->SetNumber(NCRYPT_KEY_USAGE_PROPERTY, keyUsage);
@@ -185,6 +185,12 @@ CK_RV EcPrivateKey::GetValue(
     CATCH_EXCEPTION
 }
 
+void mscapi::EcPrivateKey::Init()
+{
+    Add(core::AttributeBytes::New(CKA_PIN_FRIENDLY_NAME, NULL, 0, PVF_13));
+    Add(core::AttributeBytes::New(CKA_PIN_DESCRIPTION, NULL, 0, PVF_13));
+}
+
 CK_RV EcPrivateKey::CopyValues(
     Scoped<core::Object>    object,     /* the object which must be copied */
     CK_ATTRIBUTE_PTR        pTemplate,  /* specifies attributes */
@@ -212,19 +218,68 @@ CK_RV EcPrivateKey::CopyValues(
         auto attrExtractable = ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->ToValue();
         
         std::wstring wstrContainerName = L"";
+        auto wstrRandomName = provider.GenerateRandomName();
         if (wstrScope.length()) {
-            wstrContainerName += wstrScope + provider.GenerateRandomName()->c_str();
+            wstrContainerName += wstrScope + wstrRandomName->c_str();
         }
         else {
-            wstrContainerName = provider.GenerateRandomName()->c_str();
+            wstrContainerName = wstrRandomName->c_str();
         }
 
-        auto nkey = provider.SetKey(
-            originalKey->GetKey()->GetNKey(),
-            BCRYPT_ECCPRIVATE_BLOB,
-            attrToken ? wstrContainerName.c_str() : NULL,
-            (attrToken && attrExtractable) || !attrToken
-        );
+        Scoped<ncrypt::Key> nkey;
+        if (attrToken && !wstrScope.length()) {
+            Scoped<std::wstring> wstrFriendlyName = wstrRandomName;
+            Scoped<std::wstring> wstrDescription(new std::wstring(L""));
+            NCRYPT_UI_POLICY policy;
+            policy.dwVersion = 1;
+            policy.dwFlags = NCRYPT_UI_FORCE_HIGH_PROTECTION_FLAG;
+            policy.pszCreationTitle = NULL;
+            {
+                // CKA_PIN_FRIENDLY_NAME
+                auto value = ItemByType(CKA_PIN_FRIENDLY_NAME)->ToString();
+                if (value->length() > 0) {
+                    wstrFriendlyName = Scoped<std::wstring>(new std::wstring(value->begin(), value->end()));
+                }
+            }
+
+            {
+                // CKA_PIN_DESCRIPTION
+                auto value = ItemByType(CKA_PIN_DESCRIPTION)->ToString();
+                if (value->length() > 0) {
+                    wstrDescription = Scoped<std::wstring>(new std::wstring(value->begin(), value->end()));
+                }
+                else {
+                    if (ItemByType(CKA_SIGN)->ToBool()) {
+                        *wstrDescription.get() += L"Signing";
+                    }
+                    if (ItemByType(CKA_DERIVE)->ToBool()) {
+                        if (wstrDescription->length() > 0) {
+                            *wstrDescription.get() += L", ";
+                        }
+                        *wstrDescription.get() += L"Key derivation";
+                    }
+                }
+            }
+            policy.pszFriendlyName = wstrFriendlyName->c_str();
+            policy.pszDescription = wstrDescription->c_str();
+
+            nkey = provider.SetKey(
+                originalKey->GetKey()->GetNKey(),
+                BCRYPT_ECCPRIVATE_BLOB,
+                attrToken ? wstrContainerName.c_str() : NULL,
+                (attrToken && attrExtractable) || !attrToken,
+                &policy
+            );
+        }
+        else {
+            nkey = provider.SetKey(
+                originalKey->GetKey()->GetNKey(),
+                BCRYPT_ECCPRIVATE_BLOB,
+                attrToken ? wstrContainerName.c_str() : NULL,
+                (attrToken && attrExtractable) || !attrToken,
+                NULL
+            );
+        }
         
         SetKey(Scoped<CryptoKey>(new CryptoKey(nkey)));
 

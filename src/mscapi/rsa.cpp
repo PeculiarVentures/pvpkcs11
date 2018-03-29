@@ -52,11 +52,11 @@ Scoped<CryptoKeyPair> RsaKey::Generate(
         nKey->SetNumber(NCRYPT_LENGTH_PROPERTY, publicTemplate->GetNumber(CKA_MODULUS_BITS, true));
         // Key Usage
         ULONG keyUsage = 0;
-        if (publicTemplate->GetBool(CKA_SIGN, false, false) || publicTemplate->GetBool(CKA_VERIFY, false, false)) {
+        if (privateTemplate->GetBool(CKA_SIGN, false, false) || publicTemplate->GetBool(CKA_VERIFY, false, false)) {
             keyUsage |= NCRYPT_ALLOW_SIGNING_FLAG;
         }
-        if (publicTemplate->GetBool(CKA_ENCRYPT, false, false) || publicTemplate->GetBool(CKA_DECRYPT, false, false) ||
-            publicTemplate->GetBool(CKA_WRAP, false, false) || publicTemplate->GetBool(CKA_UNWRAP, false, false)) {
+        if (publicTemplate->GetBool(CKA_ENCRYPT, false, false) || privateTemplate->GetBool(CKA_DECRYPT, false, false) ||
+            publicTemplate->GetBool(CKA_WRAP, false, false) || privateTemplate->GetBool(CKA_UNWRAP, false, false)) {
             keyUsage |= NCRYPT_ALLOW_DECRYPT_FLAG;
         }
         nKey->SetNumber(NCRYPT_KEY_USAGE_PROPERTY, keyUsage);
@@ -108,6 +108,7 @@ void RsaPrivateKey::FillPublicKeyStruct()
         }
         catch (...) {
             // Cannot get NCRYPT_KEY_USAGE_PROPERTY
+            LOGGER_ERROR("Cannot get NCRYPT_KEY_USAGE_PROPERTY");
         }
         if (keyUsage & NCRYPT_ALLOW_SIGNING_FLAG) {
             ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
@@ -156,6 +157,32 @@ void RsaPrivateKey::FillPrivateKeyStruct()
     CATCH_EXCEPTION
 }
 
+void mscapi::RsaPrivateKey::FillPinData()
+{
+    LOGGER_FUNCTION_BEGIN;
+
+    try {
+        NCRYPT_UI_POLICY policy;
+        ULONG size = sizeof(NCRYPT_UI_POLICY);
+        GetKey()->GetNKey()->GetParam(NCRYPT_UI_POLICY_PROPERTY, (PBYTE)&policy, &size);
+
+        std::wstring wstrDesciption(L"");
+        if (policy.pszFriendlyName) {
+            std::wstring wstrValue(policy.pszFriendlyName);
+            std::string strValue(wstrValue.begin(), wstrValue.end());
+
+            ItemByType(CKA_PIN_FRIENDLY_NAME)->SetValue((CK_VOID_PTR)strValue.c_str(), strValue.length());
+        }
+        if (policy.pszDescription) {
+            std::wstring wstrValue(policy.pszDescription);
+            std::string strValue(wstrValue.begin(), wstrValue.end());
+
+            ItemByType(CKA_PIN_DESCRIPTION)->SetValue((CK_VOID_PTR)strValue.c_str(), strValue.length());
+        }
+    }
+    CATCH_EXCEPTION
+}
+
 CK_RV RsaPrivateKey::GetValue
 (
     CK_ATTRIBUTE_PTR  attr
@@ -187,6 +214,11 @@ CK_RV RsaPrivateKey::GetValue
             }
             break;
         }
+        case CKA_PIN_FRIENDLY_NAME:
+        case CKA_PIN_DESCRIPTION:
+            if (ItemByType(attr->type)->IsEmpty()) {
+                FillPinData();
+            }
         }
 
         return CKR_OK;
@@ -221,19 +253,68 @@ CK_RV RsaPrivateKey::CopyValues(
         auto attrExtractable = ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->ToValue();
 
         std::wstring wstrContainerName = L"";
+        auto wstrRandomName = provider.GenerateRandomName();
         if (wstrScope.length()) {
-            wstrContainerName += wstrScope + provider.GenerateRandomName()->c_str();
+            wstrContainerName += wstrScope + wstrRandomName->c_str();
         }
         else {
-            wstrContainerName = provider.GenerateRandomName()->c_str();
+            wstrContainerName = wstrRandomName->c_str();
         }
 
-        Scoped<ncrypt::Key> nkey = provider.SetKey(
-            originalKey->GetKey()->GetNKey(),
-            LEGACY_RSAPRIVATE_BLOB,
-            attrToken ? wstrContainerName.c_str() : NULL,
-            (attrToken && attrExtractable) || !attrToken
-        );
+        Scoped<ncrypt::Key> nkey;
+        if (attrToken && !wstrScope.length()) {
+            Scoped<std::wstring> wstrFriendlyName = wstrRandomName;
+            Scoped<std::wstring> wstrDescription(new std::wstring(L""));
+            NCRYPT_UI_POLICY policy;
+            policy.dwVersion = 1;
+            policy.dwFlags = NCRYPT_UI_FORCE_HIGH_PROTECTION_FLAG;
+            policy.pszCreationTitle = NULL;
+            {
+                // CKA_PIN_FRIENDLY_NAME
+                auto value = ItemByType(CKA_PIN_FRIENDLY_NAME)->ToString();
+                if (value->length() > 0) {
+                    wstrFriendlyName = Scoped<std::wstring>(new std::wstring(value->begin(), value->end()));
+                }
+            }
+
+            {
+                // CKA_PIN_DESCRIPTION
+                auto value = ItemByType(CKA_PIN_DESCRIPTION)->ToString();
+                if (value->length() > 0) {
+                    wstrDescription = Scoped<std::wstring>(new std::wstring(value->begin(), value->end()));
+                }
+                else {
+                    if (ItemByType(CKA_SIGN)->ToBool()) {
+                        *wstrDescription.get() += L"Signing";
+                    }
+                    if (ItemByType(CKA_DECRYPT)->ToBool()) {
+                        if (wstrDescription->length() > 0) {
+                            *wstrDescription.get() += L", ";
+                        }
+                        *wstrDescription.get() += L"Encryption";
+                    }
+                }
+            }
+            policy.pszFriendlyName = wstrFriendlyName->c_str();
+            policy.pszDescription = wstrDescription->c_str();
+
+            nkey = provider.SetKey(
+                originalKey->GetKey()->GetNKey(),
+                LEGACY_RSAPRIVATE_BLOB,
+                attrToken ? wstrContainerName.c_str() : NULL,
+                (attrToken && attrExtractable) || !attrToken,
+                &policy
+            );
+        }
+        else {
+            nkey = provider.SetKey(
+                originalKey->GetKey()->GetNKey(),
+                LEGACY_RSAPRIVATE_BLOB,
+                attrToken ? wstrContainerName.c_str() : NULL,
+                (attrToken && attrExtractable) || !attrToken, 
+                NULL
+            );
+        }
 
         SetKey(nkey);
 

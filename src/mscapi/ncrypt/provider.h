@@ -35,10 +35,11 @@ namespace ncrypt {
 
         Scoped<Key> GetKey(LPCWSTR pszKeyName, DWORD dwLegacyKeySpec, DWORD dwFlags = 0);
         Scoped<Key> SetKey(
-            Key*         key,
-            LPCWSTR      pszBlobType,
-            LPCWSTR      pszContainerName,
-            bool         extractable
+            Key*                key,
+            LPCWSTR             pszBlobType,
+            LPCWSTR             pszContainerName,
+            bool                extractable,
+            NCRYPT_UI_POLICY    *uiPolicy
         );
 
         Scoped<NCryptKeyNameList> GetKeyNames(
