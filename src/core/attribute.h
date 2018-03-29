@@ -77,7 +77,7 @@ namespace core {
         CK_BBOOL ToBool();
         CK_ULONG ToNumber();
         Scoped<Buffer> ToBytes();
-        std::string ToString();
+        Scoped<std::string> ToString();
 
         template<typename T>
         T* To() {

@@ -137,7 +137,10 @@ std::string GetAttributeName(
             return std::string(item->name);
         }
     }
-    return std::string("UNKNOWN");
+
+    char num[64] = { 0 };
+    sprintf(num, "UNKNOWN (0x%08X)", type);
+    return std::string(num);
 }
 
 std::string Attribute::GetName(CK_ULONG type)
@@ -204,13 +207,13 @@ Scoped<Buffer> Attribute::ToBytes()
     CATCH_EXCEPTION;
 }
 
-std::string Attribute::ToString()
+Scoped<std::string> Attribute::ToString()
 {
 	LOGGER_FUNCTION_BEGIN;
 
     try {
         Scoped<Buffer> bytes = To<AttributeBytes>()->ToValue();
-        return std::string((char*)bytes->data(), bytes->size());
+        return Scoped<std::string>(new std::string((char*)bytes->data(), bytes->size()));
     }
     CATCH_EXCEPTION;
 }
