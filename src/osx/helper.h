@@ -9,8 +9,8 @@
 
 namespace osx {
     
-    std::string GetOSXErrorAsString(OSStatus status, const char* funcName);
-    void CopyObjectAttribute(core::Object* dst, core::Object * src, CK_ATTRIBUTE_TYPE type);
+    std::string GetOSXErrorAsString(OSStatus status, const char * _Nonnull funcName);
+    void CopyObjectAttribute(core::Object * _Nonnull dst, core::Object * _Nonnull src, CK_ATTRIBUTE_TYPE type);
     
 #define OSX_EXCEPTION_NAME "OSXException"
     
@@ -20,60 +20,88 @@ throw Scoped<core::Exception>(new core::Pkcs11Exception(OSX_EXCEPTION_NAME, CKR_
     template<typename T>
     class CFRef {
     public:
-        CFRef() : value(NULL), free(CFRelease) {
-            LOGGER_TRACE("CFRef init value:%p %s", value, typeid(value).name());
-        }
+        CFRef() : handle(NULL) {}
         
-        CFRef(T value) : value(value), free(CFRelease) {
-            LOGGER_TRACE("CFRef init value:%p %s", value, typeid(value).name());
-        }
-        
-        CFRef(T value, void (*free)(const void* ref)) : value(value), free(free) {
-            LOGGER_TRACE("CFRef init value:%p %s", value, typeid(value).name());
-        }
+        CFRef(T _Nullable value) : handle(value) {}
         
         ~CFRef(){
-            if (value && free) {
-                LOGGER_TRACE("CFRef relese value:%p %s", value, typeid(value).name());
-                free(value);
-                value = NULL;
+            if (handle && free) {
+                free(handle);
+                handle = NULL;
             }
         }
         
-        T Get() {
-            return value;
+        void Release() {
+            if (!IsEmpty()) {
+                CFRelease(handle);
+            }
         }
         
-        CFRef<T>& operator=(const T data) {
-            LOGGER_TRACE("Set value:%p %s", data, typeid(value).name());
-            value = data;
+        T _Nonnull Get() {
+            if (IsEmpty()) {
+                THROW_EXCEPTION("CFRef has nullable handle");
+            }
+            return handle;
+        }
+        
+        T _Nonnull operator*() {
+            return Get();
+        }
+        
+        T* _Nullable Ref() {
+            return &handle;
+        }
+        
+        T* _Nullable operator&() {
+            return &handle;
+        }
+        
+        void Set(T _Nullable value) {
+            if (value != handle) {
+                handle = value;
+            }
+        }
+        
+        CFRef<T>& operator=(const T _Nullable data) {
+            Set(data);
             return *this;
         }
         
-        T* operator&() {
-            return &value;
+        Boolean IsEmpty() {
+            return !handle;
         }
         
-        T operator*() {
-            return value;
+        T Retain() {
+            return (T) CFRetain(Get());
         }
         
-        T get() {
-            return value;
-        }
-        
-        bool IsEmpty() {
-            return !value;
+        Boolean IsEqual(CFTypeRef _Nullable value) {
+            return CFEqual(handle, value);
         }
         
     protected:
-        T value;
-        void (*free)(const void* ref);
+        T handle;
     };
     
-    static CFStringRef kSecAttrLabelModule = (CFSTR("WebCrypto Local"));
+    static const CFStringRef _Nonnull kSecAttrLabelModule = (CFSTR("WebCrypto Local"));
     
-    CK_RV SecItemDestroy(CFTypeRef item, CFStringRef itemClass);
+    /*!
+     @function SecItemDestroy
+        Removes item from keychain
+     
+     @param item
+        SecKey and SecCertificate which must be removed
+     */
+    void SecItemDestroy(CFTypeRef _Nonnull item);
+
+    /*!
+     @function CFDictionaryCreateMutable
+        Creates a new empty mutable dictionary
+     
+     @result
+        A reference to the new mutable CFDictionary.
+    */
+    CFMutableDictionaryRef _Nonnull CFDictionaryCreateMutable();
 
 }
 

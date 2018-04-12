@@ -17,29 +17,36 @@ std::string osx::GetOSXErrorAsString
 }
 
 
-CK_RV osx::SecItemDestroy(CFTypeRef item, CFStringRef itemClass)
+void osx::SecItemDestroy(CFTypeRef item)
 {
     LOGGER_FUNCTION_BEGIN;
     
     try {
         OSStatus status;
         
-        CFRef<CFMutableDictionaryRef> matchAttrs = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                                0,
-                                                                                &kCFTypeDictionaryKeyCallBacks,
-                                                                                &kCFTypeDictionaryValueCallBacks);
-        if (matchAttrs.IsEmpty()) {
-            THROW_EXCEPTION("Error on CFDictionaryCreateMutable");
+        if (!item) {
+            THROW_PARAM_REQUIRED_EXCEPTION("item");
         }
+        
+        CFRef<CFMutableDictionaryRef> matchAttrs = CFDictionaryCreateMutable();
+        
+        CFRef<CFStringRef> itemClass;
+        CFTypeID itemTypeID = CFGetTypeID(item);
+        if (itemTypeID == SecKeyGetTypeID()) {
+            itemClass = kSecClassKey;
+        } else if (itemTypeID == SecCertificateGetTypeID()) {
+            itemClass = kSecClassCertificate;
+        }
+        
         // kSecClass
-        CFDictionarySetValue(*matchAttrs, kSecClass, itemClass);
+        CFDictionarySetValue(*matchAttrs, kSecClass, *itemClass);
         // kSecMatchItemList
-        CFTypeRef items[] = {item};
+        const void * items[] = { item };
         CFRef<CFArrayRef> cfItems = CFArrayCreate(kCFAllocatorDefault,
-                                                  (const void **) &items,
-                                                  1,
-                                                  NULL);
-        CFDictionaryAddValue(*matchAttrs, kSecMatchItemList, *cfItems);
+                                                  items,
+                                                  ARRAY_SIZE(items),
+                                                  &kCFTypeArrayCallBacks);
+        CFDictionarySetValue(*matchAttrs, kSecMatchItemList, *cfItems);
         
         status = SecItemDelete(*matchAttrs);
         if (status) {
@@ -65,6 +72,18 @@ void osx::CopyObjectAttribute(core::Object* dst, core::Object * src, CK_ATTRIBUT
         
         Scoped<Buffer> buf = src->ItemByType(type)->ToBytes();
         dst->ItemByType(type)->SetValue(buf->data(), buf->size());
+    }
+    CATCH_EXCEPTION
+}
+
+CFMutableDictionaryRef osx::CFDictionaryCreateMutable() {
+    LOGGER_FUNCTION_BEGIN;
+    
+    try {
+        return CFDictionaryCreateMutable(kCFAllocatorDefault,
+                                         0,
+                                         &kCFTypeDictionaryKeyCallBacks,
+                                         &kCFTypeDictionaryValueCallBacks);
     }
     CATCH_EXCEPTION
 }
