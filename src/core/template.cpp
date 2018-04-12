@@ -25,7 +25,7 @@ CK_ATTRIBUTE_PTR Template::GetAttributeByIndex(CK_ULONG ulIndex)
     return &pTemplate[ulIndex];
 }
 
-CK_ATTRIBUTE_PTR Template::GetAttributeByType(CK_ULONG ulType)
+CK_ATTRIBUTE_PTR Template::GetAttributeByType(CK_ATTRIBUTE_TYPE ulType)
 {
     for (CK_ULONG ulIndex = 0; ulIndex < ulTemplateLen; ulIndex++) {
         CK_ATTRIBUTE_PTR attr = &pTemplate[ulIndex];
@@ -36,7 +36,7 @@ CK_ATTRIBUTE_PTR Template::GetAttributeByType(CK_ULONG ulType)
     return NULL;
 }
 
-CK_ULONG Template::GetNumber(CK_ULONG ulType, CK_BBOOL bRequired, CK_ULONG ulDefaulValue)
+CK_ULONG Template::GetNumber(CK_ATTRIBUTE_TYPE ulType, CK_BBOOL bRequired, CK_ULONG ulDefaulValue)
 {
     try {
         CK_ATTRIBUTE_PTR attr = GetAttributeByType(ulType);
@@ -63,7 +63,7 @@ CK_ULONG Template::GetNumber(CK_ULONG ulType, CK_BBOOL bRequired, CK_ULONG ulDef
     CATCH_EXCEPTION;
 }
 
-CK_BBOOL Template::GetBool(CK_ULONG ulType, CK_BBOOL bRequired, CK_BBOOL bDefaulValue)
+CK_BBOOL Template::GetBool(CK_ATTRIBUTE_TYPE ulType, CK_BBOOL bRequired, CK_BBOOL bDefaulValue)
 {
     try {
         CK_ATTRIBUTE_PTR attr = GetAttributeByType(ulType);
@@ -90,7 +90,7 @@ CK_BBOOL Template::GetBool(CK_ULONG ulType, CK_BBOOL bRequired, CK_BBOOL bDefaul
     CATCH_EXCEPTION;
 }
 
-Scoped<Buffer> Template::GetBytes(CK_ULONG ulType, CK_BBOOL bRequired, const char* cDefaultValue)
+Scoped<Buffer> Template::GetBytes(CK_ATTRIBUTE_TYPE ulType, CK_BBOOL bRequired, const char* cDefaultValue)
 {
     try {
         CK_ATTRIBUTE_PTR attr = GetAttributeByType(ulType);
