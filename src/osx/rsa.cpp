@@ -233,7 +233,7 @@ CK_RV osx::RsaPrivateKey::Destroy()
     
     try {
         if (ItemByType(CKA_TOKEN)->ToBool()) {
-            return SecItemDestroy(value.Get(), kSecClassKey);
+            SecItemDestroy(value.Get());
         }
         return CKR_OK;
     }
@@ -441,7 +441,7 @@ CK_RV osx::RsaPublicKey::Destroy()
     
     try {
         if (ItemByType(CKA_TOKEN)->ToBool()) {
-            return SecItemDestroy(value.Get(), kSecClassKey);
+            SecItemDestroy(value.Get());
         }
         return CKR_OK;
     }

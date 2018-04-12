@@ -33,10 +33,9 @@ void osx::X509Certificate::Assign
     LOGGER_FUNCTION_BEGIN;
     
     try {
-        if (free) {
-            value = cert;
-        } else {
-            value = CFRef<SecCertificateRef>(cert, NULL);
+        value = cert;
+        if (!free) {
+            value.Retain();
         }
         
         // CKA_SUBJECT
@@ -206,7 +205,7 @@ CK_RV osx::X509Certificate::Destroy()
     
     try {
         if (ItemByType(CKA_TOKEN)->ToBool()) {
-            SecItemDestroy(value.Get(), kSecClassCertificate);
+            SecItemDestroy(value.Get());
         }
         return CKR_OK;
     }
