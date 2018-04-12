@@ -56,3 +56,7 @@ void SET_STRING(CK_UTF8CHAR* storage, const char* data, int size);
 #define CKA_X509_CHAIN CKA_VENDOR_DEFINED | 0x00000101
 #define CKA_PIN_FRIENDLY_NAME CKA_VENDOR_DEFINED | 0x00000102
 #define CKA_PIN_DESCRIPTION CKA_VENDOR_DEFINED | 0x00000103
+
+#define ARRAY_SIZE(a)                               \
+((sizeof(a) / sizeof(*(a))) /                     \
+static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))
