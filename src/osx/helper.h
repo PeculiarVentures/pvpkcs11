@@ -25,10 +25,7 @@ throw Scoped<core::Exception>(new core::Pkcs11Exception(OSX_EXCEPTION_NAME, CKR_
         CFRef(T _Nullable value) : handle(value) {}
         
         ~CFRef(){
-            if (handle && free) {
-                free(handle);
-                handle = NULL;
-            }
+            Release();
         }
         
         void Release() {
