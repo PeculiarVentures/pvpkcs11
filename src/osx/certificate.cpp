@@ -44,10 +44,8 @@ void osx::X509Certificate::Assign
             Scoped<Buffer> subjectName(new Buffer(0));
             subjectName->resize((CK_ULONG)CFDataGetLength(*cfSubjectName));
             CFDataGetBytes(*cfSubjectName, CFRangeMake(0, subjectName->size()), subjectName->data());
-            ItemByType(CKA_SUBJECT)->To<core::AttributeBytes>()->Set(
-                                                                     subjectName->data(),
-                                                                     subjectName->size()
-                                                                     );
+            ItemByType(CKA_SUBJECT)->To<core::AttributeBytes>()->Set(subjectName->data(),
+                                                                     subjectName->size());
         }
         // CKA_ISSUER
         {
@@ -55,10 +53,8 @@ void osx::X509Certificate::Assign
             Scoped<Buffer> issuerName(new Buffer(0));
             issuerName->resize((CK_ULONG)CFDataGetLength(*cfIssuerName));
             CFDataGetBytes(*cfIssuerName, CFRangeMake(0, issuerName->size()), issuerName->data());
-            ItemByType(CKA_ISSUER)->To<core::AttributeBytes>()->Set(
-                                                                    issuerName->data(),
-                                                                    issuerName->size()
-                                                                    );
+            ItemByType(CKA_ISSUER)->To<core::AttributeBytes>()->Set(issuerName->data(),
+                                                                    issuerName->size());
         }
         // CKA_VALUE
         {
@@ -66,42 +62,32 @@ void osx::X509Certificate::Assign
             Scoped<Buffer> value(new Buffer(0));
             value->resize((CK_ULONG)CFDataGetLength(*cfValue));
             CFDataGetBytes(*cfValue, CFRangeMake(0, value->size()), value->data());
-            ItemByType(CKA_VALUE)->To<core::AttributeBytes>()->Set(
-                                                                   value->data(),
-                                                                   value->size()
-                                                                   );
+            ItemByType(CKA_VALUE)->To<core::AttributeBytes>()->Set(value->data(),
+                                                                   value->size());
         }
         // CKA_ID
         Scoped<Buffer> hash = GetPublicKeyHash();
-        ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set(
-                                                            hash->data(),
-                                                            hash->size()
-                                                            );
+        ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set(hash->data(),
+                                                            hash->size());
         // CKA_CHECK_VALUE
         if (hash->size() > 3) {
-            ItemByType(CKA_CHECK_VALUE)->To<core::AttributeBytes>()->Set(
-                                                                         hash->data(),
-                                                                         3
-                                                                         );
+            ItemByType(CKA_CHECK_VALUE)->To<core::AttributeBytes>()->Set(hash->data(),
+                                                                         3);
         }
         // CKA_SERIAL_NUMBER
         {
-            CFRef<CFDataRef> cfSerialNumber = SecCertificateCopySerialNumber(*value, NULL);
+            CFRef<CFDataRef> cfSerialNumber = SecCertificateCopySerialNumberData(*value, NULL);
             Scoped<Buffer> serialNumber(new Buffer(0));
             serialNumber->resize((CK_ULONG)CFDataGetLength(*cfSerialNumber));
             CFDataGetBytes(*cfSerialNumber, CFRangeMake(0, serialNumber->size()), serialNumber->data());
-            ItemByType(CKA_SERIAL_NUMBER)->To<core::AttributeBytes>()->Set(
-                                                                           serialNumber->data(),
-                                                                           serialNumber->size()
-                                                                           );
+            ItemByType(CKA_SERIAL_NUMBER)->To<core::AttributeBytes>()->Set(serialNumber->data(),
+                                                                           serialNumber->size());
         }
     }
     CATCH_EXCEPTION
 }
 
-void osx::X509Certificate::Assign(
-                                  SecCertificateRef        cert
-                                  )
+void osx::X509Certificate::Assign(SecCertificateRef cert)
 {
     LOGGER_FUNCTION_BEGIN;
     
@@ -122,9 +108,10 @@ Scoped<Buffer> osx::X509Certificate::GetPublicKeyHash()
     CATCH_EXCEPTION
 }
 
-CK_RV osx::X509Certificate::CreateValues(
-                                         CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
-                                         CK_ULONG          ulCount     /* attributes in template */
+CK_RV osx::X509Certificate::CreateValues
+(
+ CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+ CK_ULONG          ulCount     /* attributes in template */
 )
 {
     LOGGER_FUNCTION_BEGIN;
@@ -157,20 +144,19 @@ CK_RV osx::X509Certificate::CreateValues(
     CATCH_EXCEPTION
 }
 
-CK_RV osx::X509Certificate::CopyValues(
-                                       Scoped<Object>    object,     /* the object which must be copied */
-                                       CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
-                                       CK_ULONG          ulCount     /* attributes in template */
+CK_RV osx::X509Certificate::CopyValues
+(
+ Scoped<Object>    object,     /* the object which must be copied */
+ CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
+ CK_ULONG          ulCount     /* attributes in template */
 )
 {
     LOGGER_FUNCTION_BEGIN;
     
     try {
-        core::X509Certificate::CopyValues(
-                                          object,
+        core::X509Certificate::CopyValues(object,
                                           pTemplate,
-                                          ulCount
-                                          );
+                                          ulCount);
         core::Template tmpl(pTemplate, ulCount);
         
         X509Certificate* original = dynamic_cast<X509Certificate*>(object.get());

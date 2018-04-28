@@ -196,17 +196,15 @@ CK_RV osx::EcDsaSign::Final
     try {
         CryptoSign::Final(pSignature, pulSignatureLen);
         
-        CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(key->Get());
-        if (!&cfAttributes) {
-            THROW_EXCEPTION("Error on SecKeyCopyAttributes");
-        }
-        
-        CFNumberRef cfKeySizeInBits = (CFNumberRef)CFDictionaryGetValue(*cfAttributes, kSecAttrKeySizeInBits);
+        CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributesEx(key->Get());
+        CFNumberRef cfKeySizeInBits = (CFNumberRef) CFDictionaryGetValue(*attrs, kSecAttrKeySizeInBits);
         if (!cfKeySizeInBits) {
-            THROW_EXCEPTION("Cannot get size of key");
+            THROW_PARAM_REQUIRED_EXCEPTION("kSecAttrKeySizeInBits");
         }
         CK_ULONG keySizeInBits = 0;
-        CFNumberGetValue(cfKeySizeInBits, kCFNumberSInt64Type, &keySizeInBits);
+        if (!CFNumberGetValue(cfKeySizeInBits, kCFNumberSInt32Type, &keySizeInBits)) {
+            THROW_EXCEPTION("Cannot convert CFNumberRef to CK_ULONG");
+        }
         keySizeInBits = (keySizeInBits + 7) >> 3;
         
         // get size of signature

@@ -139,7 +139,7 @@ std::string GetAttributeName(
     }
 
     char num[64] = { 0 };
-    sprintf(num, "UNKNOWN (0x%08X)", type);
+    sprintf(num, "UNKNOWN (0x%08lX)", type);
     return std::string(num);
 }
 
@@ -412,7 +412,7 @@ Scoped<Attribute> Attributes::ItemByIndex(
     CK_ULONG        index
 )
 {
-	if (index >= 0 && index < items.size()) {
+	if (index < items.size()) {
 		return items[index];
 	}
 

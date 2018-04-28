@@ -90,6 +90,18 @@ namespace osx {
          CK_OBJECT_HANDLE  hKey
          );
         
+    protected:
+        /*!
+         @function LoadCertificate
+            Loads certificates and linked keys from default keychain
+         */
+        void LoadCertificate();
+        /*!
+         @function LoadCertificate
+         Loads key with specific kSecAttrLabel value from default keychain
+         */
+        void LoadKeys();
+        
     };
     
 }

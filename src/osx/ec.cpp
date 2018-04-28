@@ -165,21 +165,12 @@ Scoped<core::KeyPair> osx::EcKey::Generate
         Scoped<EcPublicKey> publicKey(new EcPublicKey());
         publicKey->GenerateValues(publicTemplate->Get(), publicTemplate->Size());
         
-        CFRef<CFMutableDictionaryRef> privateKeyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                                 0,
-                                                                                 &kCFTypeDictionaryKeyCallBacks,
-                                                                                 &kCFTypeDictionaryValueCallBacks);
-        CFRef<CFMutableDictionaryRef> publicKeyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                                0,
-                                                                                &kCFTypeDictionaryKeyCallBacks,
-                                                                                &kCFTypeDictionaryValueCallBacks);
-        CFRef<CFMutableDictionaryRef> keyPairAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                              0,
-                                                                              &kCFTypeDictionaryKeyCallBacks,
-                                                                              &kCFTypeDictionaryValueCallBacks);
+        CFRef<CFMutableDictionaryRef> privateKeyAttr = CFDictionaryCreateMutable();
+        CFRef<CFMutableDictionaryRef> publicKeyAttr = CFDictionaryCreateMutable();
+        CFRef<CFMutableDictionaryRef> keyPairAttr = CFDictionaryCreateMutable();
         
-        SecKeyRef pPrivateKey = NULL;
-        SecKeyRef pPublicKey = NULL;
+        CFRef<SecKeyRef> secPrivateKey = NULL;
+        CFRef<SecKeyRef> secPublicKey = NULL;
         
         Scoped<Buffer> params = publicTemplate->GetBytes(CKA_EC_PARAMS, true, "");
         unsigned int keySizeInBits = 0;
@@ -207,24 +198,24 @@ Scoped<core::KeyPair> osx::EcKey::Generate
                                                             &keySizeInBits);
         CFDictionarySetValue(*keyPairAttr, kSecAttrKeySizeInBits, *cfKeySizeInBits);
         
-        CFDictionarySetValue(*privateKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
-        
+        CFDictionarySetValue(*keyPairAttr, kSecAttrLabel, kSecAttrLabelModule);
         CFDictionarySetValue(*keyPairAttr, kSecPrivateKeyAttrs, *privateKeyAttr);
-        
-        CFDictionarySetValue(*publicKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
         CFDictionarySetValue(*keyPairAttr, kSecPublicKeyAttrs, *publicKeyAttr);
+        // kSecAttrAccess
+        CFRef<CFStringRef> appDescription = CFSTR("ECC");
+        CFRef<SecAccessRef> access = SecAccessCreateEmptyList(*appDescription);
+        CFDictionarySetValue(*keyPairAttr, kSecAttrAccess, *access);
         
-        OSStatus status = SecKeyGeneratePair(*keyPairAttr, &pPublicKey, &pPrivateKey);
+        OSStatus status = SecKeyGeneratePair(*keyPairAttr, &secPublicKey, &secPrivateKey);
         if (status) {
             THROW_OSX_EXCEPTION(status, "SecKeyGeneratePair");
         }
         
-        
-        publicKey->Assign(pPublicKey);
-        CFRef<CFDictionaryRef> attrs = SecKeyCopyAttributes(pPublicKey);
+        publicKey->Assign(secPublicKey.Retain());
         publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-        privateKey->Assign(pPrivateKey);
+        privateKey->Assign(secPrivateKey.Retain());
         privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+        privateKey->ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->Set(privateTemplate->GetBool(CKA_EXTRACTABLE, false, false));
         
         return Scoped<core::KeyPair>(new core::KeyPair(privateKey, publicKey));
     }
@@ -328,7 +319,7 @@ void osx::EcPrivateKey::Assign(SecKeyRef key)
     try {
         value = key;
         
-        CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(*value);
+        CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributesEx(*value);
         if (!&cfAttributes) {
             THROW_EXCEPTION("Error on SecKeyCopyAttributes");
         }
@@ -360,15 +351,15 @@ void osx::EcPrivateKey::Assign(SecKeyRef key)
             ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
         }
         CFBooleanRef cfDecrypt = (CFBooleanRef)CFDictionaryGetValue(*cfAttributes, kSecAttrCanDecrypt);
-        if (CFBooleanGetValue(cfDecrypt)) {
+        if (cfDecrypt == kCFBooleanTrue) {
             ItemByType(CKA_DECRYPT)->To<core::AttributeBool>()->Set(true);
         }
         CFBooleanRef cfUnwrap = (CFBooleanRef)CFDictionaryGetValue(*cfAttributes, kSecAttrCanUnwrap);
-        if (CFBooleanGetValue(cfUnwrap)) {
+        if (cfUnwrap == kCFBooleanTrue) {
             ItemByType(CKA_UNWRAP)->To<core::AttributeBool>()->Set(true);
         }
         CFBooleanRef cfExtractable = (CFBooleanRef)CFDictionaryGetValue(*cfAttributes, kSecAttrIsExtractable);
-        if (CFBooleanGetValue(cfExtractable)) {
+        if (cfExtractable == kCFBooleanTrue) {
             ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->Set(true);
         }
     }
@@ -447,17 +438,15 @@ void osx::EcPrivateKey::FillPublicKeyStruct()
             THROW_EXCEPTION("Error on SecKeyCopyPublicKeyEx");
         }
         
-        CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(*publicKey);
+        CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributesEx(*publicKey);
         if (!&cfAttributes) {
-            THROW_EXCEPTION("Error on SecKeyCopyAttributes");
+            THROW_EXCEPTION("Error on SecKeyCopyAttributesEx");
         }
         
         CFDataRef cfLabel = (CFDataRef)CFDictionaryGetValue(*cfAttributes, kSecAttrApplicationLabel);
         if (cfLabel) {
-            ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
-                                                                        (CK_BYTE_PTR)CFDataGetBytePtr(cfLabel),
-                                                                        CFDataGetLength(cfLabel)
-                                                                        );
+            ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue((CK_BYTE_PTR)CFDataGetBytePtr(cfLabel),
+                                                                        CFDataGetLength(cfLabel));
         }
         
         CFNumberRef cfKeySizeInBits = (CFNumberRef)CFDictionaryGetValue(*cfAttributes, kSecAttrKeySizeInBits);
@@ -505,7 +494,7 @@ void osx::EcPrivateKey::FillPrivateKeyStruct()
         }
         
         // Get attributes of key
-        CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(*value);
+        CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributesEx(*value);
         if (cfAttributes.IsEmpty()) {
             THROW_EXCEPTION("Error on SecKeyCopyAttributes");
         }
@@ -587,10 +576,7 @@ CK_RV osx::EcPublicKey::CreateValues
             THROW_EXCEPTION("Error on SetKeyDataToPublicKey");
         }
         
-        CFRef<CFMutableDictionaryRef> keyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                          0,
-                                                                          &kCFTypeDictionaryKeyCallBacks,
-                                                                          &kCFTypeDictionaryValueCallBacks);
+        CFRef<CFMutableDictionaryRef> keyAttr = CFDictionaryCreateMutable();
         CFDictionaryAddValue(*keyAttr, kSecAttrKeyType, kSecAttrKeyTypeEC);
         CFDictionaryAddValue(*keyAttr, kSecAttrKeyClass, kSecAttrKeyClassPublic);
         
@@ -705,10 +691,8 @@ void osx::EcPublicKey::FillKeyStruct()
         
         CFDataRef cfLabel = (CFDataRef)CFDictionaryGetValue(*cfAttributes, kSecAttrApplicationLabel);
         if (cfLabel) {
-            ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
-                                                                        (CK_BYTE_PTR)CFDataGetBytePtr(cfLabel),
-                                                                        CFDataGetLength(cfLabel)
-                                                                        );
+            ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue((CK_BYTE_PTR)CFDataGetBytePtr(cfLabel),
+                                                                        CFDataGetLength(cfLabel));
         }
         
         // Get key size

@@ -70,34 +70,34 @@ Scoped<core::KeyPair> osx::RsaKey::Generate
         Scoped<RsaPublicKey> publicKey(new RsaPublicKey());
         publicKey->GenerateValues(publicTemplate->Get(), publicTemplate->Size());
         
-        CFRef<CFMutableDictionaryRef> privateKeyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                                 0,
-                                                                                 &kCFTypeDictionaryKeyCallBacks,
-                                                                                 &kCFTypeDictionaryValueCallBacks);
-        CFRef<CFMutableDictionaryRef> publicKeyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                                0,
-                                                                                &kCFTypeDictionaryKeyCallBacks,
-                                                                                &kCFTypeDictionaryValueCallBacks);
-        CFRef<CFMutableDictionaryRef> keyPairAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,
-                                                                              0,
-                                                                              &kCFTypeDictionaryKeyCallBacks,
-                                                                              &kCFTypeDictionaryValueCallBacks);
+        CFRef<CFMutableDictionaryRef> privateKeyAttr = CFDictionaryCreateMutable();
+        CFRef<CFMutableDictionaryRef> publicKeyAttr = CFDictionaryCreateMutable();
+        CFRef<CFMutableDictionaryRef> keyPairAttr = CFDictionaryCreateMutable();
         
-        SecKeyRef pPrivateKey = NULL;
-        SecKeyRef pPublicKey = NULL;
+        CFRef<SecKeyRef> secPrivateKey;
+        CFRef<SecKeyRef> secPublicKey;
         
+        // private attributes
+        CFDictionarySetValue(*keyPairAttr, kSecPrivateKeyAttrs, *privateKeyAttr);
+        
+        // public attributes
+        CFDictionarySetValue(*keyPairAttr, kSecPublicKeyAttrs, *publicKeyAttr);
+        
+        // kSecAttrKeyType
         CFDictionarySetValue(*keyPairAttr, kSecAttrKeyType, kSecAttrKeyTypeRSA);
         int32_t modulusBits = (int32_t)publicTemplate->GetNumber(CKA_MODULUS_BITS, true);
         CFRef<CFNumberRef> cfModulusBits = CFNumberCreate(kCFAllocatorDefault,
                                                           kCFNumberSInt32Type,
                                                           &modulusBits);
+        // kSecAttrKeySizeInBits
         CFDictionarySetValue(*keyPairAttr, kSecAttrKeySizeInBits, *cfModulusBits);
+        // kSecAttrLabel
+        CFDictionarySetValue(*keyPairAttr, kSecAttrLabel, kSecAttrLabelModule);
+        // kSecAttrAccess
+        CFRef<CFStringRef> accessDescription = CFSTR("RSA");
+        CFRef<SecAccessRef> access = SecAccessCreateEmptyList(*accessDescription);
+        CFDictionarySetValue(*keyPairAttr, kSecAttrAccess, *access);
         
-        CFDictionarySetValue(*privateKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
-        CFDictionarySetValue(*keyPairAttr, kSecPrivateKeyAttrs, *privateKeyAttr);
-        
-        CFDictionarySetValue(*publicKeyAttr, kSecAttrLabel, kSecAttrLabelModule);
-        CFDictionarySetValue(*keyPairAttr, kSecPublicKeyAttrs, *publicKeyAttr);
         
         
         // Public exponent
@@ -107,15 +107,16 @@ Scoped<core::KeyPair> osx::RsaKey::Generate
             THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, "Public exponent must be 65537 only");
         }
         
-        OSStatus status = SecKeyGeneratePair(*keyPairAttr, &pPublicKey, &pPrivateKey);
+        OSStatus status = SecKeyGeneratePair(*keyPairAttr, &secPublicKey, &secPrivateKey);
         if (status) {
             THROW_OSX_EXCEPTION(status, "SecKeyGeneratePair");
         }
         
-        publicKey->Assign(pPublicKey);
+        publicKey->Assign(secPublicKey.Retain());
         publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-        privateKey->Assign(pPrivateKey);
+        privateKey->Assign(secPrivateKey.Retain());
         privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+        privateKey->ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->Set(privateTemplate->GetBool(CKA_EXTRACTABLE, false, false));
         
         return Scoped<core::KeyPair>(new core::KeyPair(privateKey, publicKey));
     }
@@ -131,12 +132,10 @@ void osx::RsaPrivateKey::Assign(SecKeyRef key)
     try {
         value = key;
         
-        LOGGER_INFO("%s Before SecKeyCopyAttributes", __FUNCTION__);
-        CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(*value);
+        CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributesEx(*value);
         if (!&cfAttributes) {
             THROW_EXCEPTION("Error on SecKeyCopyAttributes");
         }
-        LOGGER_INFO("%s After SecKeyCopyAttributes", __FUNCTION__);
         
         // Check key type
         CFStringRef cfKeyType = (CFStringRef)CFDictionaryGetValue(*cfAttributes, kSecAttrKeyType);
@@ -149,10 +148,8 @@ void osx::RsaPrivateKey::Assign(SecKeyRef key)
         
         CFDataRef cfLabel = (CFDataRef)CFDictionaryGetValue(*cfAttributes, kSecAttrApplicationLabel);
         if (cfLabel) {
-            ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
-                                                                        (CK_BYTE_PTR)CFDataGetBytePtr(cfLabel),
-                                                                        CFDataGetLength(cfLabel)
-                                                                        );
+            ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue((CK_BYTE_PTR)CFDataGetBytePtr(cfLabel),
+                                                                        CFDataGetLength(cfLabel));
         }
         CFDataRef cfAppLabel = (CFDataRef)CFDictionaryGetValue(*cfAttributes, kSecAttrApplicationLabel);
         if (cfAppLabel) {
@@ -160,19 +157,19 @@ void osx::RsaPrivateKey::Assign(SecKeyRef key)
                                                                 CFDataGetLength(cfAppLabel));
         }
         CFBooleanRef cfSign = (CFBooleanRef)CFDictionaryGetValue(*cfAttributes, kSecAttrCanSign);
-        if (CFBooleanGetValue(cfSign)) {
+        if (cfSign  == kCFBooleanTrue) {
             ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
         }
         CFBooleanRef cfDecrypt = (CFBooleanRef)CFDictionaryGetValue(*cfAttributes, kSecAttrCanDecrypt);
-        if (CFBooleanGetValue(cfDecrypt)) {
+        if (cfDecrypt == kCFBooleanTrue) {
             ItemByType(CKA_DECRYPT)->To<core::AttributeBool>()->Set(true);
         }
         CFBooleanRef cfUnwrap = (CFBooleanRef)CFDictionaryGetValue(*cfAttributes, kSecAttrCanUnwrap);
-        if (CFBooleanGetValue(cfUnwrap)) {
+        if (cfUnwrap == kCFBooleanTrue) {
             ItemByType(CKA_UNWRAP)->To<core::AttributeBool>()->Set(true);
         }
         CFBooleanRef cfExtractable = (CFBooleanRef)CFDictionaryGetValue(*cfAttributes, kSecAttrIsExtractable);
-        if (CFBooleanGetValue(cfExtractable)) {
+        if (cfExtractable == kCFBooleanTrue) {
             ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->Set(true);
         }
     }
