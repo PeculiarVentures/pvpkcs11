@@ -76,7 +76,7 @@ void osx::X509Certificate::Assign
         }
         // CKA_SERIAL_NUMBER
         {
-            CFRef<CFDataRef> cfSerialNumber = SecCertificateCopySerialNumberData(*value, NULL);
+            CFRef<CFDataRef> cfSerialNumber = SecCertificateCopySerialNumber(*value, NULL);
             Scoped<Buffer> serialNumber(new Buffer(0));
             serialNumber->resize((CK_ULONG)CFDataGetLength(*cfSerialNumber));
             CFDataGetBytes(*cfSerialNumber, CFRangeMake(0, serialNumber->size()), serialNumber->data());
