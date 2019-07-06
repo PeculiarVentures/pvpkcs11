@@ -282,6 +282,8 @@ void mscapi::SmartCardSession::LoadProvider()
 
 void mscapi::SmartCardSession::LoadProviderCSP()
 {
+    LOGGER_FUNCTION_BEGIN;
+
     THROW_PKCS11_FUNCTION_NOT_SUPPORTED();
 }
 

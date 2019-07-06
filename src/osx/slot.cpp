@@ -4,6 +4,7 @@
 using namespace osx;
 
 #define OSX_SLOT_NAME "MacOS Crypto"
+#define MANUFACTURER_ID "Peculiar Ventures"
 
 osx::Slot::Slot() :
     core::Slot()
@@ -11,7 +12,7 @@ osx::Slot::Slot() :
     LOGGER_FUNCTION_BEGIN;
     
     try {
-        SET_STRING(this->manufacturerID, OSX_SLOT_NAME, 32);
+        SET_STRING(this->manufacturerID, MANUFACTURER_ID, 32);
         SET_STRING(this->description, OSX_SLOT_NAME, 64);
         this->flags = CKF_TOKEN_INITIALIZED | CKF_RNG;
         this->hardwareVersion.major = 0;
@@ -21,6 +22,12 @@ osx::Slot::Slot() :
 
         // Token info
         SET_STRING(this->tokenInfo.label, OSX_SLOT_NAME, 32);
+        SET_STRING(this->tokenInfo.manufacturerID, MANUFACTURER_ID, 32);
+        SET_STRING(this->tokenInfo.serialNumber, "1", 16);
+        this->tokenInfo.hardwareVersion.major = 0;
+        this->tokenInfo.hardwareVersion.minor = 1;
+        this->tokenInfo.firmwareVersion.major = 0;
+        this->tokenInfo.firmwareVersion.minor = 1;
 
         // Add mechanisms
         //   SHA

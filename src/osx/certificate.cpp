@@ -37,7 +37,15 @@ void osx::X509Certificate::Assign
         if (!free) {
             value.Retain();
         }
-        
+        // CKA_LABEL
+        {
+            CFRef<CFStringRef> cfLabel;
+            Scoped<std::string> name = GetName();
+            ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->Set(
+                (CK_BYTE_PTR)name->c_str(),
+                (CK_ULONG)name->size()
+            );
+        }
         // CKA_SUBJECT
         {
             CFRef<CFDataRef> cfSubjectName = SecCertificateCopyNormalizedSubjectSequence(*value);
