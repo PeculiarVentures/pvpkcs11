@@ -35,6 +35,10 @@ namespace osx {
                              CK_BYTE_PTR       pPart,     /* data to be digested */
                              CK_ULONG          ulPartLen  /* bytes of data to be digested */
         );
+        CK_RV SeedRandom(
+                         CK_BYTE_PTR pSeed,
+                         CK_ULONG ulSeedLen
+                         );
         
         // Key generation
         

@@ -252,6 +252,17 @@ CK_RV osx::Session::GenerateRandom
     CATCH_EXCEPTION
 }
 
+CK_RV osx::Session::SeedRandom(
+                               CK_BYTE_PTR pSeed,
+                               CK_ULONG ulSeedLen)
+{
+    try {
+        core::Session::SeedRandom(pSeed, ulSeedLen);
+        return CKR_OK;
+    }
+    CATCH_EXCEPTION
+}
+
 CK_RV osx::Session::GenerateKey
 (
  CK_MECHANISM_PTR     pMechanism,  /* key generation mech. */
@@ -580,10 +591,12 @@ void osx::Session::LoadCertificate() {
                     
                     Scoped<core::PublicKey> publicKey = x509.GetPublicKey();
                     publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                    publicKey->ItemByType(CKA_LABEL)->SetValue((CK_BYTE_PTR)x509Name->c_str(), x509Name->size());
                     
                     if (x509.HasPrivateKey()) {
                         Scoped<core::PrivateKey> privateKey = x509.GetPrivateKey();
                         privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+                        privateKey->ItemByType(CKA_LABEL)->SetValue((CK_BYTE_PTR)x509Name->c_str(), x509Name->size());
                         objects.add(privateKey);
                         LOGGER_INFO("Private key was added");
                     }
