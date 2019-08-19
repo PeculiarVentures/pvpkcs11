@@ -84,12 +84,24 @@ void osx::X509Certificate::Assign
         }
         // CKA_SERIAL_NUMBER
         {
+            SecAsn1CoderRef coder = NULL;
+            SecAsn1CoderCreate(&coder);
+            
             CFRef<CFDataRef> cfSerialNumber = SecCertificateCopySerialNumber(*value, NULL);
             Scoped<Buffer> serialNumber(new Buffer(0));
             serialNumber->resize((CK_ULONG)CFDataGetLength(*cfSerialNumber));
             CFDataGetBytes(*cfSerialNumber, CFRangeMake(0, serialNumber->size()), serialNumber->data());
-            ItemByType(CKA_SERIAL_NUMBER)->To<core::AttributeBytes>()->Set(serialNumber->data(),
-                                                                           serialNumber->size());
+            
+            SecAsn1Item serial;
+            serial.Data = (uint8*)CFDataGetBytePtr(*cfSerialNumber);
+            serial.Length = CFDataGetLength(*cfSerialNumber);
+            SecAsn1Item serialEncoded;
+            SecAsn1EncodeItem(coder, &serial, kSecAsn1IntegerTemplate, &serialEncoded);
+            
+            ItemByType(CKA_SERIAL_NUMBER)->To<core::AttributeBytes>()->Set(serialEncoded.Data,
+                                                                           serialEncoded.Length);
+            
+            SecAsn1CoderRelease(coder);
         }
     }
     CATCH_EXCEPTION

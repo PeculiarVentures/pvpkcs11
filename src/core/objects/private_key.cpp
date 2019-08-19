@@ -10,6 +10,7 @@ PrivateKey::PrivateKey() :
 
     try {
         ItemByType(CKA_CLASS)->To<AttributeNumber>()->Set(CKO_PRIVATE_KEY);
+        ItemByType(CKA_PRIVATE)->To<AttributeBool>()->Set(CK_TRUE);
 
         Add(AttributeBytes::New(CKA_SUBJECT, NULL, 0, PVF_8));
         Add(AttributeBool::New(CKA_SENSITIVE, CK_FALSE, PVF_8 | PVF_11));
