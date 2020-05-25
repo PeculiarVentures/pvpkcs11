@@ -1,5 +1,6 @@
 #include "template.h"
 #include "excep.h"
+#include "name.h"
 
 using namespace core;
 
@@ -96,8 +97,7 @@ Scoped<Buffer> Template::GetBytes(CK_ATTRIBUTE_TYPE ulType, CK_BBOOL bRequired, 
         CK_ATTRIBUTE_PTR attr = GetAttributeByType(ulType);
         if (bRequired) {
             if (!attr) {
-                std::string message = "Cannot get required attribute (" + std::to_string(ulType) + ")";
-                THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, message.c_str());
+                THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, "Cannot get required attribute %s(%lu)", core::Name::getAttribute(attr->type));
             }
         }
         Scoped<Buffer> result(new Buffer);

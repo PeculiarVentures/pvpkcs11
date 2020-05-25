@@ -20,16 +20,20 @@ throw Scoped<core::Exception>(new core::Pkcs11Exception(OSX_EXCEPTION_NAME, CKR_
     template<typename T>
     class CFRef {
     public:
-        CFRef() : handle(NULL) {}
+        CFRef() : handle(NULL), dispose(true) {}
         
-        CFRef(T _Nullable value) : handle(value) {}
+        CFRef(T _Nullable value) : handle(value), dispose(true) {}
         
         ~CFRef(){
             Release();
         }
         
+        void Unref() {
+            dispose = false;
+        }
+        
         void Release() {
-            if (!IsEmpty()) {
+            if (!IsEmpty() && dispose) {
                 CFIndex retainCount = CFGetRetainCount(handle);
                 CFRelease(handle);
                 if (retainCount == 1) {
@@ -82,6 +86,7 @@ throw Scoped<core::Exception>(new core::Pkcs11Exception(OSX_EXCEPTION_NAME, CKR_
         
     protected:
         T handle;
+        bool dispose;
     };
     
     static const CFStringRef _Nonnull kSecAttrLabelModule = (CFSTR("WebCrypto Local"));

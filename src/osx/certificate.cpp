@@ -87,7 +87,7 @@ void osx::X509Certificate::Assign
             SecAsn1CoderRef coder = NULL;
             SecAsn1CoderCreate(&coder);
             
-            CFRef<CFDataRef> cfSerialNumber = SecCertificateCopySerialNumber(*value, NULL);
+            CFRef<CFDataRef> cfSerialNumber = SecCertificateCopySerialNumberData(*value, NULL);
             Scoped<Buffer> serialNumber(new Buffer(0));
             serialNumber->resize((CK_ULONG)CFDataGetLength(*cfSerialNumber));
             CFDataGetBytes(*cfSerialNumber, CFRangeMake(0, serialNumber->size()), serialNumber->data());
@@ -223,15 +223,13 @@ Scoped<core::PublicKey> osx::X509Certificate::GetPublicKey()
     LOGGER_FUNCTION_BEGIN;
     
     try {
-        SecKeyRef secPublicKey = NULL;
-        SecCertificateCopyPublicKey(*value, &secPublicKey);
-        if (!secPublicKey) {
+        CFRef<SecKeyRef> secPublicKey = SecCertificateCopyKey(*value);
+        if (secPublicKey.IsEmpty()) {
             THROW_EXCEPTION("Cannot get public key");
         }
         
-        CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(secPublicKey);
+        CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributes(*secPublicKey);
         if (!&cfAttributes) {
-            CFRelease(secPublicKey);
             THROW_EXCEPTION("Error on SecKeyCopyAttributes");
         }
         
@@ -242,11 +240,13 @@ Scoped<core::PublicKey> osx::X509Certificate::GetPublicKey()
         }
         if (!CFStringCompare(kSecAttrKeyTypeRSA, cfKeyType, kCFCompareCaseInsensitive)) {
             Scoped<RsaPublicKey> rsaKey(new RsaPublicKey);
-            rsaKey->Assign(secPublicKey);
+            rsaKey->Assign(*secPublicKey);
+            secPublicKey.Unref();
             res = rsaKey;
         } else if (!CFStringCompare(kSecAttrKeyTypeEC, cfKeyType, kCFCompareCaseInsensitive)) {
             Scoped<EcPublicKey> ecKey(new EcPublicKey);
-            ecKey->Assign(secPublicKey);
+            ecKey->Assign(*secPublicKey);
+            secPublicKey.Unref();
             res = ecKey;
         } else {
             THROW_EXCEPTION("Unsupported key type");
@@ -384,7 +384,7 @@ Scoped<Buffer> GetCertificateChain
         }
         CFRef<SecTrustRef> scopedTrust = trust;
         
-        status = SecTrustEvaluate(trust, NULL);
+        status = SecTrustEvaluateWithError(trust, NULL);
         if (status) {
             THROW_OSX_EXCEPTION(status, "SecTrustEvaluate");
         }

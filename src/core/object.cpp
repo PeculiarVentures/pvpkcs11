@@ -112,10 +112,12 @@ CK_RV Object::CreateValues
             Scoped<Attribute> attribute = ItemByIndex(i);
             if (attribute->flags & PVF_1 &&
                 !tmpl.HasAttribute(attribute->type)) {
+                LOGGER_ERROR("Must be specified when object is created with C_CreateObject. Type %s", core::Name::getAttribute(attribute->type));
                 THROW_PKCS11_TEMPLATE_INCOMPLETE();
             }
             if (attribute->flags & PVF_2 &&
                 tmpl.HasAttribute(attribute->type)) {
+                LOGGER_ERROR("Must not be specified when object is created with C_CreateObject. Type %s", core::Name::getAttribute(attribute->type));
                 THROW_PKCS11_TEMPLATE_INCONSISTENT();
             }
         }

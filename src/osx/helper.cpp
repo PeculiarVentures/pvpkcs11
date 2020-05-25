@@ -52,8 +52,6 @@ void osx::SecItemDestroy(CFTypeRef item)
         if (status) {
             THROW_OSX_EXCEPTION(status, "SecItemDelete");
         }
-        
-        return CKR_OK;
     }
     CATCH_EXCEPTION
 }
@@ -161,12 +159,9 @@ SecKeyRef _Nullable osx::SecKeyCopyPublicKeyEx(SecKeyRef _Nonnull key) {
             CFRef<SecCertificateRef> cert;
             status = SecItemCopyMatching(*query, (CFTypeRef*)&cert);
             if (status == errSecSuccess) {
-                CFRef<SecKeyRef> publicKey;
-                status = SecCertificateCopyPublicKey(*cert, &publicKey);
-                if (status == errSecSuccess) {
-                    return publicKey.Retain();
-                } else {
-                    LOGGER_DEBUG("%s", GetOSXErrorAsString(status, "SecCertificateCopyPublicKey").c_str());
+                CFRef<SecKeyRef> publicKey = SecCertificateCopyKey(*cert);
+                if (publicKey.IsEmpty()) {
+                    LOGGER_DEBUG("%s", GetOSXErrorAsString(status, "SecCertificateCopyKey").c_str());
                 }
             } else {
                 LOGGER_DEBUG("%s", GetOSXErrorAsString(status, "SecItemCopyMatching").c_str());

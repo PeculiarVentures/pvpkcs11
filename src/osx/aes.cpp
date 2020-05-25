@@ -1,8 +1,8 @@
 #include "aes.h"
 
 #include <CommonCrypto/CommonCrypto.h>
-#include <Security.h>
-#include <CoreFoundation.h>
+#include <Security/Security.h>
+#include <CoreFoundation/CoreFoundation.h>
 
 using namespace osx;
 

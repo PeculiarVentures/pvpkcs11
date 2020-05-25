@@ -4,7 +4,7 @@
 
 #include "../core/objects/aes_key.h"
 
-#include <Security.h>
+#include <Security/Security.h>
 
 namespace osx {
 

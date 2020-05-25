@@ -5,7 +5,7 @@
 #include "../core/objects/public_key.h"
 #include "../core/objects/private_key.h"
 
-#include <Security.h>
+#include <Security/Security.h>
 #include "helper.h"
 
 namespace osx {
