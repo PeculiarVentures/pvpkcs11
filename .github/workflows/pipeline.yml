@@ -8,8 +8,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
-      - name: Check out repository
-        uses: actions/checkout@v2
       - name: Use Node.js v12
         uses: actions/setup-node@v1
         with:
