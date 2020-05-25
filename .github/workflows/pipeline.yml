@@ -1,0 +1,25 @@
+name: Pack GlobalSign Agent
+on: [push]
+
+jobs:
+  macos:
+    name: MacOS
+    runs-on: macos-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Use Node.js 12.6.3
+        uses: actions/setup-node@v1
+        with:
+          node-version: "12.6.3"
+      - name: Install dependencies
+        run: npm install
+      - name: Run tests
+        run: npm test
+      - name: Create artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: Packages
+          path: out/Release_x64/*.dylib
