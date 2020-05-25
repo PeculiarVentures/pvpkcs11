@@ -1,6 +1,6 @@
 #include "rsa.h"
 
-#include <Security.h>
+#include <Security/Security.h>
 #include <Security/SecAsn1Coder.h>
 #include <Security/SecAsn1Templates.h>
 #include <Security/SecAsn1Types.h>
@@ -89,6 +89,7 @@ Scoped<core::KeyPair> osx::RsaKey::Generate
         CFRef<CFNumberRef> cfModulusBits = CFNumberCreate(kCFAllocatorDefault,
                                                           kCFNumberSInt32Type,
                                                           &modulusBits);
+        
         // kSecAttrKeySizeInBits
         CFDictionarySetValue(*keyPairAttr, kSecAttrKeySizeInBits, *cfModulusBits);
         // kSecAttrLabel
@@ -219,7 +220,76 @@ CK_RV osx::RsaPrivateKey::CopyValues
     LOGGER_FUNCTION_BEGIN;
     
     try {
-        THROW_PKCS11_FUNCTION_NOT_SUPPORTED();
+        core::RsaPrivateKey::CopyValues(object, pTemplate, ulCount);
+        
+        core::Template tmpl(pTemplate, ulCount);
+        
+        ASN1_RSA_PRIVATE_KEY asn1Key;
+        // Modulus
+        Scoped<Buffer> modulus = tmpl.GetBytes(CKA_MODULUS, true);
+        asn1Key.modulus.Data = modulus->data();
+        asn1Key.modulus.Length = modulus->size();
+        // Public exponent
+        Scoped<Buffer> publicExponent = tmpl.GetBytes(CKA_PUBLIC_EXPONENT, true);
+        asn1Key.publicExponent.Data = publicExponent->data();
+        asn1Key.publicExponent.Length = publicExponent->size();
+        // Private exponent d
+        Scoped<Buffer> privateExponent = tmpl.GetBytes(CKA_PRIVATE_EXPONENT, true);
+        asn1Key.privateExponent.Data = privateExponent->data();
+        asn1Key.privateExponent.Length = privateExponent->size();
+        // Prime p
+        Scoped<Buffer> prime1 = tmpl.GetBytes(CKA_PRIME_1, true);
+        asn1Key.prime1.Data = prime1->data();
+        asn1Key.prime1.Length = prime1->size();
+        // Prime q
+        Scoped<Buffer> prime2 = tmpl.GetBytes(CKA_PRIME_2, true);
+        asn1Key.prime2.Data = prime2->data();
+        asn1Key.prime2.Length = prime2->size();
+        // Private exponent d modulo p -1
+        Scoped<Buffer> exponent1 = tmpl.GetBytes(CKA_EXPONENT_1, true);
+        asn1Key.exponent1.Data = exponent1->data();
+        asn1Key.exponent1.Length = exponent1->size();
+        // Private exponent d modulo q -1
+        Scoped<Buffer> exponent2 = tmpl.GetBytes(CKA_EXPONENT_2, true);
+        asn1Key.exponent2.Data = exponent2->data();
+        asn1Key.exponent2.Length = exponent2->size();
+        // Private exponent d modulo q -1
+        Scoped<Buffer> coefficient = tmpl.GetBytes(CKA_COEFFICIENT, true);
+        asn1Key.coefficient.Data = coefficient->data();
+        asn1Key.coefficient.Length = coefficient->size();
+        
+        SecAsn1CoderRef coder = NULL;
+        SecAsn1CoderCreate(&coder);
+        if (!coder) {
+            THROW_EXCEPTION("Error on SecAsn1CoderCreate");
+        }
+        
+        SecAsn1Item derKey;
+        if (SecAsn1EncodeItem(coder, &asn1Key, kRsaPrivateKeyTemplate, &derKey)) {
+            SecAsn1CoderRelease(coder);
+            THROW_EXCEPTION("Error onSecAsn1EncodeItem");
+        }
+        CFMutableDictionaryRef keyAttr = CFDictionaryCreateMutable(kCFAllocatorDefault,0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+        CFDictionaryAddValue(keyAttr, kSecAttrKeyType, kSecAttrKeyTypeRSA);
+        CFDictionaryAddValue(keyAttr, kSecAttrKeyClass, kSecAttrKeyClassPrivate);
+        CFRef<CFDataRef> derKeyData = CFDataCreate(NULL, derKey.Data, derKey.Length);
+        CFRef<CFErrorRef> error = NULL;
+        SecKeyRef key = SecKeyCreateFromData(keyAttr, *derKeyData, &error);
+        if (!error.IsEmpty()) {
+            CFRef<CFStringRef> errorText = CFErrorCopyDescription(*error);
+            THROW_EXCEPTION(CFStringGetCStringPtr(*errorText, kCFStringEncodingUTF8));
+        }
+        SecAsn1CoderRelease(coder);
+        
+        Assign(key);
+        
+        // Add key to key chain
+        OSStatus status = SecItemAdd(keyAttr, nullptr);
+        if (status) {
+            THROW_OSX_EXCEPTION(status, "SecItemAdd");
+        }
+        
+        return CKR_OK;
     }
     CATCH_EXCEPTION
 }

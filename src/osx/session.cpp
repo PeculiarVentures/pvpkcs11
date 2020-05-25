@@ -119,6 +119,19 @@ Scoped<core::Object> osx::Session::CreateObject
                         THROW_PKCS11_TEMPLATE_INCOMPLETE();
                 }
                 break;
+            case CKO_PRIVATE_KEY: {
+                switch (tmpl.GetNumber(CKA_KEY_TYPE, true)) {
+                    case CKK_RSA:
+                        object = Scoped<RsaPrivateKey>(new RsaPrivateKey);
+                        break;
+                    case CKK_EC:
+                        object = Scoped<EcPrivateKey>(new EcPrivateKey);
+                        break;
+                    default:
+                        THROW_PKCS11_TEMPLATE_INCOMPLETE();
+                }
+                break;
+            }
             case CKO_PUBLIC_KEY: {
                 switch (tmpl.GetNumber(CKA_KEY_TYPE, true)) {
                     case CKK_RSA:
@@ -173,6 +186,12 @@ Scoped<core::Object> osx::Session::CopyObject
         }
         else if (dynamic_cast<Data*>(object.get())) {
             copy = Scoped<Data>(new Data());
+        }
+        else if (dynamic_cast<RsaPrivateKey*>(object.get())) {
+            copy = Scoped<RsaPrivateKey>(new RsaPrivateKey());
+        }
+        else if (dynamic_cast<EcPrivateKey*>(object.get())) {
+            copy = Scoped<EcPrivateKey>(new EcPrivateKey());
         }
         else {
             THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Object is not copyable");
