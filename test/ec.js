@@ -1,7 +1,7 @@
 /// <reference types="mocha" />
 const pkcs11 = require("pkcs11js");
 const p11_crypto = require("node-webcrypto-p11");
-const ossl_crypto = require("node-webcrypto-ossl");
+const { Crypto } = require("@peculiar/webcrypto");
 const assert = require("assert");
 
 const config = require("./config");
@@ -103,7 +103,7 @@ context("EC", () => {
                 library: config.lib,
                 slot: 0,
             });
-            ossl = new ossl_crypto();
+            ossl = new Crypto();
         })
 
         context("sign/verify", () => {

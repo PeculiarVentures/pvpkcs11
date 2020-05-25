@@ -1,7 +1,7 @@
 /// <reference types="mocha" />
 const pkcs11 = require("pkcs11js");
 const p11_crypto = require("node-webcrypto-p11");
-const ossl_crypto = require("node-webcrypto-ossl");
+const { Crypto } = require("@peculiar/webcrypto");
 const assert = require("assert");
 
 const config = require("./config");
@@ -142,7 +142,7 @@ context("RSA", () => {
                 library: config.lib,
                 slot: 0,
             });
-            ossl = new ossl_crypto();
+            ossl = new Crypto();
         })
 
         context("sign/verify", () => {
@@ -237,7 +237,7 @@ context("RSA", () => {
                             hash,
                             publicExponent: new Uint8Array([1, 0, 1]),
                             modulusLength: 2048,
-                            label: new Buffer("label value") 
+                            label: new Buffer("label value")
                         };
                         const data = new Buffer("Test data");
                         Promise.resolve()
