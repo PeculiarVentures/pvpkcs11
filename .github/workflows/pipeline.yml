@@ -4,7 +4,10 @@ on: [push]
 jobs:
   macos:
     name: MacOS
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        os: [macos-10.14, macos-10.15]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
@@ -21,7 +24,7 @@ jobs:
       - name: Create artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: Packages
+          name: Package for ${{ matrix.os }}
           path: out/Release_x64/libpvpkcs11.dylib
   windows:
     name: Windows
