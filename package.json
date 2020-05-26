@@ -7,10 +7,10 @@
     "install": "npm install --ignore-scripts",
     "test": "mocha test",
     "build:config": "gyp config.gyp",
-    "build:rx86": "ninja -C out/Release",
-    "build:rx64": "ninja -C out/Release_x64",
-    "build:dx86": "ninja -C out/Debug",
-    "build:dx64": "ninja -C out/Debug_x64"
+    "build:rx86": "./node_modules/.bin/ninja -C out/Release",
+    "build:rx64": "./node_modules/.bin/ninja -C out/Release_x64",
+    "build:dx86": "./node_modules/.bin/ninja -C out/Debug",
+    "build:dx64": "./node_modules/.bin/ninja -C out/Debug_x64"
   },
   "repository": {
     "type": "git",
