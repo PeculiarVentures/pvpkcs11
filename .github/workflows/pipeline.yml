@@ -13,7 +13,7 @@ jobs:
         with:
           node-version: '12'
       - name: Install dependencies
-        run: npm install
+        run: npm install && brew install ninja
       - name: Build
         run: npm run build:config && npm run build:rx64
       - name: Run tests
