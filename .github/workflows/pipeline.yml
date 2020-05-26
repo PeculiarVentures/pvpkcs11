@@ -22,7 +22,7 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: Packages
-          path: out/Release_x64/*.dylib
+          path: out/Release_x64/libpvpkcs11.dylib
   windows:
     name: Windows
     runs-on: windows-latest
@@ -41,8 +41,7 @@ jobs:
           $ninjaLink = "https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-win.zip"
           $ninjaZip = "ninja.zip"
           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-          Write-Output "Downloading $ninjaLink file to $OutFolder"
-          New-Item -ItemType Directory -Force -Path $OutFolder
+          Write-Output "Downloading $ninjaLink file"
           Invoke-WebRequest -Uri "$DownloadUrlPath" -OutFile $ninjaZip
           Write-Output "Extracting $ninjaZip file"
           [System.IO.Compression.ZipFile]::ExtractToDirectory($ninjaZip, ".")
