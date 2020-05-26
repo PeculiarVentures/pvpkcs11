@@ -38,6 +38,7 @@ jobs:
       - name: Install ninja
         shell: powershell
         run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
           $ninjaLink = "https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-win.zip"
           $ninjaZip = "ninja.zip"
           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
