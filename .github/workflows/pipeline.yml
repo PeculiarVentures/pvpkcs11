@@ -42,7 +42,7 @@ jobs:
           $ninjaZip = "ninja.zip"
           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
           Write-Output "Downloading $ninjaLink file"
-          Invoke-WebRequest -Uri "$DownloadUrlPath" -OutFile $ninjaZip
+          Invoke-WebRequest -Uri "$ninjaLink" -OutFile $ninjaZip
           Write-Output "Extracting $ninjaZip file"
           [System.IO.Compression.ZipFile]::ExtractToDirectory($ninjaZip, ".")
       - name: Build
