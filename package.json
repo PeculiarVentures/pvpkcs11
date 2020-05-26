@@ -28,6 +28,7 @@
     "@types/mocha": "^2.2.48",
     "graphene-pk11": "^2.1.7",
     "gyp.js": "^1.7.0",
+    "mocha": "^7.2.0",
     "node-webcrypto-p11": "^1.2.4",
     "pkcs11js": "^1.0.21",
     "pvtsutils": "^1.0.2"
