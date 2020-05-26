@@ -54,4 +54,4 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: Packages
-          path: out/Release_x64/*.dll
+          path: out/Release_x64/pvpkcs11.dll
