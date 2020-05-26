@@ -5,7 +5,6 @@
   "main": "index.js",
   "scripts": {
     "install": "npm install --ignore-scripts",
-    "postinstall": "npm rebuild",
     "test": "mocha test",
     "build:config": "gyp config.gyp",
     "build:rx86": "ninja -C out/Release",
