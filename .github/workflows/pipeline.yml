@@ -13,13 +13,34 @@ jobs:
         with:
           node-version: '12'
       - name: Install dependencies
-        run: npm install && brew install ninja
+        run: npm install
       - name: Build
         run: npm run build:config && npm run build:rx64
-      - name: Run tests
-        run: npm test
+      # - name: Run tests
+      #   run: npm test
       - name: Create artifacts
         uses: actions/upload-artifact@v1
         with:
           name: Packages
           path: out/Release_x64/*.dylib
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Use Node.js v12
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12'
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build:config && npm run build:rx64
+      # - name: Run tests
+      #   run: npm test
+      - name: Create artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: Packages
+          path: out/Release_x64/*.dll
