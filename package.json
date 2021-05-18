@@ -1,6 +1,6 @@
 {
   "name": "pvpkcs11",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "[![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat)](https://raw.githubusercontent.com/PeculiarVentures/2key-ratchet/master/LICENSE.md)",
   "main": "index.js",
   "scripts": {
@@ -30,7 +30,7 @@
     "gyp.js": "^1.7.0",
     "mocha": "^8.4.0",
     "node-webcrypto-p11": "^2.3.5",
-    "pkcs11js": "^1.2.3",
+    "pkcs11js": "^1.2.4",
     "pvtsutils": "^1.1.6"
   },
   "mocha": {
