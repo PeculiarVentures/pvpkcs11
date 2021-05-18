@@ -63,7 +63,7 @@ context("EC", () => {
                                             return p11.subtle.decrypt(alg, key, enc);
                                         })
                                         .then((dec) => {
-                                            assert.equal(new Buffer(dec).toString("hex"), data.toString("hex"));
+                                            assert.strictEqual(new Buffer(dec).toString("hex"), data.toString("hex"));
                                         });
                                 });
                         })
@@ -99,7 +99,7 @@ context("EC", () => {
                                             return p11.subtle.decrypt(alg, key, enc);
                                         })
                                         .then((dec) => {
-                                            assert.equal(new Buffer(dec).toString("hex"), data.toString("hex"));
+                                            assert.strictEqual(new Buffer(dec).toString("hex"), data.toString("hex"));
                                         });
                                 });
                         })

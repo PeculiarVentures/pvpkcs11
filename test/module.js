@@ -40,17 +40,17 @@ context("Module", () => {
         it("Info", () => {
             const info = mod.C_GetInfo();
 
-            assert.equal(info.cryptokiVersion.major, 2);
-            assert.equal(info.cryptokiVersion.minor, 30);
-            assert.equal(info.manufacturerID, "Module                          ");
-            assert.equal(info.flags, 0);
-            assert.equal(info.libraryDescription, "Windows CryptoAPI               ");
-            assert.equal(info.libraryVersion.major, 0);
-            assert.equal(info.libraryVersion.minor, 1);
+            assert.strictEqual(info.cryptokiVersion.major, 2);
+            assert.strictEqual(info.cryptokiVersion.minor, 30);
+            assert.strictEqual(info.manufacturerID, "Module                          ");
+            assert.strictEqual(info.flags, 0);
+            assert.strictEqual(info.libraryDescription, "Windows CryptoAPI               ");
+            assert.strictEqual(info.libraryVersion.major, 0);
+            assert.strictEqual(info.libraryVersion.minor, 1);
         });
 
         it("GetSlots", () => {
-            assert.equal(mod.C_GetSlotList().length, 1);
+            assert.strictEqual(mod.C_GetSlotList().length, 1);
         });
 
         it("GetSlotInfo wrong index", () => {

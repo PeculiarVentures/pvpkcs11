@@ -34,7 +34,7 @@ context("Slot", () => {
             const session = mod.C_OpenSession(slot, 4);
             const info = mod.C_GetSessionInfo(session);
 
-            assert.equal(info.flags, 4);
+            assert.strictEqual(info.flags, 4);
 
             mod.C_CloseSession(session);
         });
@@ -44,7 +44,7 @@ context("Slot", () => {
             const session = mod.C_OpenSession(slot, 6);
             const info = mod.C_GetSessionInfo(session);
 
-            assert.equal(info.flags, 6);
+            assert.strictEqual(info.flags, 6);
 
             mod.C_CloseSession(session);
         });
@@ -66,8 +66,8 @@ context("Slot", () => {
                 const hex1 = buf.toString("hex");
                 const random = mod.C_GenerateRandom(session, buf);
 
-                assert.equal(hex1 !== buf.toString("hex"), true);
-                assert.equal(random.toString("hex"), buf.toString("hex"));
+                assert.strictEqual(hex1 !== buf.toString("hex"), true);
+                assert.strictEqual(random.toString("hex"), buf.toString("hex"));
             });
             it("seed random", () => {
                 assert.throws(() => {

@@ -24,24 +24,24 @@ context("Slot", () => {
     it("Info", () => {
         const info = mod.C_GetSlotInfo(slot);
 
-        assert.equal(info.slotDescription, "Windows CryptoAPI                                               ");
-        assert.equal(info.manufacturerID, "Windows CryptoAPI               ");
-        assert.equal(info.flags, 1025);
+        assert.strictEqual(info.slotDescription, "Windows CryptoAPI                                               ");
+        assert.strictEqual(info.manufacturerID, "Windows CryptoAPI               ");
+        assert.strictEqual(info.flags, 1025);
     });
 
     context("Mechanism", () => {
         
         it("get list", () => {
             const mechanisms = mod.C_GetMechanismList(slot);
-            assert.equal(mechanisms.length > 0, true);
+            assert.strictEqual(mechanisms.length > 0, true);
         });
 
         it("get info", () => {
             const info = mod.C_GetMechanismInfo(slot, 6);
 
-            assert.equal(info.minKeySize, 1024);
-            assert.equal(info.maxKeySize, 4096);
-            assert.equal(info.flags, 10240);
+            assert.strictEqual(info.minKeySize, 1024);
+            assert.strictEqual(info.maxKeySize, 4096);
+            assert.strictEqual(info.flags, 10240);
         });
 
     });
