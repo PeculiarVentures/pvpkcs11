@@ -11,12 +11,14 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
-      - name: Use Node.js v12
+      - name: Use Node.js v14
         uses: actions/setup-node@v1
         with:
-          node-version: '12'
+          node-version: '14'
       - name: Install dependencies
-        run: npm install && brew install ninja
+        run: npm install
+      - name: Install ninja
+        run: brew install ninja
       - name: Build
         run: npm run build:config && npm run build:rx64
       # - name: Run tests
@@ -32,10 +34,10 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
-      - name: Use Node.js v12
+      - name: Use Node.js v14
         uses: actions/setup-node@v1
         with:
-          node-version: '12'
+          node-version: '14'
       - name: Install dependencies
         run: npm install
       - name: Install ninja
