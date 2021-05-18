@@ -99,7 +99,7 @@ namespace osx {
          @function LoadCertificate
             Loads certificates and linked keys from default keychain
          */
-        void LoadCertificate();
+        void LoadCertificates();
         /*!
          @function LoadCertificate
          Loads key with specific kSecAttrLabel value from default keychain

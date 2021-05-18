@@ -5,61 +5,52 @@
 #include "../core/objects/public_key.h"
 #include "../core/objects/private_key.h"
 
-#include <Security/Security.h>
+#include "./sec.h"
 #include "helper.h"
 
-namespace osx {
-    
-    class X509Certificate : public core::X509Certificate {
+namespace osx
+{
+
+    class X509Certificate : public core::X509Certificate
+    {
     public:
         X509Certificate();
-        
-        void Assign
-        (
-         SecCertificateRef        cert      /* OSX certificate reference */
+
+        void Assign(
+            Scoped<SecCertificate> cert /* OSX certificate */
         );
-        void Assign
-        (
-         SecCertificateRef        cert,     /* OSX certificate reference */
-         CK_BBOOL                 free      /* destroy ref in destructor */
-        );
-        SecCertificateRef Get();
-        
+
         Scoped<Buffer> GetPublicKeyHash();
-        
-        CK_RV CreateValues
-        (
-         CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
-         CK_ULONG          ulCount     /* attributes in template */
+
+        CK_RV CreateValues(
+            CK_ATTRIBUTE_PTR pTemplate, /* specifies attributes */
+            CK_ULONG ulCount            /* attributes in template */
         );
-        
-        CK_RV CopyValues
-        (
-         Scoped<Object>    object,     /* the object which must be copied */
-         CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
-         CK_ULONG          ulCount     /* attributes in template */
+
+        CK_RV CopyValues(
+            Scoped<Object> object,      /* the object which must be copied */
+            CK_ATTRIBUTE_PTR pTemplate, /* specifies attributes */
+            CK_ULONG ulCount            /* attributes in template */
         );
-        
+
         CK_RV Destroy();
-        
+
         Scoped<core::PublicKey> GetPublicKey();
         Scoped<core::PrivateKey> GetPrivateKey();
         bool HasPrivateKey();
-        
+
         Scoped<std::string> GetName();
-        
+
         Scoped<X509Certificate> Copy();
-        
+
     protected:
-        CFRef<SecCertificateRef> value;
-        
+        Scoped<SecCertificate> value;
+
         void AddToMyStorage();
-        
-        CK_RV GetValue
-        (
-         CK_ATTRIBUTE_PTR  attr         /* attribute */
+
+        CK_RV GetValue(
+            CK_ATTRIBUTE_PTR attr /* attribute */
         );
     };
-    
-    
+
 }

@@ -2,7 +2,7 @@
 
 using namespace osx;
 
-SecKeyRef osx::Key::Get()
+Scoped<SecKey> osx::Key::Get()
 {
-    return *value;
+    return value;
 }

@@ -5,6 +5,7 @@
 #include "../core/keypair.h"
 #include "../core/objects/ec_key.h"
 #include "key.h"
+#include "sec.h"
 
 namespace osx {
     
@@ -28,20 +29,20 @@ namespace osx {
     class EcPrivateKey : public core::EcPrivateKey, public Key {
     public:
         /**
-         Assig private key
+         Assign private key
          
          @param key Private key ref
          
          NOTE: method uses SecKeyCopyAttributes which shows dilog if key has not permission for runned application
          */
-        void Assign(SecKeyRef key);
+        void Assign(Scoped<SecKey> key);
         /**
          Assign private key and use public key to fill public data
          
          @param key Private key ref
          @param publicKey Public key linked to private key
          */
-        void Assign(SecKeyRef key, Scoped<core::PublicKey> publicKey);
+        void Assign(Scoped<SecKey>, Scoped<core::PublicKey> publicKey);
         
         CK_RV CopyValues
         (
@@ -64,7 +65,7 @@ namespace osx {
     
     class EcPublicKey : public core::EcPublicKey, public Key {
     public:
-        void Assign(SecKeyRef key);
+        void Assign(Scoped<SecKey> key);
         
         CK_RV CreateValues
         (
