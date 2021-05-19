@@ -3,6 +3,8 @@
 #include "../core.h"
 
 #include <Security/SecAsn1Coder.h>
+#include <Security/SecAsn1Types.h>
+#include <Security/SecAsn1Templates.h>
 
 namespace osx
 {

@@ -546,8 +546,7 @@ CK_RV osx::Session::SignInit(
     core::Session::SignInit(
         pMechanism,
         hKey);
-
-    if (decrypt->IsActive())
+    if (sign->IsActive())
     {
       THROW_PKCS11_OPERATION_ACTIVE();
     }
@@ -589,7 +588,7 @@ CK_RV osx::Session::VerifyInit(
         pMechanism,
         hKey);
 
-    if (decrypt->IsActive())
+    if (verify->IsActive())
     {
       THROW_PKCS11_OPERATION_ACTIVE();
     }

@@ -99,7 +99,7 @@ Scoped<core::KeyPair> osx::RsaKey::Generate(
     // kSecAttrAccess
     CFRef<CFStringRef> accessDescription = CFSTR("RSA");
     CFRef<SecAccessRef> access = SecAccessCreateEmptyList(*accessDescription);
-    keyPairAttr->SetValue(kSecAttrAccess, *access);
+    keyPairAttr->AddValue(kSecAttrAccess, *access);
 
     // Public exponent
     Scoped<Buffer> publicExponent = publicTemplate->GetBytes(CKA_PUBLIC_EXPONENT, true);
@@ -472,8 +472,9 @@ CK_RV osx::RsaPublicKey::CreateValues(
     asn1Key.publicExponent.Data = publicExponent->data();
     asn1Key.publicExponent.Length = publicExponent->size();
 
-    SecAsn1Coder coder = SecAsn1Coder();
-    SecAsn1Item derKey = coder.EncodeItem(&asn1Key, kRsaPublicKeyTemplate);
+    
+    Scoped<SecAsn1Coder> coder = SecAsn1Coder::Create();
+    SecAsn1Item derKey = coder->EncodeItem(&asn1Key, kRsaPublicKeyTemplate);
 
     Scoped<CFMutableDictionary> keyAttrs = CFMutableDictionary::Create();
     keyAttrs
