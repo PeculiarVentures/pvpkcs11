@@ -20,6 +20,19 @@ Scoped<SecKeychain> SecKeychain::GetDefault()
   return keychain;
 }
 
+Scoped<SecKeychain> SecKeychain::Open(const char * path)
+{
+  SecKeychainRef keychain = nullptr;
+
+  OSStatus status = SecKeychainOpen(path, &keychain);
+  
+  if (status) {
+    THROW_OSX_EXCEPTION(status, "SecKeychainOpen");
+  }
+
+  return Scoped<SecKeychain>(new SecKeychain(keychain));
+}
+
 Scoped<CFArray> SecKeychain::GetItems(CFStringRef matchType)
 {
   Scoped<CFArray> result = Scoped<CFArray>(new CFArray);
