@@ -632,9 +632,9 @@ void osx::Session::LoadCertificates()
     {
       try
       {
-        SecAttributeDictionary attrs = certs->CopyValueAtIndex<CFDictionaryRef>(index);
+        Scoped<SecAttributeDictionary> attrs = certs->GetValue(index)->To<SecAttributeDictionary>();
         Scoped<SecCertificate> cert = Scoped<SecCertificate>(new SecCertificate(
-            attrs.CopyValueRef<SecCertificateRef>()));
+            attrs->CopyValueRef<SecCertificateRef>()));
 
         X509Certificate x509;
         x509.Assign(cert);
@@ -689,8 +689,8 @@ void osx::Session::LoadKeys()
     {
       try
       {
-        SecAttributeDictionary attrs = keys->CopyValueAtIndex<CFDictionaryRef>(index);
-        SecKeyRef secKey = attrs.CopyValueRef<SecKeyRef>();
+        Scoped<SecAttributeDictionary> attrs = keys->GetValue(index)->To<SecAttributeDictionary>();
+        SecKeyRef secKey = attrs->CopyValueRef<SecKeyRef>();
         if (!secKey)
         {
           LOGGER_ERROR("Cannot get SecKeyRef from attributes");
@@ -713,7 +713,7 @@ void osx::Session::LoadKeys()
           continue;
         }
 
-        Scoped<core::Object> key = SecKeyCopyObject(attrs.Get());
+        Scoped<core::Object> key = SecKeyCopyObject(attrs->Get());
         key->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
 
         objects.add(key);
