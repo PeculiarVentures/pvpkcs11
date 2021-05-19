@@ -177,7 +177,6 @@ Scoped<SecKey> SecKey::GetPublicKey()
   }
 
   // Uses standard SecKeyCopyPublicKey function
-  puts("Scoped<SecKey> publicKey = value->GetPublicKey();");
   SecKey res = SecKeyCopyPublicKey(handle);
 
   if (res.IsEmpty())
