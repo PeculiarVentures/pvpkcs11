@@ -51,7 +51,7 @@ Scoped<CFData> SecCertificate::GetSerialNumberData()
   if (!error.IsEmpty())
   {
     Scoped<CFString> errorText = error.GetDescription();
-    THROW_EXCEPTION(errorText->GetCStringPtr());
+    THROW_EXCEPTION(errorText->GetCString()->c_str());
   }
 
   return Scoped<CFData>(new CFData(data));
@@ -104,7 +104,7 @@ Scoped<CFDictionary> SecCertificate::GetValues(CFArrayRef keys)
   CFDictionaryRef ref = SecCertificateCopyValues(handle, keys, &error);
   if (!error.IsEmpty())
   {
-    THROW_EXCEPTION(error.GetDescription()->GetCStringPtr());
+    THROW_EXCEPTION(error.GetDescription()->GetCString()->c_str());
   }
   if (ref == NULL)
   {

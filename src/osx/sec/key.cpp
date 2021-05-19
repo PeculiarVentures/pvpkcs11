@@ -6,11 +6,14 @@ Scoped<SecKey> SecKey::CreateFromData(CFDictionaryRef parameters, CFDataRef keyD
 {
   CFError error;
   SecKeyRef key = SecKeyCreateFromData(parameters, keyData, &error);
+
   if (!error.IsEmpty())
   {
     Scoped<CFString> errorText = error.GetDescription();
-    THROW_EXCEPTION(errorText->GetCStringPtr());
+    THROW_EXCEPTION(errorText->GetCString()->c_str());
   }
+
+  return Scoped<SecKey>(new SecKey(key));
 }
 
 Scoped<CFDictionary> SecKey::GetAttributes()
@@ -80,7 +83,7 @@ Scoped<CFData> SecKey::GetKeyExchangeResult(SecKeyAlgorithm algorithm, SecKeyRef
   CFDataRef data = SecKeyCopyKeyExchangeResult(handle, algorithm, publicKey, parameters, &error);
   if (!error.IsEmpty())
   {
-    THROW_EXCEPTION(error.GetDescription()->GetCStringPtr());
+    THROW_EXCEPTION(error.GetDescription()->GetCString()->c_str());
   }
 
   return Scoped<CFData>(new CFData(data));
@@ -94,7 +97,7 @@ Scoped<CFData> SecKey::CreateSignature(SecKeyAlgorithm algorithm, CFDataRef data
 
   if (!error.IsEmpty())
   {
-    THROW_EXCEPTION(error.GetDescription()->GetCStringPtr());
+    THROW_EXCEPTION(error.GetDescription()->GetCString()->c_str());
   }
 
   return Scoped<CFData>(new CFData(data));
@@ -108,7 +111,7 @@ Boolean SecKey::VerifySignature(SecKeyAlgorithm algorithm, CFDataRef signedData,
 
   if (!error.IsEmpty())
   {
-    THROW_EXCEPTION(error.GetDescription()->GetCStringPtr());
+    THROW_EXCEPTION(error.GetDescription()->GetCString()->c_str());
   }
 
   return res;
