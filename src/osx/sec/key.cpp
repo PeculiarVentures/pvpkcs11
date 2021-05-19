@@ -154,37 +154,38 @@ Boolean SecKey::VerifySignature(SecKeyAlgorithm algorithm, CFDataRef signedData,
 
 Scoped<SecKey> SecKey::GetPublicKey()
 {
- FUNCTION_BEGIN
+  FUNCTION_BEGIN
 
-    OSStatus status = errSecSuccess;
+  OSStatus status = errSecSuccess;
 
-    // Tries to get public key from certificate by kSecAttrSubjectKeyID
+  // Tries to get public key from certificate by kSecAttrSubjectKeyID
+  {
+    Scoped<SecKeychain> keychain = SecKeychain::GetDefault();
+    Scoped<CFArray> identities = keychain->GetIdentities();
+
+    for (CFIndex i = 0; i < identities->GetCount(); i++)
     {
-      Scoped<SecKeychain> keychain = SecKeychain::GetDefault();
-      Scoped<CFArray> identities = keychain->GetIdentities();
+      Scoped<CFDictionary> item = identities->GetValue(i)->To<CFDictionary>();
 
-      for (CFIndex i = 0; i < identities->GetCount(); i++)
+      Scoped<SecIdentity> identity = item->GetValue(kSecValueRef)->To<SecIdentity>();
+
+      if (identity->GetPrivateKey()->IsEqual(handle))
       {
-        Scoped<CFDictionary> item = identities->GetValue(i)->To<CFDictionary>();
-
-        Scoped<SecIdentity> identity = item->GetValue(kSecValueRef)->To<SecIdentity>();
-
-        if (identity->GetPrivateKey()->IsEqual(handle))
-        {
-          return identity->GetCertificate()->GetPublicKey();
-        }
+        return identity->GetCertificate()->GetPublicKey();
       }
     }
+  }
 
-    // Uses standard SecKeyCopyPublicKey function
-    SecKey res = SecKeyCopyPublicKey(handle);
+  // Uses standard SecKeyCopyPublicKey function
+  puts("Scoped<SecKey> publicKey = value->GetPublicKey();");
+  SecKey res = SecKeyCopyPublicKey(handle);
 
-    if (res.IsEmpty())
-    {
-      THROW_EXCEPTION("Error on SecKeyCopyPublicKey");
-    }
+  if (res.IsEmpty())
+  {
+    THROW_EXCEPTION("Error on SecKeyCopyPublicKey");
+  }
 
-    return res.To<SecKey>();
-  
+  return res.To<SecKey>();
+
   FUNCTION_END
 }
