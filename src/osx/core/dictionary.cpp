@@ -4,6 +4,8 @@ using namespace osx;
 
 Scoped<CFDictionary> CFDictionary::Create(CFAllocatorRef allocator, CFDictionaryRef dict)
 {
+  FUNCTION_BEGIN
+
   CFDictionaryRef res = CFDictionaryCreateCopy(allocator, dict);
   if (res == nullptr)
   {
@@ -11,27 +13,34 @@ Scoped<CFDictionary> CFDictionary::Create(CFAllocatorRef allocator, CFDictionary
   }
 
   return Scoped<CFDictionary>(new CFDictionary(res));
+
+  FUNCTION_END
 }
 
 const void *CFDictionary::GetValueByKey(const void *key)
 {
-  return CFDictionaryGetValue(handle, key);
-}
+  FUNCTION_BEGIN
 
-CFTypeRef CFDictionary::CopyValueByKey(const void *key)
-{
-  CFTypeRef ref = reinterpret_cast<CFTypeRef>(GetValueByKey(key));
+  const void *res = CFDictionaryGetValue(handle, key);
 
-  return CFRetain(ref);
+  return res;
+
+  FUNCTION_END
 }
 
 Boolean CFDictionary::GetValueIfPresent(const void *key, const void **value)
 {
+  FUNCTION_BEGIN
+
   return CFDictionaryGetValueIfPresent(handle, key, value);
+  
+  FUNCTION_END
 }
 
 Scoped<CFType> CFDictionary::GetValue(const void *key)
 {
+  FUNCTION_BEGIN
+
   Scoped<CFType> item = GetValueOrNull(key);
 
   if (item->IsEmpty()) {
@@ -47,20 +56,31 @@ Scoped<CFType> CFDictionary::GetValue(const void *key)
   }
 
   return item;
+
+  FUNCTION_END
 }
 
 Scoped<CFType> CFDictionary::GetValueOrNull(const void *key)
 {
-  CFTypeRef itemRef = CopyValueByKey(key);
+  FUNCTION_BEGIN
 
-  return Scoped<CFType>(new CFType(itemRef));
+  CFType itemRef = GetValueByKey(key);
+  itemRef.Unref();
+
+  return itemRef.To<CFType>();
+
+  FUNCTION_END
 }
 
 bool CFDictionary::HasValue(const void *key)
 {
+  FUNCTION_BEGIN
+
   if (CFDictionaryGetValue(handle, key) == NULL) {
     return false;
   }
 
   return true;
+
+  FUNCTION_END
 }

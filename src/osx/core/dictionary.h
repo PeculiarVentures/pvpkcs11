@@ -22,12 +22,6 @@ namespace osx
 
   protected:
     const void *_Nullable GetValueByKey(const void *_Nonnull key);
-    template <typename T>
-    T _Nullable GetValueByKey(const void *_Nonnull key)
-    {
-      return (T)(GetValueByKey(key));
-    }
-    CFTypeRef _Nullable CopyValueByKey(const void *_Nonnull key);
   };
 
 }

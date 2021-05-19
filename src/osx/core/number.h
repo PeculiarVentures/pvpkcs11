@@ -12,6 +12,8 @@ namespace osx
     CFNumber(CFTypeRef handle) : CFRef<CFNumberRef>(handle) {}
 
     static Scoped<CFNumber> Create(CFAllocatorRef allocator, CFNumberType theType, const void *valuePtr);
+
+    void GetValue(CFNumberType theType, void *valuePtr);
   };
 
 }

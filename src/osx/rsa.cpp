@@ -110,7 +110,7 @@ Scoped<core::KeyPair> osx::RsaKey::Generate(
     }
 
     SecKey::GeneratePair(keyPairAttr->Get(), secPublicKey->Ref(), secPrivateKey->Ref());
-    
+
     publicKey->Assign(secPublicKey);
     publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
     privateKey->Assign(secPrivateKey);
@@ -185,37 +185,66 @@ void osx::RsaPrivateKey::Assign(Scoped<SecKey> key)
   CATCH_EXCEPTION
 }
 
-void osx::RsaPrivateKey::Assign(Scoped<SecKey> key, Scoped<core::PublicKey> publicKey)
+void RsaPrivateKey::Assign(SecAttributeDictionary *attrs)
 {
   LOGGER_FUNCTION_BEGIN;
 
   try
   {
-    Scoped<Buffer> tmpAttr;
-    core::PublicKey *pPubKey = publicKey.get();
+    value = attrs->GetValueRef()->To<SecKey>();
 
-    if (!pPubKey)
+    // Check key type
+    Scoped<CFString> cfKeyType = attrs->GetValue(kSecAttrKeyType)->To<CFString>();
+    if (cfKeyType->Compare(kSecAttrKeyTypeRSA, kCFCompareCaseInsensitive) != kCFCompareEqualTo)
     {
-      THROW_PARAM_REQUIRED_EXCEPTION("publicKey");
+      THROW_EXCEPTION("Cannot assign SecKeyRef. It has wrong kSecAttrKeyType");
     }
 
-    // Check public, it must be RSA
-    if (publicKey->ItemByType(CKA_KEY_GEN_MECHANISM)->ToNumber() != CKM_RSA_PKCS_KEY_PAIR_GEN)
+    Scoped<CFString> cfLabel = attrs->GetValueOrNull(kSecAttrLabel)->To<CFString>();
+    if (!cfLabel->IsEmpty())
     {
-      THROW_EXCEPTION("Cannot assing key. Public key is not RSA");
+      ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
+          (CK_BYTE_PTR)cfLabel->GetCString()->c_str(),
+          cfLabel->GetCString()->size());
     }
 
-    value = key;
+    Scoped<CFData> cfAppLabel = attrs->GetValue(kSecAttrApplicationLabel)->To<CFData>();
+    if (!cfAppLabel->IsEmpty())
+    {
+      ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set((CK_BYTE_PTR)cfAppLabel->GetBytePtr(),
+                                                          cfAppLabel->GetLength());
+    }
 
-    // Copy public data
+    Scoped<CFBoolean> cfSign = attrs->GetValue(kSecAttrCanSign)->To<CFBoolean>();
+    if (cfSign->GetValue())
+    {
+      ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
+    }
 
-    CopyObjectAttribute(this, pPubKey, CKA_ID);
-    CopyObjectAttribute(this, pPubKey, CKA_PUBLIC_EXPONENT);
-    CopyObjectAttribute(this, pPubKey, CKA_MODULUS);
+    Scoped<CFBoolean> cfDecrypt = attrs->GetValue(kSecAttrCanDecrypt)->To<CFBoolean>();
+    if (cfDecrypt->GetValue())
+    {
+      ItemByType(CKA_DECRYPT)->To<core::AttributeBool>()->Set(true);
+    }
 
-    ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(pPubKey->ItemByType(CKA_VERIFY)->ToBool());
-    ItemByType(CKA_DECRYPT)->To<core::AttributeBool>()->Set(pPubKey->ItemByType(CKA_ENCRYPT)->ToBool());
-    ItemByType(CKA_UNWRAP)->To<core::AttributeBool>()->Set(pPubKey->ItemByType(CKA_WRAP)->ToBool());
+    Scoped<CFBoolean> cfUnwrap = attrs->GetValue(kSecAttrCanUnwrap)->To<CFBoolean>();
+    if (cfUnwrap->GetValue())
+    {
+      ItemByType(CKA_UNWRAP)->To<core::AttributeBool>()->Set(true);
+    }
+
+    Scoped<CFBoolean> cfDerive = attrs->GetValue(kSecAttrCanDerive)->To<CFBoolean>();
+    if (cfDerive->GetValue())
+    {
+      ItemByType(CKA_DERIVE)->To<core::AttributeBool>()->Set(true);
+    }
+
+    // NOTE: Keychain attributes don't keep information about is key extractable or not.
+    //       To get that flag you need to call SecKeyCopyAttributes. But it will show
+    //       prompt dialog if application doesn't have permission for key using.
+    //
+    //       For that case mark all private keys like unextractable and public like extractable
+    ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->Set(false);
   }
   CATCH_EXCEPTION
 }
@@ -309,53 +338,28 @@ CK_RV osx::RsaPrivateKey::Destroy()
 
 void osx::RsaPrivateKey::FillPublicKeyStruct()
 {
-  LOGGER_FUNCTION_BEGIN;
+  FUNCTION_BEGIN
 
-  try
-  {
-    CFRef<SecKeyRef> publicKey = SecKeyCopyPublicKeyEx(value->Get());
+  Scoped<SecKey> publicKey = value->GetPublicKey();
 
-    if (publicKey.IsEmpty())
-    {
-      THROW_EXCEPTION("Error on SecKeyCopyPublicKeyEx");
-    }
+  // Get public key SEQUENCE
+  Scoped<CFData> cfKeyData = publicKey->GetExternalRepresentation();
 
-    // Get public key SEQUENCE
-    CFRef<CFErrorRef> cfError;
-    CFRef<CFDataRef> cfKeyData = SecKeyCopyExternalRepresentation(*publicKey, &cfError);
-    if (!cfError.IsEmpty())
-    {
-      CFRef<CFStringRef> errorMessage = CFErrorCopyDescription(*cfError);
-      THROW_EXCEPTION("Error on SecKeyCopyExternalRepresentation. %s", CFStringGetCStringPtr(*errorMessage, kCFStringEncodingUTF8));
-    }
+  // Init ASN1 coder
+  Scoped<osx::SecAsn1Coder> coder = osx::SecAsn1Coder::Create();
 
-    // Init ASN1 coder
-    SecAsn1CoderRef coder = NULL;
-    SecAsn1CoderCreate(&coder);
-    if (!coder)
-    {
-      THROW_EXCEPTION("Error on SecAsn1CoderCreate");
-    }
+  ASN1_RSA_PUBLIC_KEY asn1PublicKey;
+  coder->DecodeItem(
+      cfKeyData->GetBytePtr(),
+      cfKeyData->GetLength(),
+      kRsaPublicKeyTemplate,
+      &asn1PublicKey);
 
-    ASN1_RSA_PUBLIC_KEY asn1PublicKey;
-    OSStatus status = SecAsn1Decode(coder,
-                                    CFDataGetBytePtr(*cfKeyData),
-                                    CFDataGetLength(*cfKeyData),
-                                    kRsaPublicKeyTemplate,
-                                    &asn1PublicKey);
-    if (status)
-    {
-      SecAsn1CoderRelease(coder);
-      THROW_OSX_EXCEPTION(status, "SecAsn1Decode");
-    }
+  ItemByType(CKA_MODULUS)->SetValue(asn1PublicKey.modulus.Data, asn1PublicKey.modulus.Length);
 
-    ItemByType(CKA_MODULUS)->SetValue(asn1PublicKey.modulus.Data, asn1PublicKey.modulus.Length);
+  ItemByType(CKA_PUBLIC_EXPONENT)->SetValue(asn1PublicKey.publicExponent.Data, asn1PublicKey.publicExponent.Length);
 
-    ItemByType(CKA_PUBLIC_EXPONENT)->SetValue(asn1PublicKey.publicExponent.Data, asn1PublicKey.publicExponent.Length);
-
-    SecAsn1CoderRelease(coder);
-  }
-  CATCH_EXCEPTION
+  FUNCTION_END
 }
 
 void osx::RsaPrivateKey::FillPrivateKeyStruct()
@@ -472,7 +476,6 @@ CK_RV osx::RsaPublicKey::CreateValues(
     asn1Key.publicExponent.Data = publicExponent->data();
     asn1Key.publicExponent.Length = publicExponent->size();
 
-    
     Scoped<SecAsn1Coder> coder = SecAsn1Coder::Create();
     SecAsn1Item derKey = coder->EncodeItem(&asn1Key, kRsaPublicKeyTemplate);
 
@@ -531,8 +534,9 @@ void osx::RsaPublicKey::Assign(Scoped<SecKey> key)
       THROW_EXCEPTION("key is NULL");
     }
     value = key;
+
     Scoped<CFDictionary> cfAttributes = value->GetAttributes();
-    
+
     // Check key type
     Scoped<CFString> cfKeyType = cfAttributes->GetValueOrNull(kSecAttrKeyType)->To<CFString>();
     if (cfKeyType->IsEmpty())
@@ -542,6 +546,14 @@ void osx::RsaPublicKey::Assign(Scoped<SecKey> key)
     if (cfKeyType->Compare(kSecAttrKeyTypeRSA, kCFCompareCaseInsensitive) != kCFCompareEqualTo)
     {
       THROW_EXCEPTION("Cannot assign SecKeyRef. It has wrong kSecAttrKeyType");
+    }
+
+    Scoped<CFString> cfLabel = cfAttributes->GetValueOrNull(kSecAttrLabel)->To<CFString>();
+    if (!cfLabel->IsEmpty())
+    {
+      ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
+          (CK_BYTE_PTR)cfLabel->GetCString()->c_str(),
+          cfLabel->GetCString()->size());
     }
 
     Scoped<CFData> cfAppLabel = cfAttributes->GetValueOrNull(kSecAttrApplicationLabel)->To<CFData>();
@@ -566,29 +578,31 @@ void osx::RsaPublicKey::Assign(Scoped<SecKey> key)
       ItemByType(CKA_WRAP)->To<core::AttributeBool>()->Set(true);
     }
 
-    FillKeyStruct();
+    // FillKeyStruct();
   }
   CATCH_EXCEPTION
 }
 
 void osx::RsaPublicKey::FillKeyStruct()
 {
-  LOGGER_FUNCTION_BEGIN;
+  FUNCTION_BEGIN
+
+  Scoped<CFDictionary> cfAttributes = value->GetAttributes();
+
+  // Get public key SEQUENCE
+  Scoped<CFData> cfKeyData = NULL;
 
   try
   {
-    Scoped<CFDictionary> cfAttributes = value->GetAttributes();
-    Scoped<CFData> cfLabel = cfAttributes->GetValueOrNull(kSecAttrApplicationLabel)->To<CFData>();
-    if (!cfLabel->IsEmpty())
-    {
-      ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
-          (CK_BYTE_PTR)cfLabel->GetBytePtr(),
-          cfLabel->GetLength());
-    }
+    cfKeyData = value->GetExternalRepresentation();
+  }
+  catch (Scoped<core::Exception> e)
+  {
+    LOGGER_WARN("Cannot export RSA public key. %s", e->message.c_str());
+  }
 
-    // Get public key SEQUENCE
-    Scoped<CFData> cfKeyData = value->GetExternalRepresentation();
-
+  if (cfKeyData.get() != nullptr)
+  {
     // Init ASN1 coder
     Scoped<SecAsn1Coder> coder = SecAsn1Coder::Create();
 
@@ -602,10 +616,24 @@ void osx::RsaPublicKey::FillKeyStruct()
     ItemByType(CKA_MODULUS_BITS)->To<core::AttributeNumber>()->Set(asn1PublicKey.modulus.Length * 8);
 
     ItemByType(CKA_MODULUS)->SetValue(asn1PublicKey.modulus.Data, asn1PublicKey.modulus.Length);
-
     ItemByType(CKA_PUBLIC_EXPONENT)->SetValue(asn1PublicKey.publicExponent.Data, asn1PublicKey.publicExponent.Length);
   }
-  CATCH_EXCEPTION
+  else
+  {
+    Scoped<CFDictionary> attrs = value->GetAttributes();
+    CK_ULONG modulusLength = 0;
+    attrs->GetValue(kSecAttrKeySizeInBits)->To<CFNumber>()->GetValue(kCFNumberSInt32Type, &modulusLength);
+
+    ItemByType(CKA_MODULUS_BITS)->To<core::AttributeNumber>()->Set(modulusLength);
+
+    CK_BYTE modulus[0] = {};
+    ItemByType(CKA_MODULUS)->SetValue(modulus, 0);
+
+    CK_BYTE publicExponent[3] = {0x01, 0x00, 0x01};
+    ItemByType(CKA_PUBLIC_EXPONENT)->SetValue(publicExponent, 3);
+  }
+
+  FUNCTION_END
 }
 
 CK_RV osx::RsaPublicKey::GetValue(

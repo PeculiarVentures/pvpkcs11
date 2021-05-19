@@ -105,10 +105,6 @@ CK_RV osx::X509Certificate::CreateValues(
     Scoped<Buffer> derCert = tmpl.GetBytes(CKA_VALUE, true);
 
     Scoped<CFData> data = CFData::Create(kCFAllocatorDefault, derCert->data(), derCert->size());
-    if (data->IsEmpty())
-    {
-      THROW_EXCEPTION("Error on CFDataCreate");
-    }
     Scoped<SecCertificate> cert = SecCertificate::CreateWithData(NULL, data->Get());
 
     Assign(cert);
@@ -218,53 +214,6 @@ Scoped<core::PublicKey> osx::X509Certificate::GetPublicKey()
     }
 
     Scoped<Buffer> certId = ItemByType(CKA_ID)->To<core::AttributeBytes>()->ToValue();
-
-    return res;
-  }
-  CATCH_EXCEPTION
-}
-
-Scoped<core::PrivateKey> osx::X509Certificate::GetPrivateKey()
-{
-  try
-  {
-    OSStatus status = 0;
-    CFRef<SecIdentityRef> identity = NULL;
-    Scoped<core::PrivateKey> res;
-
-    status = SecIdentityCreateWithCertificate(NULL, value->Get(), &identity);
-    if (status)
-    {
-      THROW_OSX_EXCEPTION(status, "SecIdentityCreateWithCertificate");
-    }
-
-    Scoped<SecKey> privateKey = Scoped<SecKey>(new SecKey);
-    status = SecIdentityCopyPrivateKey(*identity, privateKey->Ref());
-    if (status)
-    {
-      THROW_OSX_EXCEPTION(status, "SecIdentityCopyPrivateKey");
-    }
-
-    // NOTE: SecKeyCopyAttributes shows dialog if key doesn't have permission for using for current app
-
-    Scoped<core::PublicKey> publicKey = GetPublicKey();
-    CK_ULONG ulKeyGenMech = publicKey->ItemByType(CKA_KEY_GEN_MECHANISM)->ToNumber();
-    if (ulKeyGenMech == CKM_RSA_PKCS_KEY_PAIR_GEN)
-    {
-      Scoped<RsaPrivateKey> rsaKey(new RsaPrivateKey);
-      rsaKey->Assign(privateKey, publicKey);
-      res = rsaKey;
-    }
-    else if (ulKeyGenMech == CKM_EC_KEY_PAIR_GEN)
-    {
-      Scoped<EcPrivateKey> ecKey(new EcPrivateKey);
-      ecKey->Assign(privateKey, publicKey);
-      res = ecKey;
-    }
-    else
-    {
-      THROW_EXCEPTION("Unsupported key type");
-    }
 
     return res;
   }

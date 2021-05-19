@@ -4,11 +4,17 @@ using namespace osx;
 
 Scoped<SecKeychain> SecKeychain::CreateEmpty()
 {
+  FUNCTION_BEGIN
+
   return Scoped<SecKeychain>(new SecKeychain);
+
+  FUNCTION_END
 }
 
 Scoped<SecKeychain> SecKeychain::GetDefault()
 {
+  FUNCTION_BEGIN
+
   Scoped<SecKeychain> keychain = SecKeychain::CreateEmpty();
 
   OSStatus status = SecKeychainCopyDefault(keychain->Ref());
@@ -18,10 +24,14 @@ Scoped<SecKeychain> SecKeychain::GetDefault()
   }
 
   return keychain;
+
+  FUNCTION_END
 }
 
 Scoped<SecKeychain> SecKeychain::Open(const char * path)
 {
+  FUNCTION_BEGIN
+
   SecKeychainRef keychain = nullptr;
 
   OSStatus status = SecKeychainOpen(path, &keychain);
@@ -31,10 +41,14 @@ Scoped<SecKeychain> SecKeychain::Open(const char * path)
   }
 
   return Scoped<SecKeychain>(new SecKeychain(keychain));
+
+  FUNCTION_END
 }
 
 Scoped<CFArray> SecKeychain::GetItems(CFStringRef matchType)
 {
+  FUNCTION_BEGIN
+
   Scoped<CFArray> result = Scoped<CFArray>(new CFArray);
   Scoped<CFMutableDictionary> query = CFMutableDictionary::Create();
   Scoped<CFArray> searchList = CFArray::Create(
@@ -54,19 +68,33 @@ Scoped<CFArray> SecKeychain::GetItems(CFStringRef matchType)
   }
 
   return result;
+  
+  FUNCTION_END
 }
 
 Scoped<CFArray> SecKeychain::GetCertificates()
 {
+  FUNCTION_BEGIN
+
   return GetItems(kSecClassCertificate);
+
+  FUNCTION_END
 }
 
 Scoped<CFArray> SecKeychain::GetIdentities()
 {
+  FUNCTION_BEGIN
+
   return GetItems(kSecClassIdentity);
+
+  FUNCTION_END
 }
 
 Scoped<CFArray> SecKeychain::GetKeys()
 {
+  FUNCTION_BEGIN
+  
   return GetItems(kSecClassKey);
+
+  FUNCTION_END
 }

@@ -38,11 +38,15 @@ namespace osx
 
     T _Nonnull Get()
     {
+      FUNCTION_BEGIN
+
       if (IsEmpty())
       {
         THROW_EXCEPTION("CFRef has nullable handle");
       }
       return handle;
+      
+      FUNCTION_END
     }
 
     T _Nonnull operator*()
@@ -81,7 +85,11 @@ namespace osx
 
     T Retain()
     {
-      return (T)CFRetain(Get());
+      if (IsEmpty()) {
+        return NULL;
+      }
+      
+      return (T)CFRetain(handle);
     }
 
     Boolean IsEqual(CFTypeRef _Nullable value)

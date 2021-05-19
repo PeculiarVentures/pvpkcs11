@@ -2,39 +2,59 @@
 
 using namespace osx;
 
-CFTypeRef SecAttributeDictionary::GetValueRef()
+Scoped<CFType> SecAttributeDictionary::GetValueRef()
 {
-  return reinterpret_cast<CFTypeRef>(GetValueByKey(kSecValueRef));
-}
+  FUNCTION_BEGIN
 
-CFTypeRef SecAttributeDictionary::CopyValueRef()
-{
-  CFTypeRef ref = GetValueRef();
+  CFType valueRef = reinterpret_cast<CFTypeRef>(GetValueByKey(kSecValueRef));
+  valueRef.Unref();
 
-  return CFRetain(ref);
+  return valueRef.To<CFType>();
+
+  FUNCTION_END
 }
 
 Scoped<CFString> SecAttributeDictionary::GetClass()
 {
+  FUNCTION_BEGIN
+
   return GetValue(kSecAttrLabel)->To<CFString>();
+
+  FUNCTION_END
 }
 
 Scoped<CFString> SecAttributeDictionary::GetLabel()
 {
+  FUNCTION_BEGIN
+
   return GetValue(kSecAttrLabel)->To<CFString>();
+
+  FUNCTION_END
 }
 
 Scoped<CFData> SecAttributeDictionary::GetPublicKeyHash()
 {
+  FUNCTION_BEGIN
+
   return GetValue(kSecAttrPublicKeyHash)->To<CFData>();
+
+  FUNCTION_END
 }
 
 Scoped<CFData> SecAttributeDictionary::GetSubjectKeyId()
 {
+  FUNCTION_BEGIN
+
   return GetValue(kSecAttrSubjectKeyID)->To<CFData>();
+
+  FUNCTION_END
 }
 
 Scoped<CFData> SecAttributeDictionary::GetSerialNumber()
 {
+  FUNCTION_BEGIN
+
   return GetValue(kSecAttrSerialNumber)->To<CFData>();
+
+  FUNCTION_END
 }

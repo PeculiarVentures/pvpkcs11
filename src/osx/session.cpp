@@ -42,7 +42,7 @@ SecKeyRef SecKeyCreateCopy(SecKeyRef key)
 /*
  Copies SecKeyRef to core::Object
  */
-Scoped<core::Object> SecKeyCopyObject(CFDictionaryRef attrs)
+Scoped<core::Object> SecKeyCopyObject(SecAttributeDictionary *attrs)
 {
   LOGGER_FUNCTION_BEGIN;
 
@@ -53,58 +53,39 @@ Scoped<core::Object> SecKeyCopyObject(CFDictionaryRef attrs)
       THROW_PARAM_REQUIRED_EXCEPTION("attrs");
     }
 
-    SecKeyRef key = (SecKeyRef)CFDictionaryGetValue(attrs, kSecValueRef);
-    if (!key)
-    {
-      THROW_PARAM_REQUIRED_EXCEPTION("kSecValueRef");
-    }
-    CFStringRef keyClass = (CFStringRef)CFDictionaryGetValue(attrs, kSecAttrKeyClass);
-    if (!key)
-    {
-      THROW_PARAM_REQUIRED_EXCEPTION("kSecAttrKeyClass");
-    }
-    CFStringRef keyType = (CFStringRef)CFDictionaryGetValue(attrs, kSecAttrKeyType);
-    if (!key)
-    {
-      THROW_PARAM_REQUIRED_EXCEPTION("kSecAttrKeyType");
-    }
+    Scoped<SecKey> key = attrs->GetValueRef()->To<SecKey>();
+
+    Scoped<CFString> keyClass = attrs->GetValue(kSecAttrKeyClass)->To<CFString>();
+    Scoped<CFString> keyType = attrs->GetValue(kSecAttrKeyType)->To<CFString>();
 
     Scoped<core::Object> result;
-    SecKeyRef copyKey = SecKeyCreateCopy(key);
-    if (!copyKey)
+    if (keyType->Compare(kSecAttrKeyTypeRSA, kCFCompareCaseInsensitive) == kCFCompareEqualTo)
     {
-      THROW_EXCEPTION("Cannot copy key SecKeyCreateCopy");
-    }
-
-    Scoped<SecKey> secCopyKey = Scoped<SecKey>(new SecKey(copyKey));
-
-    if (CFStringCompare(keyType, kSecAttrKeyTypeRSA, kCFCompareCaseInsensitive) == kCFCompareEqualTo)
-    {
-      if (CFStringCompare(keyClass, kSecAttrKeyClassPrivate, kCFCompareCaseInsensitive) == kCFCompareEqualTo)
+      if (keyClass->Compare(kSecAttrKeyClassPrivate, kCFCompareCaseInsensitive) == kCFCompareEqualTo)
       {
         Scoped<RsaPrivateKey> rsaKey(new RsaPrivateKey);
-        rsaKey->Assign(secCopyKey);
+        rsaKey->Assign(attrs);
         result = rsaKey;
       }
       else
       {
         Scoped<RsaPublicKey> rsaKey(new RsaPublicKey);
-        rsaKey->Assign(secCopyKey);
+        rsaKey->Assign(key);
         result = rsaKey;
       }
     }
-    else if (CFStringCompare(keyType, kSecAttrKeyTypeEC, kCFCompareCaseInsensitive) == kCFCompareEqualTo)
+    else if (keyType->Compare(kSecAttrKeyTypeEC, kCFCompareCaseInsensitive) == kCFCompareEqualTo)
     {
-      if (CFStringCompare(keyClass, kSecAttrKeyClassPrivate, kCFCompareCaseInsensitive) == kCFCompareEqualTo)
+      if (keyClass->Compare(kSecAttrKeyClassPrivate, kCFCompareCaseInsensitive) == kCFCompareEqualTo)
       {
         Scoped<EcPrivateKey> ecKey(new EcPrivateKey);
-        ecKey->Assign(secCopyKey);
+        ecKey->Assign(attrs);
         result = ecKey;
       }
       else
       {
         Scoped<EcPublicKey> ecKey(new EcPublicKey);
-        ecKey->Assign(secCopyKey);
+        ecKey->Assign(key);
         result = ecKey;
       }
     }
@@ -633,8 +614,7 @@ void osx::Session::LoadCertificates()
       try
       {
         Scoped<SecAttributeDictionary> attrs = certs->GetValue(index)->To<SecAttributeDictionary>();
-        Scoped<SecCertificate> cert = Scoped<SecCertificate>(new SecCertificate(
-            attrs->CopyValueRef<SecCertificateRef>()));
+        Scoped<SecCertificate> cert = attrs->GetValueRef()->To<SecCertificate>();
 
         X509Certificate x509;
         x509.Assign(cert);
@@ -645,15 +625,7 @@ void osx::Session::LoadCertificates()
         Scoped<core::PublicKey> publicKey = x509.GetPublicKey();
         publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
         publicKey->ItemByType(CKA_LABEL)->SetValue((CK_BYTE_PTR)x509Name->c_str(), x509Name->size());
-
-        if (x509.HasPrivateKey())
-        {
-          Scoped<core::PrivateKey> privateKey = x509.GetPrivateKey();
-          privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
-          privateKey->ItemByType(CKA_LABEL)->SetValue((CK_BYTE_PTR)x509Name->c_str(), x509Name->size());
-          objects.add(privateKey);
-          LOGGER_INFO("Private key was added");
-        }
+        
         objects.add(publicKey);
         LOGGER_INFO("Public key was added");
 
@@ -687,41 +659,21 @@ void osx::Session::LoadKeys()
 
     for (CFIndex index = 0; index < keys->GetCount(); index++)
     {
-      try
-      {
-        Scoped<SecAttributeDictionary> attrs = keys->GetValue(index)->To<SecAttributeDictionary>();
-        SecKeyRef secKey = attrs->CopyValueRef<SecKeyRef>();
-        if (!secKey)
-        {
-          LOGGER_ERROR("Cannot get SecKeyRef from attributes");
-          continue;
-        }
+      // try
+      // {
 
-        // Don't add tokens which were added before
-        CK_LONG searchIndex = 0;
-        while (searchIndex < objects.count())
-        {
-          Scoped<core::Object> object = objects.items(searchIndex++);
-          osx::Key *key = dynamic_cast<osx::Key *>(object.get());
-          if (key && key->Get()->IsEqual(secKey))
-          {
-            break;
-          }
-        }
-        if (searchIndex < objects.count())
-        {
-          continue;
-        }
+      Scoped<SecAttributeDictionary> attrs = keys->GetValue(index)->To<SecAttributeDictionary>();
+      Scoped<SecKey> secKey = attrs->GetValueRef()->To<SecKey>();
 
-        Scoped<core::Object> key = SecKeyCopyObject(attrs->Get());
-        key->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+      Scoped<core::Object> key = SecKeyCopyObject(attrs.get());
+      key->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
 
-        objects.add(key);
-      }
-      catch (Scoped<core::Exception> e)
-      {
-        LOGGER_ERROR("Cannot load key. %s", e->what());
-      }
+      objects.add(key);
+      // }
+      // catch (Scoped<core::Exception> e)
+      // {
+      //   LOGGER_ERROR("Cannot load key. %s", e->what());
+      // }
     }
   }
   CATCH_EXCEPTION

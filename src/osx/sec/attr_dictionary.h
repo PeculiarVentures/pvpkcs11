@@ -13,13 +13,7 @@ namespace osx
     SecAttributeDictionary() : CFDictionary() {}
     SecAttributeDictionary(CFTypeRef handle) : CFDictionary(handle) {}
 
-    CFTypeRef GetValueRef();
-    CFTypeRef CopyValueRef();
-    template <typename T>
-    T CopyValueRef()
-    {
-      return (T)(CopyValueRef());
-    }
+    Scoped<CFType> GetValueRef();
 
     Scoped<CFString> GetClass();
     Scoped<CFString> GetLabel();

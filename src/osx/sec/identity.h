@@ -12,6 +12,8 @@ namespace osx
   class SecIdentity : public CFRef<SecIdentityRef>
   {
   public:
+    static Scoped<SecIdentity> CreateWithCertificate(CFTypeRef __nullable keychainOrArray, SecCertificateRef cert);
+
     SecIdentity() : CFRef<SecIdentityRef>() {}
     SecIdentity(_Nonnull CFTypeRef handle) : CFRef<SecIdentityRef>(handle) {}
 

@@ -36,7 +36,6 @@ namespace osx
         CK_RV Destroy();
 
         Scoped<core::PublicKey> GetPublicKey();
-        Scoped<core::PrivateKey> GetPrivateKey();
         bool HasPrivateKey();
 
         Scoped<std::string> GetName();

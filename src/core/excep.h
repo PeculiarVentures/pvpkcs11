@@ -88,3 +88,9 @@ namespace core {
     catch(...) {                                                        \
         THROW_UNKNOWN_EXCEPTION();                                      \
     }
+
+#define FUNCTION_BEGIN \
+LOGGER_FUNCTION_BEGIN; \
+try {
+#define FUNCTION_END   \
+} CATCH_EXCEPTION

@@ -308,12 +308,12 @@ void osx::EcPrivateKey::Assign(Scoped<SecKey> key)
       THROW_EXCEPTION("Cannot assign SecKeyRef. It has wrong kSecAttrKeyType");
     }
 
-    Scoped<CFData> cfLabel = cfAttributes->GetValueOrNull(kSecAttrApplicationLabel)->To<CFData>();
+    Scoped<CFString> cfLabel = cfAttributes->GetValueOrNull(kSecAttrLabel)->To<CFString>();
     if (!cfLabel->IsEmpty())
     {
       ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
-          (CK_BYTE_PTR)cfLabel->GetBytePtr(),
-          cfLabel->GetLength());
+          (CK_BYTE_PTR)cfLabel->GetCString()->c_str(),
+          cfLabel->GetCString()->size());
     }
 
     Scoped<CFData> cfAppLabel = cfAttributes->GetValue(kSecAttrApplicationLabel)->To<CFData>();
@@ -360,7 +360,7 @@ void osx::EcPrivateKey::Assign(Scoped<SecKey> key, Scoped<core::PublicKey> publi
       THROW_PARAM_REQUIRED_EXCEPTION("publicKey");
     }
 
-    // Check public, it must be RSA
+    // Check public, it must be EC
     if (publicKey->ItemByType(CKA_KEY_GEN_MECHANISM)->ToNumber() != CKM_EC_KEY_PAIR_GEN)
     {
       THROW_EXCEPTION("Cannot assing key. Public key is not EC");
@@ -377,6 +377,94 @@ void osx::EcPrivateKey::Assign(Scoped<SecKey> key, Scoped<core::PublicKey> publi
     ItemByType(CKA_DERIVE)->To<core::AttributeBool>()->Set(pPubKey->ItemByType(CKA_DERIVE)->ToBool());
   }
   CATCH_EXCEPTION
+}
+
+void osx::EcPrivateKey::Assign(SecAttributeDictionary *attrs)
+{
+  LOGGER_FUNCTION_BEGIN;
+
+  try
+  {
+    value = attrs->GetValueRef()->To<SecKey>();
+
+    // Check key type
+    Scoped<CFString> cfKeyType = attrs->GetValue(kSecAttrKeyType)->To<CFString>();
+    if (cfKeyType->Compare(kSecAttrKeyTypeEC, kCFCompareCaseInsensitive) != kCFCompareEqualTo)
+    {
+      THROW_EXCEPTION("Cannot assign SecKeyRef. It has wrong kSecAttrKeyType");
+    }
+
+    Scoped<CFString> cfLabel = attrs->GetValueOrNull(kSecAttrLabel)->To<CFString>();
+    if (!cfLabel->IsEmpty())
+    {
+      ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
+          (CK_BYTE_PTR)cfLabel->GetCString()->c_str(),
+          cfLabel->GetCString()->size());
+    }
+
+    Scoped<CFData> cfAppLabel = attrs->GetValue(kSecAttrApplicationLabel)->To<CFData>();
+    if (!cfAppLabel->IsEmpty())
+    {
+      ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set((CK_BYTE_PTR)cfAppLabel->GetBytePtr(),
+                                                          cfAppLabel->GetLength());
+    }
+
+    Scoped<CFBoolean> cfSign = attrs->GetValue(kSecAttrCanSign)->To<CFBoolean>();
+    if (cfSign->GetValue())
+    {
+      ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
+    }
+
+    Scoped<CFBoolean> cfDecrypt = attrs->GetValue(kSecAttrCanDecrypt)->To<CFBoolean>();
+    if (cfDecrypt->GetValue())
+    {
+      ItemByType(CKA_DECRYPT)->To<core::AttributeBool>()->Set(true);
+    }
+
+    Scoped<CFBoolean> cfUnwrap = attrs->GetValue(kSecAttrCanUnwrap)->To<CFBoolean>();
+    if (cfUnwrap->GetValue())
+    {
+      ItemByType(CKA_UNWRAP)->To<core::AttributeBool>()->Set(true);
+    }
+    
+    Scoped<CFBoolean> cfDerive = attrs->GetValue(kSecAttrCanDerive)->To<CFBoolean>();
+    if (cfDerive->GetValue())
+    {
+      ItemByType(CKA_DERIVE)->To<core::AttributeBool>()->Set(true);
+    }
+
+    // NOTE: Keychain attributes don't keep information about is key extractable or not.
+    //       To get that flag you need to call SecKeyCopyAttributes. But it will show
+    //       prompt dialog if application doesn't have permission for key using.
+    //
+    //       For that case mark all private keys like unextractable and public like extractable
+    ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->Set(false);
+
+    CK_ULONG keySizeInBits = 0;
+    Scoped<CFNumber> cfKeySizeInBits = attrs->GetValue(kSecAttrKeySizeInBits)->To<CFNumber>();
+    cfKeySizeInBits->GetValue(kCFNumberSInt32Type, &keySizeInBits);
+
+    SetECParams(keySizeInBits);
+  }
+  CATCH_EXCEPTION
+}
+
+void osx::EcPrivateKey::SetECParams(CK_ULONG keySizeInBits)
+{
+  switch (keySizeInBits)
+  {
+  case 256:
+    ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P256_BLOB, sizeof(core::EC_P256_BLOB) - 1);
+    break;
+  case 384:
+    ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P384_BLOB, sizeof(core::EC_P384_BLOB) - 1);
+    break;
+  case 521:
+    ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P521_BLOB, sizeof(core::EC_P521_BLOB) - 1);
+    break;
+  default:
+    THROW_EXCEPTION("Unsupported size of key");
+  }
 }
 
 CK_RV osx::EcPrivateKey::CopyValues(
@@ -450,21 +538,7 @@ void osx::EcPrivateKey::FillPublicKeyStruct()
     }
     Scoped<CFData> cfKeyData = value->GetExternalRepresentation();
 
-    Scoped<std::string> propPoint(new std::string(""));
-    switch (keySizeInBits)
-    {
-    case 256:
-      ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P256_BLOB, sizeof(core::EC_P256_BLOB) - 1);
-      break;
-    case 384:
-      ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P384_BLOB, sizeof(core::EC_P384_BLOB) - 1);
-      break;
-    case 521:
-      ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P521_BLOB, sizeof(core::EC_P521_BLOB) - 1);
-      break;
-    default:
-      THROW_EXCEPTION("Unsupported size of key");
-    }
+    SetECParams(keySizeInBits);
   }
   CATCH_EXCEPTION
 }
@@ -640,6 +714,14 @@ void osx::EcPublicKey::Assign(Scoped<SecKey> key)
       THROW_EXCEPTION("Cannot assign SecKeyRef. It has wrong kSecAttrKeyType");
     }
 
+    Scoped<CFString> cfLabel = cfAttributes->GetValueOrNull(kSecAttrLabel)->To<CFString>();
+    if (!cfLabel->IsEmpty())
+    {
+      ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
+          (CK_BYTE_PTR)cfLabel->GetCString()->c_str(),
+          cfLabel->GetCString()->size());
+    }
+
     Scoped<CFData> cfAppLabel = cfAttributes->GetValueOrNull(kSecAttrApplicationLabel)->To<CFData>();
     if (!cfAppLabel->IsEmpty())
     {
@@ -675,13 +757,6 @@ void osx::EcPublicKey::FillKeyStruct()
   {
     Scoped<CFDictionary> cfAttributes = value->GetAttributes();
 
-    Scoped<CFData> cfLabel = cfAttributes->GetValueOrNull(kSecAttrApplicationLabel)->To<CFData>();
-    if (!cfLabel->IsEmpty())
-    {
-      ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue((CK_BYTE_PTR)cfLabel->GetBytePtr(),
-                                                                  cfLabel->GetLength());
-    }
-
     // Get key size
     Scoped<CFNumber> cfKeySizeInBits = cfAttributes->GetValueOrNull(kSecAttrKeySizeInBits)->To<CFNumber>();
     if (cfKeySizeInBits->IsEmpty())
@@ -690,8 +765,6 @@ void osx::EcPublicKey::FillKeyStruct()
     }
     CK_ULONG keySizeInBits = 0;
     CFNumberGetValue(cfKeySizeInBits->Get(), kCFNumberSInt64Type, &keySizeInBits);
-
-    Scoped<CFData> cfKeyData = value->GetExternalRepresentation();
 
     Scoped<std::string> propPoint(new std::string(""));
     switch (keySizeInBits)
@@ -711,8 +784,27 @@ void osx::EcPublicKey::FillKeyStruct()
     default:
       THROW_EXCEPTION("Unsupported size of key");
     }
-    *propPoint += std::string((char *)cfKeyData->GetBytePtr(), cfKeyData->GetLength());
-    ItemByType(CKA_EC_POINT)->SetValue((CK_BYTE_PTR)propPoint->c_str(), propPoint->length());
+
+    Scoped<CFData> cfKeyData = NULL;
+    try
+    {
+      cfKeyData = value->GetExternalRepresentation();
+    }
+    catch (Scoped<core::Exception> e)
+    {
+      LOGGER_WARN("Cannot export EC public key. %s", e->message.c_str());
+    }
+
+    if (cfKeyData.get() != nullptr)
+    {
+      *propPoint += std::string((char *)cfKeyData->GetBytePtr(), cfKeyData->GetLength());
+      ItemByType(CKA_EC_POINT)->SetValue((CK_BYTE_PTR)propPoint->c_str(), propPoint->length());
+    }
+    else
+    {
+      CK_BYTE modulus[0] = {};
+      ItemByType(CKA_EC_POINT)->SetValue(modulus, 0);
+    }
   }
   CATCH_EXCEPTION
 }

@@ -1,8 +1,10 @@
 #pragma once
 
-#include "../core.h"
-
 #include <Security/SecKey.h>
+
+#include "../core.h"
+#include "attr_dictionary.h"
+
 
 namespace osx
 {
@@ -23,7 +25,9 @@ namespace osx
         uint32 keyAttr,
         SecAccessRef _Nullable initialAccess);
     static Scoped<SecKey> CreateFromData(_Nonnull CFDictionaryRef parameters, _Nonnull CFDataRef keyData);
+
     Scoped<CFDictionary> GetAttributes();
+    Scoped<SecKey> GetPublicKey();
     Scoped<CFData> GetExternalRepresentation();
     Scoped<CFData> GetKeyExchangeResult(_Nonnull SecKeyAlgorithm algorithm, _Nonnull SecKeyRef publicKey, _Nonnull CFDictionaryRef parameters);
     Scoped<CFData> CreateSignature(_Nonnull SecKeyAlgorithm algorithm, _Nonnull CFDataRef dataToSign);
