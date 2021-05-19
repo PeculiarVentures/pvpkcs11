@@ -62,7 +62,7 @@ void osx::X509Certificate::Assign(
       ItemByType(CKA_CHECK_VALUE)->To<core::AttributeBytes>()->Set(hash->data(), 3);
     }
     // CKA_SERIAL_NUMBER
-    {      
+    {
       osx::SecAsn1Coder coder;
 
       Scoped<CFData> cfSerialNumber = value->GetSerialNumberData();
@@ -195,18 +195,18 @@ Scoped<core::PublicKey> osx::X509Certificate::GetPublicKey()
     Scoped<CFDictionary> cfAttributes = secPublicKey->GetAttributes();
 
     Scoped<core::PublicKey> res;
-    CFStringRef cfKeyType = cfAttributes->GetValue<CFStringRef>(kSecAttrKeyType);
-    if (cfKeyType == NULL)
+    Scoped<CFString> cfKeyType = cfAttributes->GetValueOrNull(kSecAttrKeyType)->To<CFString>();
+    if (cfKeyType->IsEmpty())
     {
       THROW_EXCEPTION("Cannot get type of public key. CFDictionaryGetValue returns empty");
     }
-    if (!CFStringCompare(kSecAttrKeyTypeRSA, cfKeyType, kCFCompareCaseInsensitive))
+    if (!CFStringCompare(kSecAttrKeyTypeRSA, cfKeyType->Get(), kCFCompareCaseInsensitive))
     {
       Scoped<RsaPublicKey> rsaKey(new RsaPublicKey);
       rsaKey->Assign(secPublicKey);
       res = rsaKey;
     }
-    else if (!CFStringCompare(kSecAttrKeyTypeEC, cfKeyType, kCFCompareCaseInsensitive))
+    else if (!CFStringCompare(kSecAttrKeyTypeEC, cfKeyType->Get(), kCFCompareCaseInsensitive))
     {
       Scoped<EcPublicKey> ecKey(new EcPublicKey);
       ecKey->Assign(secPublicKey);

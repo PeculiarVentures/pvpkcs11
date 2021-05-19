@@ -9,3 +9,4 @@
 #include "./core/mutable_dictionary.h"
 #include "./core/number.h"
 #include "./core/string.h"
+#include "./core/boolean.h"

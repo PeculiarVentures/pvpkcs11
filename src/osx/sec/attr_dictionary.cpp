@@ -4,7 +4,7 @@ using namespace osx;
 
 CFTypeRef SecAttributeDictionary::GetValueRef()
 {
-  return reinterpret_cast<CFTypeRef>(GetValue(kSecValueRef));
+  return reinterpret_cast<CFTypeRef>(GetValueByKey(kSecValueRef));
 }
 
 CFTypeRef SecAttributeDictionary::CopyValueRef()
@@ -16,25 +16,25 @@ CFTypeRef SecAttributeDictionary::CopyValueRef()
 
 Scoped<CFString> SecAttributeDictionary::GetClass()
 {
-  return GetValueCFString(kSecAttrLabel);
+  return GetValue(kSecAttrLabel)->To<CFString>();
 }
 
 Scoped<CFString> SecAttributeDictionary::GetLabel()
 {
-  return GetValueCFString(kSecAttrLabel);
+  return GetValue(kSecAttrLabel)->To<CFString>();
 }
 
 Scoped<CFData> SecAttributeDictionary::GetPublicKeyHash()
 {
-  return GetValueCFData(kSecAttrPublicKeyHash);
+  return GetValue(kSecAttrPublicKeyHash)->To<CFData>();
 }
 
 Scoped<CFData> SecAttributeDictionary::GetSubjectKeyId()
 {
-  return GetValueCFData(kSecAttrSubjectKeyID);
+  return GetValue(kSecAttrSubjectKeyID)->To<CFData>();
 }
 
 Scoped<CFData> SecAttributeDictionary::GetSerialNumber()
 {
-  return GetValueCFData(kSecAttrSerialNumber);
+  return GetValue(kSecAttrSerialNumber)->To<CFData>();
 }

@@ -534,34 +534,34 @@ void osx::RsaPublicKey::Assign(Scoped<SecKey> key)
     Scoped<CFDictionary> cfAttributes = value->GetAttributes();
     
     // Check key type
-    CFStringRef cfKeyType = cfAttributes->GetValue<CFStringRef>(kSecAttrKeyType);
-    if (cfKeyType == NULL)
+    Scoped<CFString> cfKeyType = cfAttributes->GetValueOrNull(kSecAttrKeyType)->To<CFString>();
+    if (cfKeyType->IsEmpty())
     {
       THROW_EXCEPTION("Key item doesn't have kSecAttrKeyType attribute");
     }
-    if (CFStringCompare(cfKeyType, kSecAttrKeyTypeRSA, kCFCompareCaseInsensitive) != kCFCompareEqualTo)
+    if (cfKeyType->Compare(kSecAttrKeyTypeRSA, kCFCompareCaseInsensitive) != kCFCompareEqualTo)
     {
       THROW_EXCEPTION("Cannot assign SecKeyRef. It has wrong kSecAttrKeyType");
     }
 
-    CFDataRef cfAppLabel = cfAttributes->GetValue<CFDataRef>(kSecAttrApplicationLabel);
+    Scoped<CFData> cfAppLabel = cfAttributes->GetValueOrNull(kSecAttrApplicationLabel)->To<CFData>();
     if (cfAppLabel)
     {
-      ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set((CK_BYTE_PTR)CFDataGetBytePtr(cfAppLabel),
-                                                          CFDataGetLength(cfAppLabel));
+      ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set((CK_BYTE_PTR)cfAppLabel->GetBytePtr(),
+                                                          cfAppLabel->GetLength());
     }
-    CFBooleanRef cfVerify = cfAttributes->GetValue<CFBooleanRef>(kSecAttrCanVerify);
-    if (CFBooleanGetValue(cfVerify))
+    Scoped<CFBoolean> cfVerify = cfAttributes->GetValue(kSecAttrCanVerify)->To<CFBoolean>();
+    if (cfVerify->GetValue())
     {
       ItemByType(CKA_VERIFY)->To<core::AttributeBool>()->Set(true);
     }
-    CFBooleanRef cfEncrypt = cfAttributes->GetValue<CFBooleanRef>(kSecAttrCanEncrypt);
-    if (CFBooleanGetValue(cfEncrypt))
+    Scoped<CFBoolean> cfEncrypt = cfAttributes->GetValue(kSecAttrCanEncrypt)->To<CFBoolean>();
+    if (cfEncrypt->GetValue())
     {
       ItemByType(CKA_ENCRYPT)->To<core::AttributeBool>()->Set(true);
     }
-    CFBooleanRef cfWrap = cfAttributes->GetValue<CFBooleanRef>(kSecAttrCanWrap);
-    if (CFBooleanGetValue(cfWrap))
+    Scoped<CFBoolean> cfWrap = cfAttributes->GetValue(kSecAttrCanWrap)->To<CFBoolean>();
+    if (cfWrap->GetValue())
     {
       ItemByType(CKA_WRAP)->To<core::AttributeBool>()->Set(true);
     }
@@ -578,12 +578,12 @@ void osx::RsaPublicKey::FillKeyStruct()
   try
   {
     Scoped<CFDictionary> cfAttributes = value->GetAttributes();
-    CFDataRef cfLabel = cfAttributes->GetValue<CFDataRef>(kSecAttrApplicationLabel);
-    if (cfLabel)
+    Scoped<CFData> cfLabel = cfAttributes->GetValueOrNull(kSecAttrApplicationLabel)->To<CFData>();
+    if (!cfLabel->IsEmpty())
     {
       ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
-          (CK_BYTE_PTR)CFDataGetBytePtr(cfLabel),
-          CFDataGetLength(cfLabel));
+          (CK_BYTE_PTR)cfLabel->GetBytePtr(),
+          cfLabel->GetLength());
     }
 
     // Get public key SEQUENCE

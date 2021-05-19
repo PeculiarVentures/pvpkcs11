@@ -302,47 +302,43 @@ void osx::EcPrivateKey::Assign(Scoped<SecKey> key)
     Scoped<CFDictionary> cfAttributes = value->GetAttributes();
 
     // Check key type
-    CFStringRef cfKeyType = cfAttributes->GetValue<CFStringRef>(kSecAttrKeyType);
-    if (cfKeyType == NULL)
-    {
-      THROW_EXCEPTION("Key item doesn't have kSecAttrKeyType attribute");
-    }
-    if (CFStringCompare(cfKeyType, kSecAttrKeyTypeEC, kCFCompareCaseInsensitive) != kCFCompareEqualTo)
+    Scoped<CFString> cfKeyType = cfAttributes->GetValue(kSecAttrKeyType)->To<CFString>();
+    if (cfKeyType->Compare(kSecAttrKeyTypeEC, kCFCompareCaseInsensitive) != kCFCompareEqualTo)
     {
       THROW_EXCEPTION("Cannot assign SecKeyRef. It has wrong kSecAttrKeyType");
     }
 
-    CFDataRef cfLabel = cfAttributes->GetValue<CFDataRef>(kSecAttrApplicationLabel);
-    if (cfLabel)
+    Scoped<CFData> cfLabel = cfAttributes->GetValueOrNull(kSecAttrApplicationLabel)->To<CFData>();
+    if (!cfLabel->IsEmpty())
     {
       ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
-          (CK_BYTE_PTR)CFDataGetBytePtr(cfLabel),
-          CFDataGetLength(cfLabel));
+          (CK_BYTE_PTR)cfLabel->GetBytePtr(),
+          cfLabel->GetLength());
     }
 
-    CFDataRef cfAppLabel = cfAttributes->GetValue<CFDataRef>(kSecAttrApplicationLabel);
-    if (cfAppLabel)
+    Scoped<CFData> cfAppLabel = cfAttributes->GetValue(kSecAttrApplicationLabel)->To<CFData>();
+    if (!cfAppLabel->IsEmpty())
     {
-      ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set((CK_BYTE_PTR)CFDataGetBytePtr(cfAppLabel),
-                                                          CFDataGetLength(cfAppLabel));
+      ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set((CK_BYTE_PTR)cfAppLabel->GetBytePtr(),
+                                                          cfAppLabel->GetLength());
     }
-    CFBooleanRef cfSign = cfAttributes->GetValue<CFBooleanRef>(kSecAttrCanSign);
-    if (CFBooleanGetValue(cfSign))
+    Scoped<CFBoolean> cfSign = cfAttributes->GetValue(kSecAttrCanSign)->To<CFBoolean>();
+    if (cfSign->GetValue())
     {
       ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
     }
-    CFBooleanRef cfDecrypt = cfAttributes->GetValue<CFBooleanRef>(kSecAttrCanDecrypt);
-    if (cfDecrypt == kCFBooleanTrue)
+    Scoped<CFBoolean> cfDecrypt = cfAttributes->GetValue(kSecAttrCanDecrypt)->To<CFBoolean>();
+    if (cfDecrypt->GetValue())
     {
       ItemByType(CKA_DECRYPT)->To<core::AttributeBool>()->Set(true);
     }
-    CFBooleanRef cfUnwrap = cfAttributes->GetValue<CFBooleanRef>(kSecAttrCanUnwrap);
-    if (cfUnwrap == kCFBooleanTrue)
+    Scoped<CFBoolean> cfUnwrap = cfAttributes->GetValue(kSecAttrCanUnwrap)->To<CFBoolean>();
+    if (cfUnwrap->GetValue())
     {
       ItemByType(CKA_UNWRAP)->To<core::AttributeBool>()->Set(true);
     }
-    CFBooleanRef cfExtractable = cfAttributes->GetValue<CFBooleanRef>(kSecAttrIsExtractable);
-    if (cfExtractable == kCFBooleanTrue)
+    Scoped<CFBoolean> cfExtractable = cfAttributes->GetValue(kSecAttrIsExtractable)->To<CFBoolean>();
+    if (cfExtractable->GetValue())
     {
       ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->Set(true);
     }
@@ -634,34 +630,34 @@ void osx::EcPublicKey::Assign(Scoped<SecKey> key)
     Scoped<CFDictionary> cfAttributes = value->GetAttributes();
 
     // Check key type
-    CFStringRef cfKeyType = (CFStringRef)cfAttributes->GetValue<CFStringRef>(kSecAttrKeyType);
-    if (cfKeyType == NULL)
+    Scoped<CFString> cfKeyType = cfAttributes->GetValueOrNull(kSecAttrKeyType)->To<CFString>();
+    if (cfKeyType->IsEmpty())
     {
       THROW_EXCEPTION("Key item doesn't have kSecAttrKeyType attribute");
     }
-    if (CFStringCompare(cfKeyType, kSecAttrKeyTypeEC, kCFCompareCaseInsensitive) != kCFCompareEqualTo)
+    if (cfKeyType->Compare(kSecAttrKeyTypeEC, kCFCompareCaseInsensitive) != kCFCompareEqualTo)
     {
       THROW_EXCEPTION("Cannot assign SecKeyRef. It has wrong kSecAttrKeyType");
     }
 
-    CFDataRef cfAppLabel = cfAttributes->GetValue<CFDataRef>(kSecAttrApplicationLabel);
-    if (cfAppLabel)
+    Scoped<CFData> cfAppLabel = cfAttributes->GetValueOrNull(kSecAttrApplicationLabel)->To<CFData>();
+    if (!cfAppLabel->IsEmpty())
     {
-      ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set((CK_BYTE_PTR)CFDataGetBytePtr(cfAppLabel),
-                                                          CFDataGetLength(cfAppLabel));
+      ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set((CK_BYTE_PTR)cfAppLabel->GetBytePtr(),
+                                                          cfAppLabel->GetLength());
     }
-    CFBooleanRef cfVerify = cfAttributes->GetValue<CFBooleanRef>(kSecAttrCanVerify);
-    if (CFBooleanGetValue(cfVerify))
+    Scoped<CFBoolean> cfVerify = cfAttributes->GetValue(kSecAttrCanVerify)->To<CFBoolean>();
+    if (cfVerify->GetValue())
     {
       ItemByType(CKA_VERIFY)->To<core::AttributeBool>()->Set(true);
     }
-    CFBooleanRef cfEncrypt = cfAttributes->GetValue<CFBooleanRef>(kSecAttrCanEncrypt);
-    if (CFBooleanGetValue(cfEncrypt))
+    Scoped<CFBoolean> cfEncrypt = cfAttributes->GetValue(kSecAttrCanEncrypt)->To<CFBoolean>();
+    if (cfEncrypt->GetValue())
     {
       ItemByType(CKA_ENCRYPT)->To<core::AttributeBool>()->Set(true);
     }
-    CFBooleanRef cfWrap = cfAttributes->GetValue<CFBooleanRef>(kSecAttrCanWrap);
-    if (CFBooleanGetValue(cfWrap))
+    Scoped<CFBoolean> cfWrap = cfAttributes->GetValue(kSecAttrCanWrap)->To<CFBoolean>();
+    if (cfWrap->GetValue())
     {
       ItemByType(CKA_WRAP)->To<core::AttributeBool>()->Set(true);
     }
@@ -679,21 +675,21 @@ void osx::EcPublicKey::FillKeyStruct()
   {
     Scoped<CFDictionary> cfAttributes = value->GetAttributes();
 
-    CFDataRef cfLabel = cfAttributes->GetValue<CFDataRef>(kSecAttrApplicationLabel);
-    if (cfLabel)
+    Scoped<CFData> cfLabel = cfAttributes->GetValueOrNull(kSecAttrApplicationLabel)->To<CFData>();
+    if (!cfLabel->IsEmpty())
     {
-      ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue((CK_BYTE_PTR)CFDataGetBytePtr(cfLabel),
-                                                                  CFDataGetLength(cfLabel));
+      ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue((CK_BYTE_PTR)cfLabel->GetBytePtr(),
+                                                                  cfLabel->GetLength());
     }
 
     // Get key size
-    CFNumberRef cfKeySizeInBits = cfAttributes->GetValue<CFNumberRef>(kSecAttrKeySizeInBits);
-    if (!cfKeySizeInBits)
+    Scoped<CFNumber> cfKeySizeInBits = cfAttributes->GetValueOrNull(kSecAttrKeySizeInBits)->To<CFNumber>();
+    if (cfKeySizeInBits->IsEmpty())
     {
       THROW_EXCEPTION("Cannot get size of the key");
     }
     CK_ULONG keySizeInBits = 0;
-    CFNumberGetValue(cfKeySizeInBits, kCFNumberSInt64Type, &keySizeInBits);
+    CFNumberGetValue(cfKeySizeInBits->Get(), kCFNumberSInt64Type, &keySizeInBits);
 
     Scoped<CFData> cfKeyData = value->GetExternalRepresentation();
 

@@ -288,13 +288,13 @@ CK_RV osx::EcDsaSign::Final(
     // check signature size
     Scoped<CFDictionary> cfAttributes = key->Get()->GetAttributes();
 
-    CFNumberRef cfKeySizeInBits = cfAttributes->GetValue<CFNumberRef>(kSecAttrKeySizeInBits);
+    Scoped<CFNumber> cfKeySizeInBits = cfAttributes->GetValue(kSecAttrKeySizeInBits)->To<CFNumber>();
     if (!cfKeySizeInBits)
     {
       THROW_EXCEPTION("Cannot get size of key");
     }
     CK_ULONG keySizeInBits = 0;
-    CFNumberGetValue(cfKeySizeInBits, kCFNumberSInt64Type, &keySizeInBits);
+    CFNumberGetValue(cfKeySizeInBits->Get(), kCFNumberSInt64Type, &keySizeInBits);
     keySizeInBits = (keySizeInBits + 7) >> 3;
     if (ulSignatureLen != keySizeInBits * 2)
     {

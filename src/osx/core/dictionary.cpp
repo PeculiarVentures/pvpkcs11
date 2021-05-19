@@ -5,21 +5,22 @@ using namespace osx;
 Scoped<CFDictionary> CFDictionary::Create(CFAllocatorRef allocator, CFDictionaryRef dict)
 {
   CFDictionaryRef res = CFDictionaryCreateCopy(allocator, dict);
-  if (res == nullptr) {
+  if (res == nullptr)
+  {
     THROW_EXCEPTION("Error on CFDictionaryCreateCopy");
   }
 
   return Scoped<CFDictionary>(new CFDictionary(res));
 }
 
-const void *CFDictionary::GetValue(const void *key)
+const void *CFDictionary::GetValueByKey(const void *key)
 {
   return CFDictionaryGetValue(handle, key);
 }
 
-CFTypeRef  CFDictionary::CopyValue(const void *key)
+CFTypeRef CFDictionary::CopyValueByKey(const void *key)
 {
-  CFTypeRef ref = reinterpret_cast<CFTypeRef>(GetValue(key));
+  CFTypeRef ref = reinterpret_cast<CFTypeRef>(GetValueByKey(key));
 
   return CFRetain(ref);
 }
@@ -29,16 +30,37 @@ Boolean CFDictionary::GetValueIfPresent(const void *key, const void **value)
   return CFDictionaryGetValueIfPresent(handle, key, value);
 }
 
-Scoped<CFData> CFDictionary::GetValueCFData(const void *key)
+Scoped<CFType> CFDictionary::GetValue(const void *key)
 {
-  CFDataRef ref = CopyValue<CFDataRef>(key);
+  Scoped<CFType> item = GetValueOrNull(key);
 
-  return Scoped<CFData>(new CFData(ref));
+  if (item->IsEmpty()) {
+    CFTypeID typeID = CFGetTypeID(key);
+    if (typeID == CFStringGetTypeID()) {
+      CFType type = key;
+      type.Unref();
+
+      THROW_EXCEPTION("Cannot get value by specified key '%s'.", type.To<CFString>()->GetCString()->c_str());
+    } else {
+      THROW_EXCEPTION("Cannot get value by specified key.");
+    }
+  }
+
+  return item;
 }
 
-Scoped<CFString> CFDictionary::GetValueCFString(const void *key)
+Scoped<CFType> CFDictionary::GetValueOrNull(const void *key)
 {
-  CFStringRef ref = CopyValue<CFStringRef>(key);
+  CFTypeRef itemRef = CopyValueByKey(key);
 
-  return Scoped<CFString>(new CFString(ref));
+  return Scoped<CFType>(new CFType(itemRef));
+}
+
+bool CFDictionary::HasValue(const void *key)
+{
+  if (CFDictionaryGetValue(handle, key) == NULL) {
+    return false;
+  }
+
+  return true;
 }

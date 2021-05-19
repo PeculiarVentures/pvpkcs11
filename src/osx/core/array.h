@@ -15,6 +15,8 @@ namespace osx
 
     CFIndex GetCount();
     Scoped<CFType> GetValue(CFIndex index);
+
+  protected:
     const void *GetValueAtIndex(CFIndex index);
     CFTypeRef CopyValueAtIndex(CFIndex index);
     template <typename T>
