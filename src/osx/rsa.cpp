@@ -245,6 +245,18 @@ void RsaPrivateKey::Assign(SecAttributeDictionary *attrs)
     //
     //       For that case mark all private keys like unextractable and public like extractable
     ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->Set(false);
+
+    // Fill public key data
+    CK_ULONG modulusLength = 0;
+    attrs->GetValue(kSecAttrKeySizeInBits)->To<CFNumber>()->GetValue(kCFNumberSInt32Type, &modulusLength);
+
+    ItemByType(CKA_MODULUS_BITS)->To<core::AttributeNumber>()->Set(modulusLength);
+
+    CK_BYTE modulus[0] = {};
+    ItemByType(CKA_MODULUS)->SetValue(modulus, 0);
+
+    CK_BYTE publicExponent[3] = {0x01, 0x00, 0x01};
+    ItemByType(CKA_PUBLIC_EXPONENT)->SetValue(publicExponent, 3);
   }
   CATCH_EXCEPTION
 }
