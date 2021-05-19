@@ -151,6 +151,7 @@
                         'src/osx/core/mutable_dictionary.cpp',
                         'src/osx/core/number.cpp',
                         'src/osx/core/string.cpp',
+                        'src/osx/core/boolean.cpp',
                         ## sec
                         'src/osx/sec/asn1_coder.cpp',
                         'src/osx/sec/cert.cpp',
