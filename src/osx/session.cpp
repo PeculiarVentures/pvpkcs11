@@ -625,7 +625,7 @@ void osx::Session::LoadCertificates()
         Scoped<core::PublicKey> publicKey = x509.GetPublicKey();
         publicKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
         publicKey->ItemByType(CKA_LABEL)->SetValue((CK_BYTE_PTR)x509Name->c_str(), x509Name->size());
-        
+
         objects.add(publicKey);
         LOGGER_INFO("Public key was added");
 
@@ -659,21 +659,21 @@ void osx::Session::LoadKeys()
 
     for (CFIndex index = 0; index < keys->GetCount(); index++)
     {
-      // try
-      // {
+      try
+      {
 
-      Scoped<SecAttributeDictionary> attrs = keys->GetValue(index)->To<SecAttributeDictionary>();
-      Scoped<SecKey> secKey = attrs->GetValueRef()->To<SecKey>();
+        Scoped<SecAttributeDictionary> attrs = keys->GetValue(index)->To<SecAttributeDictionary>();
+        Scoped<SecKey> secKey = attrs->GetValueRef()->To<SecKey>();
 
-      Scoped<core::Object> key = SecKeyCopyObject(attrs.get());
-      key->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
+        Scoped<core::Object> key = SecKeyCopyObject(attrs.get());
+        key->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->Set(true);
 
-      objects.add(key);
-      // }
-      // catch (Scoped<core::Exception> e)
-      // {
-      //   LOGGER_ERROR("Cannot load key. %s", e->what());
-      // }
+        objects.add(key);
+      }
+      catch (Scoped<core::Exception> e)
+      {
+        LOGGER_ERROR("Cannot load key. %s", e->what());
+      }
     }
   }
   CATCH_EXCEPTION
