@@ -37,7 +37,8 @@ Scoped<CFData> GetKeyDataFromOctetString(CFDataRef octetString)
 {
   LOGGER_FUNCTION_BEGIN;
 
-  CFData cfOctetString(octetString, false);
+  CFData cfOctetString(octetString);
+  cfOctetString.Unref();
 
   Scoped<osx::SecAsn1Coder> coder = osx::SecAsn1Coder::Create();
   SecAsn1Item keyData;

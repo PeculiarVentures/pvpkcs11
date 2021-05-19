@@ -11,7 +11,7 @@ namespace osx
   {
   public:
     SecKey() : CFRef<SecKeyRef>() {}
-    SecKey(_Nonnull SecKeyRef handle) : CFRef<SecKeyRef>(handle) {}
+    SecKey(_Nonnull CFTypeRef handle) : CFRef<SecKeyRef>(handle) {}
 
     static void GeneratePair(_Nonnull CFDictionaryRef parameters, SecKeyRef * _Nullable CF_RETURNS_RETAINED publicKey, SecKeyRef * _Nullable CF_RETURNS_RETAINED privateKey);
     static Scoped<SecKey> Generate(

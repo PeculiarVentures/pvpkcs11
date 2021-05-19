@@ -11,7 +11,7 @@ namespace osx
   {
   public:
     CFDictionary() : CFRef<CFDictionaryRef>() {}
-    CFDictionary(CFDictionaryRef _Nonnull handle) : CFRef<CFDictionaryRef>(handle) {}
+    CFDictionary(CFTypeRef _Nonnull handle) : CFRef<CFDictionaryRef>(handle) {}
 
     static Scoped<CFDictionary> Create(CFAllocatorRef _Nullable allocator, CFDictionaryRef _Nonnull dict);
 

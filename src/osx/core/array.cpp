@@ -28,3 +28,10 @@ CFTypeRef CFArray::CopyValueAtIndex(CFIndex index)
 
   return CFRetain((CFTypeRef)item);
 }
+
+Scoped<CFType> CFArray::GetValue(CFIndex index)
+{
+  CFTypeRef itemRef = CopyValueAtIndex(index);
+
+  return Scoped<CFType>(new CFType(itemRef));
+}

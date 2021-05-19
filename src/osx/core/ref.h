@@ -11,7 +11,7 @@ namespace osx
   public:
     CFRef() : handle(NULL), dispose(true) {}
 
-    CFRef(T _Nullable value, bool dispose = true) : handle(value), dispose(dispose) {}
+    CFRef(CFTypeRef _Nullable value, bool dispose = true) : handle((T)value), dispose(dispose) {}
 
     ~CFRef()
     {
@@ -89,13 +89,29 @@ namespace osx
       return CFEqual(handle, value);
     }
 
-    void Show() {
+    void Show()
+    {
       CFShow(this->handle);
+    }
+
+    CFTypeID GetTypeID()
+    {
+      return CFGetTypeID(handle);
+    }
+
+    template <class C>
+    Scoped<C> To()
+    {
+      T typePtr = Retain();
+
+      return Scoped<C>(new C(typePtr));
     }
 
   protected:
     T handle;
     bool dispose;
   };
+
+  using CFType = CFRef<CFTypeRef>;
 
 }

@@ -9,7 +9,7 @@ namespace osx
   {
   public:
     CFError() : CFRef<CFErrorRef>() {}
-    CFError(CFErrorRef handle) : CFRef<CFErrorRef>(handle) {}
+    CFError(CFTypeRef handle) : CFRef<CFErrorRef>(handle) {}
 
     Scoped<CFString> GetDescription();
   };

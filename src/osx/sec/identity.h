@@ -13,7 +13,7 @@ namespace osx
   {
   public:
     SecIdentity() : CFRef<SecIdentityRef>() {}
-    SecIdentity(_Nonnull SecIdentityRef handle) : CFRef<SecIdentityRef>(handle) {}
+    SecIdentity(_Nonnull CFTypeRef handle) : CFRef<SecIdentityRef>(handle) {}
 
     Scoped<SecCertificate> GetCertificate();
     Scoped<SecKey> GetPrivateKey();

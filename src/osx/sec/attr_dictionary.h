@@ -11,7 +11,7 @@ namespace osx
   {
   public:
     SecAttributeDictionary() : CFDictionary() {}
-    SecAttributeDictionary(CFDictionaryRef handle) : CFDictionary(handle) {}
+    SecAttributeDictionary(CFTypeRef handle) : CFDictionary(handle) {}
 
     CFTypeRef GetValueRef();
     CFTypeRef CopyValueRef();

@@ -12,7 +12,7 @@ namespace osx
   {
   public:
     SecCertificate() : CFRef<SecCertificateRef>() {}
-    SecCertificate(_Nonnull SecCertificateRef handle) : CFRef<SecCertificateRef>(handle) {}
+    SecCertificate(_Nonnull CFTypeRef handle) : CFRef<SecCertificateRef>(handle) {}
 
     static Scoped<SecCertificate> CreateWithData(CFAllocatorRef _Nullable allocator, CFDataRef _Nonnull data);
     static Scoped<SecCertificate> CreateRetain(SecCertificateRef _Nonnull cert);

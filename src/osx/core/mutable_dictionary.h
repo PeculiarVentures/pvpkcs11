@@ -9,7 +9,7 @@ namespace osx
   {
   public:
     CFMutableDictionary() : CFDictionary() {}
-    CFMutableDictionary(CFMutableDictionaryRef _Nonnull handle) : CFDictionary(handle) {}
+    CFMutableDictionary(CFTypeRef _Nonnull handle) : CFDictionary(handle) {}
 
     static Scoped<CFMutableDictionary> Create(
         CFAllocatorRef _Nullable allocator = kCFAllocatorDefault,

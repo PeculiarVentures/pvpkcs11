@@ -12,7 +12,7 @@ namespace osx
   {
     public:
       SecKeychain() : CFRef<SecKeychainRef>() {}
-      SecKeychain(SecKeychainRef handle) : CFRef<SecKeychainRef>(handle) {}
+      SecKeychain(CFTypeRef handle) : CFRef<SecKeychainRef>(handle) {}
 
       static Scoped<SecKeychain> CreateEmpty();
       static Scoped<SecKeychain> GetDefault();

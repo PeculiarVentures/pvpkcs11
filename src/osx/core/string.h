@@ -10,7 +10,7 @@ namespace osx
   public:
 
     CFString() : CFRef<CFStringRef>() {}
-    CFString(CFStringRef handle) : CFRef<CFStringRef>(handle) {}
+    CFString(CFTypeRef handle) : CFRef<CFStringRef>(handle) {}
 
     CFIndex GetLength();
     const char *GetCStringPtr(CFStringEncoding encoding = kCFStringEncodingUTF8);

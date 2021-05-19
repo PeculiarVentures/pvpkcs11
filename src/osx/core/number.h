@@ -9,7 +9,7 @@ namespace osx
   {
   public:
     CFNumber() : CFRef<CFNumberRef>() {}
-    CFNumber(CFNumberRef handle) : CFRef<CFNumberRef>(handle) {}
+    CFNumber(CFTypeRef handle) : CFRef<CFNumberRef>(handle) {}
 
     static Scoped<CFNumber> Create(CFAllocatorRef allocator, CFNumberType theType, const void *valuePtr);
   };
