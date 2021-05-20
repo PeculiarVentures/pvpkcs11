@@ -1,5 +1,6 @@
 const assert = require("assert");
 const { Crypto } = require("node-webcrypto-p11");
+const pvCrypto = require("@peculiar/webcrypto");
 const x509 = require("@peculiar/x509");
 const config = require("./config");
 const { Convert } = require("pvtsutils");
@@ -102,7 +103,7 @@ context.only("Certificates", () => {
 
   });
 
-  it.only("Items", async () => {
+  it("Load keys and certs", async () => {
     const crypto = new Crypto({
       library: config.lib,
       slot: 0,
@@ -110,12 +111,7 @@ context.only("Certificates", () => {
 
     const keys = await crypto.keyStorage.keys();
     for (const i of keys) {
-      if (!i.endsWith("a3fa1ef5b7700f2616402fd890ddf5d595868655")) {
-        continue;
-      }
-
       const key = await crypto.keyStorage.getItem(i);
-      console.log(key);
     }
 
     const certs = await crypto.certStorage.keys();
