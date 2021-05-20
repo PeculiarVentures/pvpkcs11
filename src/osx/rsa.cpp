@@ -615,7 +615,6 @@ void osx::RsaPublicKey::FillKeyStruct()
 
   if (cfKeyData.get() != nullptr)
   {
-    puts("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     // Init ASN1 coder
     Scoped<SecAsn1Coder> coder = SecAsn1Coder::Create();
 
