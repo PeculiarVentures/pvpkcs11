@@ -426,7 +426,7 @@ void osx::EcPrivateKey::Assign(SecAttributeDictionary *attrs)
     {
       ItemByType(CKA_UNWRAP)->To<core::AttributeBool>()->Set(true);
     }
-    
+
     Scoped<CFBoolean> cfDerive = attrs->GetValue(kSecAttrCanDerive)->To<CFBoolean>();
     if (cfDerive->GetValue())
     {
@@ -511,17 +511,18 @@ void osx::EcPrivateKey::FillPublicKeyStruct()
       THROW_EXCEPTION("Error on SecKeyCopyPublicKeyEx");
     }
 
-    CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributesEx(*publicKey);
-    if (!&cfAttributes)
+    CFDictionary cfAttributes = SecKeyCopyAttributesEx(*publicKey);
+    if (cfAttributes.IsEmpty())
     {
       THROW_EXCEPTION("Error on SecKeyCopyAttributesEx");
     }
 
-    CFDataRef cfLabel = (CFDataRef)CFDictionaryGetValue(*cfAttributes, kSecAttrApplicationLabel);
-    if (cfLabel)
+    Scoped<CFString> cfLabel = cfAttributes.GetValueOrNull(kSecAttrLabel)->To<CFString>();
+    if (!cfLabel->IsEmpty())
     {
-      ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue((CK_BYTE_PTR)CFDataGetBytePtr(cfLabel),
-                                                                  CFDataGetLength(cfLabel));
+      ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
+          (CK_BYTE_PTR)cfLabel->GetCString()->c_str(),
+          cfLabel->GetCString()->size());
     }
 
     CFNumberRef cfKeySizeInBits = (CFNumberRef)CFDictionaryGetValue(*cfAttributes, kSecAttrKeySizeInBits);
@@ -792,7 +793,7 @@ void osx::EcPublicKey::FillKeyStruct()
     }
     catch (Scoped<core::Exception> e)
     {
-      LOGGER_WARN("Cannot export EC public key. %s", e->message.c_str());
+      // LOGGER_WARN("Cannot export EC public key. %s", e->message.c_str());
     }
 
     if (cfKeyData.get() != nullptr)

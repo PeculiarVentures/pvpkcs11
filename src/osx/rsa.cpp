@@ -132,7 +132,7 @@ void osx::RsaPrivateKey::Assign(Scoped<SecKey> key)
   {
     value = key;
 
-    CFRef<CFDictionaryRef> cfAttributes = SecKeyCopyAttributesEx(value->Get());
+    CFDictionary cfAttributes = SecKeyCopyAttributesEx(value->Get());
     if (!&cfAttributes)
     {
       THROW_EXCEPTION("Error on SecKeyCopyAttributes");
@@ -149,11 +149,12 @@ void osx::RsaPrivateKey::Assign(Scoped<SecKey> key)
       THROW_EXCEPTION("Cannot assign SecKeyRef. It has wrong kSecAttrKeyType");
     }
 
-    CFDataRef cfLabel = (CFDataRef)CFDictionaryGetValue(*cfAttributes, kSecAttrApplicationLabel);
-    if (cfLabel)
+    Scoped<CFString> cfLabel = cfAttributes.GetValueOrNull(kSecAttrLabel)->To<CFString>();
+    if (!cfLabel->IsEmpty())
     {
-      ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue((CK_BYTE_PTR)CFDataGetBytePtr(cfLabel),
-                                                                  CFDataGetLength(cfLabel));
+      ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->SetValue(
+          (CK_BYTE_PTR)cfLabel->GetCString()->c_str(),
+          cfLabel->GetCString()->size());
     }
     CFDataRef cfAppLabel = (CFDataRef)CFDictionaryGetValue(*cfAttributes, kSecAttrApplicationLabel);
     if (cfAppLabel)
@@ -250,10 +251,9 @@ void RsaPrivateKey::Assign(SecAttributeDictionary *attrs)
     CK_ULONG modulusLength = 0;
     attrs->GetValue(kSecAttrKeySizeInBits)->To<CFNumber>()->GetValue(kCFNumberSInt32Type, &modulusLength);
 
-    ItemByType(CKA_MODULUS_BITS)->To<core::AttributeNumber>()->Set(modulusLength);
-
-    CK_BYTE modulus[0] = {};
-    ItemByType(CKA_MODULUS)->SetValue(modulus, 0);
+    Buffer modulus;
+    modulus.resize(modulusLength);
+    ItemByType(CKA_MODULUS)->SetValue(modulus.data(), modulusLength);
 
     CK_BYTE publicExponent[3] = {0x01, 0x00, 0x01};
     ItemByType(CKA_PUBLIC_EXPONENT)->SetValue(publicExponent, 3);
@@ -610,11 +610,12 @@ void osx::RsaPublicKey::FillKeyStruct()
   }
   catch (Scoped<core::Exception> e)
   {
-    LOGGER_WARN("Cannot export RSA public key. %s", e->message.c_str());
+    // LOGGER_WARN("Cannot export RSA public key. %s", e->message.c_str());
   }
 
   if (cfKeyData.get() != nullptr)
   {
+    puts("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     // Init ASN1 coder
     Scoped<SecAsn1Coder> coder = SecAsn1Coder::Create();
 

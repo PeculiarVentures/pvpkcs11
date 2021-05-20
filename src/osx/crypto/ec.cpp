@@ -239,7 +239,7 @@ CK_RV osx::EcDsaSign::Final(
       keyAlgorithm = kSecKeyAlgorithmECDSASignatureDigestX962SHA512;
       break;
     default:
-      THROW_EXCEPTION("Wron digest mechanism type");
+      THROW_EXCEPTION("Wrong digest mechanism type");
     }
 
     if (pSignature == NULL_PTR)

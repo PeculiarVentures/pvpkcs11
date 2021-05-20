@@ -141,6 +141,8 @@ CK_RV osx::RsaPKCS1Sign::Final(
 
       *pulSignatureLen = signature->GetLength();
       memcpy(pSignature, (CK_BYTE_PTR)signature->GetBytePtr(), *pulSignatureLen);
+
+      active = false;
     }
 
     return CKR_OK;

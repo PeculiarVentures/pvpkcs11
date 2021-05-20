@@ -128,4 +128,40 @@ context.only("Certificates", () => {
     }
   });
 
+  it("Multi sign", async () => {
+    const crypto = new Crypto({
+      library: config.lib,
+      slot: 0,
+    });
+    const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]);
+
+    const alg = {
+      name: "ECDSA",
+      namedCurve: "P-256",
+      hash: "SHA-256",
+    }
+
+    const keys = await crypto.subtle.generateKey(alg, false, ["sign", "verify"]);
+
+    const algRsa = {
+      name: "RSASSA-PKCS1-v1_5",
+      hash: "SHA-256",
+      publicExponent: new Uint8Array([1, 0, 1]),
+      modulusLength: 2048,
+    }
+
+    const keysRsa = await crypto.subtle.generateKey(algRsa, false, ["sign", "verify"]);
+
+      const signature = await crypto.subtle.sign(alg, keys.privateKey, data);
+      const ok = await crypto.subtle.verify(alg, keys.publicKey, signature, data);
+      assert.strictEqual(ok, true);
+      
+      
+      const signatureRsa = await crypto.subtle.sign(algRsa, keysRsa.privateKey, data);
+      const okRsa = await crypto.subtle.verify(algRsa, keysRsa.publicKey, signatureRsa, data);
+      assert.strictEqual(okRsa, true);
+
+    }
+  });
+
 });
