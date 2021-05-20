@@ -4,7 +4,6 @@
   "description": "[![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat)](https://raw.githubusercontent.com/PeculiarVentures/2key-ratchet/master/LICENSE.md)",
   "main": "index.js",
   "scripts": {
-    "install": "npm install --ignore-scripts",
     "test": "mocha test",
     "build:config": "gyp config.gyp",
     "build:rx86": "ninja -C out/Release",
