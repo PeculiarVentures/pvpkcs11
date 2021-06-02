@@ -51,10 +51,10 @@ namespace osx {
                           CK_ULONG            ulDataLen
                           );
     
-#define DIGEST_SHA1(pbData, ulDataLen) mscapi::Digest(CKM_SHA_1, pbData, ulDataLen)
-#define DIGEST_SHA256(pbData, ulDataLen) mscapi::Digest(CKM_SHA256, pbData, ulDataLen)
-#define DIGEST_SHA384(pbData, ulDataLen) mscapi::Digest(CKM_SHA384, pbData, ulDataLen)
-#define DIGEST_SHA512(pbData, ulDataLen) mscapi::Digest(CKM_SHA512, pbData, ulDataLen)
+#define DIGEST_SHA1(pbData, ulDataLen) osx::Digest(CKM_SHA_1, pbData, ulDataLen)
+#define DIGEST_SHA256(pbData, ulDataLen) osx::Digest(CKM_SHA256, pbData, ulDataLen)
+#define DIGEST_SHA384(pbData, ulDataLen) osx::Digest(CKM_SHA384, pbData, ulDataLen)
+#define DIGEST_SHA512(pbData, ulDataLen) osx::Digest(CKM_SHA512, pbData, ulDataLen)
     
     class CryptoAesEncrypt : public core::CryptoEncrypt {
     public:

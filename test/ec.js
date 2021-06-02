@@ -90,7 +90,7 @@ context("EC", () => {
                         mod.C_VerifyUpdate(session, new Buffer("second"));
 
                         const res = mod.C_VerifyFinal(session, signature);
-                        assert.equal(res, true);
+                        assert.strictEqual(res, true);
                     });
                 });
         });
@@ -136,7 +136,7 @@ context("EC", () => {
                                                 return ossl.subtle.verify(alg, publicKey, signature, data);
                                             })
                                             .then((ok) => {
-                                                assert.equal(ok, true);
+                                                assert.strictEqual(ok, true);
                                             })
                                     })
                             })

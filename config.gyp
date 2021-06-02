@@ -29,7 +29,7 @@
             'target_name': 'pvpkcs11',
             'defines': [
                 'PVPKCS11_VERSION_MAJOR=1',
-                'PVPKCS11_VERSION_MINOR=1',
+                'PVPKCS11_VERSION_MINOR=2',
             ],
             'include_dirs': [
             ],
@@ -143,6 +143,23 @@
                     },
                     'sources': [
                         # osx
+                        ## core
+                        'src/osx/core/error.cpp',
+                        'src/osx/core/array.cpp',
+                        'src/osx/core/data.cpp',
+                        'src/osx/core/dictionary.cpp',
+                        'src/osx/core/mutable_dictionary.cpp',
+                        'src/osx/core/number.cpp',
+                        'src/osx/core/string.cpp',
+                        'src/osx/core/boolean.cpp',
+                        ## sec
+                        'src/osx/sec/asn1_coder.cpp',
+                        'src/osx/sec/cert.cpp',
+                        'src/osx/sec/identity.cpp',
+                        'src/osx/sec/keychain.cpp',
+                        'src/osx/sec/key.cpp',
+                        'src/osx/sec/attr_dictionary.cpp',
+
                         'src/osx/helper.cpp',
                         'src/osx/slot.cpp',
                         'src/osx/session.cpp',

@@ -94,7 +94,7 @@ context("RSA", () => {
                         mod.C_VerifyUpdate(session, new Buffer("second"));
 
                         const res = mod.C_VerifyFinal(session, signature);
-                        assert.equal(res, true);
+                        assert.strictEqual(res, true);
                     });
                 });
         });
@@ -129,7 +129,7 @@ context("RSA", () => {
                         mod.C_VerifyUpdate(session, new Buffer("second"));
 
                         const res = mod.C_VerifyFinal(session, signature);
-                        assert.equal(res, true);
+                        assert.strictEqual(res, true);
                     });
                 });
         });
@@ -176,7 +176,7 @@ context("RSA", () => {
                                                 return ossl.subtle.verify(alg, publicKey, signature, data);
                                             })
                                             .then((ok) => {
-                                                assert.equal(ok, true);
+                                                assert.strictEqual(ok, true);
                                             })
                                     })
                             })
@@ -215,7 +215,7 @@ context("RSA", () => {
                                                 return ossl.subtle.verify(alg, publicKey, signature, data);
                                             })
                                             .then((ok) => {
-                                                assert.equal(ok, true);
+                                                assert.strictEqual(ok, true);
                                             })
                                     })
                             })
@@ -255,7 +255,7 @@ context("RSA", () => {
                                                 return p11.subtle.decrypt(alg, keys.privateKey, enc);
                                             })
                                             .then((dec) => {
-                                                assert.equal(new Buffer(dec).toString(), data.toString());
+                                                assert.strictEqual(new Buffer(dec).toString(), data.toString());
                                             })
                                     })
                             })

@@ -2,8 +2,7 @@
 
 #include "../stdafx.h"
 #include "helper.h"
-
-#include <Security/Security.h>
+#include "sec.h"
 
 namespace osx {
     
@@ -11,9 +10,9 @@ namespace osx {
     public:
         Key() : value(NULL) {}
         
-        SecKeyRef Get();
+        Scoped<SecKey> Get();
     protected:
-        CFRef<SecKeyRef> value;
+        Scoped<SecKey> value;
     };
     
 }

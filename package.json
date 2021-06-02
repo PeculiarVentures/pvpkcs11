@@ -1,10 +1,9 @@
 {
   "name": "pvpkcs11",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "[![License](https://img.shields.io/badge/license-MIT-green.svg?style=flat)](https://raw.githubusercontent.com/PeculiarVentures/2key-ratchet/master/LICENSE.md)",
   "main": "index.js",
   "scripts": {
-    "install": "npm install --ignore-scripts",
     "test": "mocha test",
     "build:config": "gyp config.gyp",
     "build:rx86": "ninja -C out/Release",
@@ -24,13 +23,21 @@
   },
   "homepage": "https://github.com/PeculiarVentures/pvpkcs11#readme",
   "devDependencies": {
-    "@peculiar/webcrypto": "^1.1.1",
-    "@types/mocha": "^2.2.48",
-    "graphene-pk11": "^2.1.7",
+    "@peculiar/webcrypto": "^1.1.7",
+    "@types/mocha": "^8.2.2",
+    "graphene-pk11": "^2.2.3",
     "gyp.js": "^1.7.0",
-    "mocha": "^7.2.0",
-    "node-webcrypto-p11": "^1.2.4",
-    "pkcs11js": "^1.0.21",
-    "pvtsutils": "^1.0.2"
+    "mocha": "^8.4.0",
+    "node-webcrypto-p11": "^2.3.5",
+    "pkcs11js": "^1.2.4",
+    "pvtsutils": "^1.1.6"
+  },
+  "mocha": {
+    "spec": [
+      "test/**/*.js"
+    ]
+  },
+  "dependencies": {
+    "npm": "^7.13.0"
   }
 }

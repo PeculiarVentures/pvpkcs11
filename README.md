@@ -53,7 +53,7 @@ To build you need Visual Studio and you follow the following steps:
 - Install dependencies
 
 ```
-npm install
+npm install --ignore-scripts
 ```
 
 - Run tests
