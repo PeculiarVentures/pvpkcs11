@@ -64,6 +64,10 @@ Scoped<CFArray> SecKeychain::GetItems(CFStringRef matchType)
   OSStatus status = SecItemCopyMatching(query->Get(), reinterpret_cast<CFTypeRef *>(result->Ref()));
   if (status)
   {
+    if (status == errSecItemNotFound) {
+      return CFArray::Create(kCFAllocatorDefault, NULL, 0, &kCFTypeArrayCallBacks);
+    }
+
     THROW_OSX_EXCEPTION(status, "SecItemCopyMatching");
   }
 
