@@ -54,8 +54,14 @@ jobs:
           Invoke-WebRequest -Uri "$ninjaLink" -OutFile $ninjaZip
           Write-Output "Extracting $ninjaZip file"
           [System.IO.Compression.ZipFile]::ExtractToDirectory($ninjaZip, ".")
-      - name: Build
-        run: npm run build:config && npm run build:r${{ matrix.platform }}
+      - name: Build Config
+        run: npm run build:config
+      - name: List out folder
+        run: |
+        dir out
+        dir out/Release_${{ matrix.platform }}
+      - name: Build Library
+        run: npm run build:r${{ matrix.platform }}
       # - name: Run tests
       #   run: npm test
       - name: Create artifacts
