@@ -58,8 +58,8 @@ jobs:
         run: npm run build:config
       - name: List out folder
         run: |
-        dir out
-        dir out/Release_${{ matrix.platform }}
+          dir out
+          dir out/Release_${{ matrix.platform }}
       - name: Build Library
         run: npm run build:r${{ matrix.platform }}
       # - name: Run tests
