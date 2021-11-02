@@ -5,7 +5,7 @@
             'Debug': {
                 # configuration specific settings
             },
-            'Release': {
+            'Release_x86': {
                 'msvs_configuration_platform': 'Win32',
             },
             'Debug_x64': {
@@ -16,7 +16,7 @@
                 }
             },
             'Release_x64': {
-                'inherit_from': ['Release'],
+                'inherit_from': ['Release_x86'],
                 'msvs_configuration_platform': 'x64',
                 'xcode_settings': {
                     'ARCHS': ['x86_64'],
