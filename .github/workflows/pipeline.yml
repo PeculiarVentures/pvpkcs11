@@ -29,8 +29,11 @@ jobs:
           name: Package for ${{ matrix.os }}
           path: out/Release_x64/libpvpkcs11.dylib
   windows:
-    name: Windows
     runs-on: windows-latest
+    strategy:
+      matrix:
+        platform: [x86, x64]
+    name: Windows ${{ matrix.platform }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
@@ -52,11 +55,11 @@ jobs:
           Write-Output "Extracting $ninjaZip file"
           [System.IO.Compression.ZipFile]::ExtractToDirectory($ninjaZip, ".")
       - name: Build
-        run: npm run build:config && npm run build:rx64
+        run: npm run build:config && npm run build:r${{ matrix.platform }}
       # - name: Run tests
       #   run: npm test
       - name: Create artifacts
         uses: actions/upload-artifact@v1
         with:
           name: Packages
-          path: out/Release_x64/pvpkcs11.dll
+          path: out/Release_${{ matrix.platform }}/pvpkcs11.dll
