@@ -7,6 +7,7 @@
     "test": "mocha test",
     "build:config": "gyp config.gyp",
     "build:rx86": "ninja -C out/Release_x86",
+    "prebuild:rx64": "gyp --D \"target_arch=ia32\" config.gyp",
     "build:rx64": "ninja -C out/Release_x64",
     "build:dx86": "ninja -C out/Debug",
     "build:dx64": "ninja -C out/Debug_x64"
