@@ -6,7 +6,7 @@
                 # configuration specific settings
             },
             'Release': {
-                # configuration specific settings
+                'msvs_configuration_platform': 'Win32',
             },
             'Debug_x64': {
                 'inherit_from': ['Debug'],
