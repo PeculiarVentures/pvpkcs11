@@ -14,7 +14,7 @@ osx::Slot::Slot() :
     try {
         SET_STRING(this->manufacturerID, MANUFACTURER_ID, 32);
         SET_STRING(this->description, OSX_SLOT_NAME, 64);
-        this->flags |= CKF_TOKEN_PRESENT;
+        this->flags |= CKF_TOKEN_PRESENT | CKF_RNG;
         this->hardwareVersion.major = 0;
         this->hardwareVersion.minor = 1;
         this->firmwareVersion.major = 0;
@@ -32,7 +32,6 @@ osx::Slot::Slot() :
         this->tokenInfo.flags |= CKF_RESTORE_KEY_NOT_NEEDED;
         this->tokenInfo.flags |= CKF_TOKEN_INITIALIZED;
         this->tokenInfo.flags |= CKF_USER_PIN_INITIALIZED;
-        this->tokenInfo.flags |= CKF_RNG;
         
         this->tokenInfo.ulMaxSessionCount = 0;
         this->tokenInfo.ulSessionCount = ULONG_MAX;
