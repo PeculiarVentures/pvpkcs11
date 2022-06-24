@@ -29,10 +29,14 @@ jobs:
           name: Package for ${{ matrix.os }}
           path: out/Release_x64/libpvpkcs11.dylib
   windows:
-    runs-on: windows-2019
     strategy:
       matrix:
-        platform: [x64]
+        os: 
+          - windows-2019
+        platform: 
+          - x86
+          - x64
+    runs-on: ${{ matrix.os }}
     name: Windows ${{ matrix.platform }}
     steps:
       - name: Check out repository
@@ -56,10 +60,6 @@ jobs:
           [System.IO.Compression.ZipFile]::ExtractToDirectory($ninjaZip, ".")
       - name: Build Config
         run: npm run build:config
-      - name: List out folder
-        run: |
-          dir out
-          dir out/Release_${{ matrix.platform }}
       - name: Build Library
         run: npm run build:r${{ matrix.platform }}
       # - name: Run tests
@@ -67,5 +67,5 @@ jobs:
       - name: Create artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: Packages
+          name: Package for ${{ matrix.os }} ${{ matrix.platform }}
           path: out/Release_${{ matrix.platform }}/pvpkcs11.dll
