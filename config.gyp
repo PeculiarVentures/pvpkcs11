@@ -5,8 +5,8 @@
             'Debug': {
                 # configuration specific settings
             },
-            'Release': {
-                # configuration specific settings
+            'Release_x86': {
+                'msvs_configuration_platform': 'Win32',
             },
             'Debug_x64': {
                 'inherit_from': ['Debug'],
@@ -16,7 +16,7 @@
                 }
             },
             'Release_x64': {
-                'inherit_from': ['Release'],
+                'inherit_from': ['Release_x86'],
                 'msvs_configuration_platform': 'x64',
                 'xcode_settings': {
                     'ARCHS': ['x86_64'],
@@ -29,7 +29,7 @@
             'target_name': 'pvpkcs11',
             'defines': [
                 'PVPKCS11_VERSION_MAJOR=1',
-                'PVPKCS11_VERSION_MINOR=2',
+                'PVPKCS11_VERSION_MINOR=3',
             ],
             'include_dirs': [
             ],

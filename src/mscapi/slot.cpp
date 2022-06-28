@@ -13,7 +13,7 @@ mscapi::Slot::Slot() :
     try {
         SET_STRING(this->manufacturerID, MS_SLOT_NAME, 32);
         SET_STRING(this->description, MS_SLOT_NAME, 64);
-        this->flags = CKF_TOKEN_INITIALIZED | CKF_RNG;
+        this->flags = CKF_TOKEN_PRESENT | CKF_RNG;
         this->hardwareVersion = { 0, 1 };
         this->firmwareVersion = { 0, 1 };
 

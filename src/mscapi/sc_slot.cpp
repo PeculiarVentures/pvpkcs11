@@ -21,7 +21,7 @@ mscapi::SmartCardSlot::SmartCardSlot(
 #pragma region Slot info
         SET_STRING(this->manufacturerID, provName, 32);
         SET_STRING(this->description, readerName, 64);
-        this->flags = CKF_TOKEN_INITIALIZED | CKF_RNG | CKF_REMOVABLE_DEVICE;
+        this->flags = CKF_TOKEN_PRESENT | CKF_RNG | CKF_REMOVABLE_DEVICE;
         this->hardwareVersion = { 0, 1 };
         this->firmwareVersion = { 0, 1 };
 #pragma endregion
