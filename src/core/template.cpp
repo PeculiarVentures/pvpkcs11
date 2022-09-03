@@ -6,10 +6,8 @@ using namespace core;
 
 Template::Template(
     CK_ATTRIBUTE_PTR pTemplate,
-    CK_ULONG      ulTemplateLen
-) :
-    pTemplate(pTemplate),
-    ulTemplateLen(ulTemplateLen)
+    CK_ULONG ulTemplateLen) : pTemplate(pTemplate),
+                              ulTemplateLen(ulTemplateLen)
 {
 }
 
@@ -20,7 +18,8 @@ CK_ULONG Template::Size()
 
 CK_ATTRIBUTE_PTR Template::GetAttributeByIndex(CK_ULONG ulIndex)
 {
-    if (ulIndex > ulTemplateLen) {
+    if (ulIndex > ulTemplateLen)
+    {
         return NULL;
     }
     return &pTemplate[ulIndex];
@@ -28,28 +27,35 @@ CK_ATTRIBUTE_PTR Template::GetAttributeByIndex(CK_ULONG ulIndex)
 
 CK_ATTRIBUTE_PTR Template::GetAttributeByType(CK_ATTRIBUTE_TYPE ulType)
 {
-    for (CK_ULONG ulIndex = 0; ulIndex < ulTemplateLen; ulIndex++) {
+    for (CK_ULONG ulIndex = 0; ulIndex < ulTemplateLen; ulIndex++)
+    {
         CK_ATTRIBUTE_PTR attr = &pTemplate[ulIndex];
-        if (attr && attr->type == ulType) {
+        if (attr && attr->type == ulType)
+        {
             return attr;
         }
     }
     return NULL;
 }
 
-CK_ULONG Template::GetNumber(CK_ATTRIBUTE_TYPE ulType, CK_BBOOL bRequired, CK_ULONG ulDefaulValue)
+CK_ULONG Template::GetNumber(CK_ATTRIBUTE_TYPE ulType, CK_BBOOL bRequired, CK_ULONG ulDefaultValue)
 {
-    try {
+    try
+    {
         CK_ATTRIBUTE_PTR attr = GetAttributeByType(ulType);
-        if (bRequired) {
-            if (!attr) {
+        if (bRequired)
+        {
+            if (!attr)
+            {
                 std::string message = "Cannot get required attribute (" + std::to_string(ulType) + ")";
                 THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, message.c_str());
             }
         }
-        if (attr && attr->ulValueLen) {
+        if (attr && attr->ulValueLen)
+        {
             // Check size of attribute value
-            if (attr->ulValueLen != sizeof(CK_ULONG)) {
+            if (attr->ulValueLen != sizeof(CK_ULONG))
+            {
                 std::string message = "Attribute value is invalid (" + std::to_string(ulType) + ")";
                 THROW_PKCS11_EXCEPTION(CKR_ATTRIBUTE_VALUE_INVALID, message.c_str());
             }
@@ -57,8 +63,9 @@ CK_ULONG Template::GetNumber(CK_ATTRIBUTE_TYPE ulType, CK_BBOOL bRequired, CK_UL
             memcpy(&dwResult, attr->pValue, attr->ulValueLen);
             return dwResult;
         }
-        else {
-            return ulDefaulValue;
+        else
+        {
+            return ulDefaultValue;
         }
     }
     CATCH_EXCEPTION;
@@ -66,17 +73,22 @@ CK_ULONG Template::GetNumber(CK_ATTRIBUTE_TYPE ulType, CK_BBOOL bRequired, CK_UL
 
 CK_BBOOL Template::GetBool(CK_ATTRIBUTE_TYPE ulType, CK_BBOOL bRequired, CK_BBOOL bDefaulValue)
 {
-    try {
+    try
+    {
         CK_ATTRIBUTE_PTR attr = GetAttributeByType(ulType);
-        if (bRequired) {
-            if (!attr) {
+        if (bRequired)
+        {
+            if (!attr)
+            {
                 std::string message = "Cannot get required attribute (" + std::to_string(ulType) + ")";
                 THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, message.c_str());
             }
         }
-        if (attr && attr->ulValueLen) {
+        if (attr && attr->ulValueLen)
+        {
             // Check size of attribute value
-            if (attr->ulValueLen != sizeof(CK_BBOOL)) {
+            if (attr->ulValueLen != sizeof(CK_BBOOL))
+            {
                 std::string message = "Attribute value is invalid (" + std::to_string(ulType) + ")";
                 THROW_PKCS11_EXCEPTION(CKR_ATTRIBUTE_VALUE_INVALID, message.c_str());
             }
@@ -84,28 +96,31 @@ CK_BBOOL Template::GetBool(CK_ATTRIBUTE_TYPE ulType, CK_BBOOL bRequired, CK_BBOO
             memcpy(&dwResult, attr->pValue, attr->ulValueLen);
             return dwResult;
         }
-        else {
+        else
+        {
             return bDefaulValue;
         }
     }
     CATCH_EXCEPTION;
 }
 
-Scoped<Buffer> Template::GetBytes(CK_ATTRIBUTE_TYPE ulType, CK_BBOOL bRequired, const char* cDefaultValue)
+Scoped<Buffer> Template::GetBytes(CK_ATTRIBUTE_TYPE ulType, CK_BBOOL bRequired, const char *cDefaultValue)
 {
-    try {
+    try
+    {
         CK_ATTRIBUTE_PTR attr = GetAttributeByType(ulType);
-        if (bRequired) {
-            if (!attr) {
-                THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, "Cannot get required attribute %s(%lu)", core::Name::getAttribute(attr->type));
-            }
+        if (bRequired && !attr)
+        {
+            THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, "Cannot get required attribute %s(%lu)", core::Name::getAttribute(attr->type));
         }
         Scoped<Buffer> result(new Buffer);
-        if (attr->ulValueLen) {
+        if (attr && attr->ulValueLen)
+        {
             result->resize(attr->ulValueLen);
             memcpy(result->data(), attr->pValue, attr->ulValueLen);
         }
-        else {
+        else
+        {
             result->resize(strlen(cDefaultValue));
             memcpy(result->data(), cDefaultValue, strlen(cDefaultValue));
         }
@@ -115,18 +130,22 @@ Scoped<Buffer> Template::GetBytes(CK_ATTRIBUTE_TYPE ulType, CK_BBOOL bRequired, 
 }
 
 Scoped<std::string> core::Template::GetString(
-    CK_ULONG ulType, 
-    CK_BBOOL bRequired, 
-    const char * cDefaultValue
-)
+    CK_ULONG ulType,
+    CK_BBOOL bRequired,
+    const char *cDefaultValue)
 {
-    auto buf = GetBytes(ulType, bRequired, cDefaultValue);
-    return Scoped<std::string>(new std::string((char *)buf->data(), buf->size()));
+    LOGGER_FUNCTION_BEGIN;
+
+    try
+    {
+        auto buf = GetBytes(ulType, bRequired, cDefaultValue);
+        return Scoped<std::string>(new std::string((char *)buf->data(), buf->size()));
+    }
+    CATCH_EXCEPTION
 }
 
 bool Template::HasAttribute(
-    CK_ATTRIBUTE_TYPE type
-)
+    CK_ATTRIBUTE_TYPE type)
 {
     return GetAttributeByType(type) != NULL;
 }
