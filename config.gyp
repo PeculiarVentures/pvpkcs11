@@ -29,7 +29,7 @@
             'target_name': 'pvpkcs11',
             'defines': [
                 'PVPKCS11_VERSION_MAJOR=1',
-                'PVPKCS11_VERSION_MINOR=3',
+                'PVPKCS11_VERSION_MINOR=4',
             ],
             'include_dirs': [
             ],
