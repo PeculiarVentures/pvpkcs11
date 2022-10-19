@@ -22,6 +22,12 @@
                     'ARCHS': ['x86_64'],
                 }
             },
+            'Release_MACARM64': {
+                'inherit_from': ['Release_MACARM64'],
+                'xcode_settings': {
+                    'ARCHS': ['arm64'],
+                }
+            }
         },
     },
     'targets': [
