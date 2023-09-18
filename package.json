@@ -25,13 +25,13 @@
   },
   "homepage": "https://github.com/PeculiarVentures/pvpkcs11#readme",
   "devDependencies": {
-    "@peculiar/webcrypto": "^1.4.0",
-    "@types/mocha": "^9.1.1",
+    "@peculiar/webcrypto": "^1.4.3",
+    "@types/mocha": "^10.0.1",
     "gyp.js": "^1.7.0",
-    "mocha": "^10.0.0",
-    "node-webcrypto-p11": "^2.5.0",
-    "pkcs11js": "^1.3.0",
-    "pvtsutils": "^1.3.2"
+    "mocha": "^10.2.0",
+    "node-webcrypto-p11": "^2.6.3",
+    "pkcs11js": "^1.3.1",
+    "pvtsutils": "^1.3.5"
   },
   "resolutions": {
     "gyp.js/yargs-parser": "^13.1.2",
