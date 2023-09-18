@@ -1,4 +1,4 @@
-name: Pack GlobalSign Agent
+name: Build library
 on: [push]
 
 jobs:
