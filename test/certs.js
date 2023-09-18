@@ -5,7 +5,7 @@ const x509 = require("@peculiar/x509");
 const config = require("./config");
 const { Convert } = require("pvtsutils");
 
-context.only("Certificates", () => {
+context("Certificates", () => {
 
   context("Certificate request", () => {
     const crypto = new Crypto({
@@ -76,10 +76,14 @@ context.only("Certificates", () => {
         ]
       }, crypto);
 
-      await crypto.keyStorage.setItem(keys.privateKey);
+      const keyIndex = await crypto.keyStorage.setItem(keys.privateKey);
       console.log(cert.toString("pem"));
       const cCert = await crypto.certStorage.importCert("raw", cert.rawData, keys.publicKey.algorithm, keys.publicKey.usages);
       const certIndex = await crypto.certStorage.setItem(cCert);
+
+      const [, , keyId] = keyIndex.split("-");
+      const [, , certId] = certIndex.split("-");
+      assert.strictEqual(keyId, certId);
 
       return {
         index: certIndex,
@@ -152,16 +156,14 @@ context.only("Certificates", () => {
 
     const keysRsa = await crypto.subtle.generateKey(algRsa, false, ["sign", "verify"]);
 
-      const signature = await crypto.subtle.sign(alg, keys.privateKey, data);
-      const ok = await crypto.subtle.verify(alg, keys.publicKey, signature, data);
-      assert.strictEqual(ok, true);
-      
-      
-      const signatureRsa = await crypto.subtle.sign(algRsa, keysRsa.privateKey, data);
-      const okRsa = await crypto.subtle.verify(algRsa, keysRsa.publicKey, signatureRsa, data);
-      assert.strictEqual(okRsa, true);
+    const signature = await crypto.subtle.sign(alg, keys.privateKey, data);
+    const ok = await crypto.subtle.verify(alg, keys.publicKey, signature, data);
+    assert.strictEqual(ok, true);
 
-    }
+
+    const signatureRsa = await crypto.subtle.sign(algRsa, keysRsa.privateKey, data);
+    const okRsa = await crypto.subtle.verify(algRsa, keysRsa.publicKey, signatureRsa, data);
+    assert.strictEqual(okRsa, true);
   });
 
 });
