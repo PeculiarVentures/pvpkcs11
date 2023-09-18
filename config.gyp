@@ -35,7 +35,7 @@
             'target_name': 'pvpkcs11',
             'defines': [
                 'PVPKCS11_VERSION_MAJOR=1',
-                'PVPKCS11_VERSION_MINOR=3',
+                'PVPKCS11_VERSION_MINOR=4',
             ],
             'include_dirs': [
             ],
@@ -142,14 +142,14 @@
                     ],
                     'link_settings': {
                         'libraries': [
-                            '-lobjc',
+                            '-framework Foundation',
                             '-framework CoreFoundation',
                             '-framework Security',
                         ],
                     },
                     'sources': [
                         # osx
-                        ## core
+                        # core
                         'src/osx/core/error.cpp',
                         'src/osx/core/array.cpp',
                         'src/osx/core/data.cpp',
@@ -158,7 +158,7 @@
                         'src/osx/core/number.cpp',
                         'src/osx/core/string.cpp',
                         'src/osx/core/boolean.cpp',
-                        ## sec
+                        # sec
                         'src/osx/sec/asn1_coder.cpp',
                         'src/osx/sec/cert.cpp',
                         'src/osx/sec/identity.cpp',

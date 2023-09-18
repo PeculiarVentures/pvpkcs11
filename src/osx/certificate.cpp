@@ -29,37 +29,48 @@ void osx::X509Certificate::Assign(
   {
     value = cert;
 
+    // Function to conditionally update an attribute
+    auto conditionallyUpdateAttribute = [&](CK_ATTRIBUTE_TYPE type, CK_BYTE_PTR data, CK_ULONG size)
+    {
+      auto item = ItemByType(type);
+      if (item->IsEmpty())
+      { // Check if the item is empty before setting
+        item->To<core::AttributeBytes>()->Set(data, size);
+      }
+    };
+
     // CKA_LABEL
     {
-      CFRef<CFStringRef> cfLabel;
       Scoped<std::string> name = GetName();
-      ItemByType(CKA_LABEL)->To<core::AttributeBytes>()->Set(
-          (CK_BYTE_PTR)name->c_str(),
-          (CK_ULONG)name->size());
+      conditionallyUpdateAttribute(CKA_LABEL, (CK_BYTE_PTR)name->c_str(), (CK_ULONG)name->size());
     }
     // CKA_SUBJECT
     {
       Scoped<CFData> cfSubjectName = value->GetNormalizedSubjectSequence();
-      ItemByType(CKA_SUBJECT)->To<core::AttributeBytes>()->Set((CK_BYTE_PTR)cfSubjectName->GetBytePtr(), cfSubjectName->GetLength());
+      conditionallyUpdateAttribute(CKA_SUBJECT, (CK_BYTE_PTR)cfSubjectName->GetBytePtr(), cfSubjectName->GetLength());
     }
     // CKA_ISSUER
     {
       Scoped<CFData> cfIssuerName = value->GetNormalizedIssuerSequence();
-      ItemByType(CKA_ISSUER)->To<core::AttributeBytes>()->Set((CK_BYTE_PTR)cfIssuerName->GetBytePtr(), cfIssuerName->GetLength());
+      conditionallyUpdateAttribute(CKA_ISSUER, (CK_BYTE_PTR)cfIssuerName->GetBytePtr(), cfIssuerName->GetLength());
     }
     // CKA_VALUE
     {
       Scoped<CFData> cfValue = value->GetData();
-      ItemByType(CKA_VALUE)->To<core::AttributeBytes>()->Set((CK_BYTE_PTR)cfValue->GetBytePtr(), cfValue->GetLength());
+      conditionallyUpdateAttribute(CKA_VALUE, (CK_BYTE_PTR)cfValue->GetBytePtr(), cfValue->GetLength());
     }
     // CKA_ID
-    Scoped<Buffer> hash = GetPublicKeyHash();
-    ItemByType(CKA_ID)->To<core::AttributeBytes>()->Set(hash->data(),
-                                                        hash->size());
-    // CKA_CHECK_VALUE
-    if (hash->size() > 3)
     {
-      ItemByType(CKA_CHECK_VALUE)->To<core::AttributeBytes>()->Set(hash->data(), 3);
+      Scoped<Buffer> hash = GetPublicKeyHash();
+      conditionallyUpdateAttribute(CKA_ID, hash->data(), hash->size());
+    }
+    // CKA_CHECK_VALUE
+    {
+      Scoped<Buffer> hash = GetPublicKeyHash();
+      if (hash->size() > 3)
+      {
+        conditionallyUpdateAttribute(CKA_CHECK_VALUE, hash->data(), 3);
+      }
     }
     // CKA_SERIAL_NUMBER
     {
@@ -70,7 +81,7 @@ void osx::X509Certificate::Assign(
 
       SecAsn1Item serialEncoded = coder.EncodeItem(&serial, kSecAsn1IntegerTemplate);
 
-      ItemByType(CKA_SERIAL_NUMBER)->To<core::AttributeBytes>()->Set(serialEncoded.Data, serialEncoded.Length);
+      conditionallyUpdateAttribute(CKA_SERIAL_NUMBER, serialEncoded.Data, serialEncoded.Length);
     }
   }
   CATCH_EXCEPTION
@@ -279,7 +290,7 @@ Scoped<X509Certificate> osx::X509Certificate::Copy()
 
 /*
  Returns DER collection of certificates
- 
+
  CK_ULONG itemType
  CK_ULONG itemSize
  CK_BYTE itemValue[certSize]
