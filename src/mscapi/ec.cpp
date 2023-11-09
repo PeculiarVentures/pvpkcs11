@@ -2,22 +2,25 @@
 
 #include "ncrypt/provider.h"
 #include "ncrypt/key.h"
+#include "helper.h"
 
 using namespace mscapi;
 
 Scoped<CryptoKeyPair> EcKey::Generate(
-    CK_MECHANISM_PTR       pMechanism,                  /* key-gen mechanism */
+    CK_MECHANISM_PTR pMechanism, /* key-gen mechanism */
     Scoped<core::Template> publicTemplate,
-    Scoped<core::Template> privateTemplate
-)
+    Scoped<core::Template> privateTemplate)
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
-    try {
-        if (pMechanism == NULL_PTR) {
+    try
+    {
+        if (pMechanism == NULL_PTR)
+        {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
         }
-        if (pMechanism->mechanism != CKM_EC_KEY_PAIR_GEN) {
+        if (pMechanism->mechanism != CKM_EC_KEY_PAIR_GEN)
+        {
             THROW_PKCS11_MECHANISM_INVALID();
         }
 
@@ -32,18 +35,22 @@ Scoped<CryptoKeyPair> EcKey::Generate(
 
         LPCWSTR pszAlgorithm;
 
-#define POINT_COMPARE(curve) memcmp(core::EC_##curve##_BLOB, point->data(), sizeof(core::EC_##curve##_BLOB)-1 ) == 0
+#define POINT_COMPARE(curve) memcmp(core::EC_##curve##_BLOB, point->data(), sizeof(core::EC_##curve##_BLOB) - 1) == 0
 
-        if (POINT_COMPARE(P256)) {
+        if (POINT_COMPARE(P256))
+        {
             pszAlgorithm = NCRYPT_ECDSA_P256_ALGORITHM;
         }
-        else if (POINT_COMPARE(P384)) {
+        else if (POINT_COMPARE(P384))
+        {
             pszAlgorithm = NCRYPT_ECDSA_P384_ALGORITHM;
         }
-        else if (POINT_COMPARE(P521)) {
+        else if (POINT_COMPARE(P521))
+        {
             pszAlgorithm = NCRYPT_ECDSA_P521_ALGORITHM;
         }
-        else {
+        else
+        {
             THROW_PKCS11_EXCEPTION(CKR_TEMPLATE_INCOMPLETE, "Wrong POINT for EC key");
         }
 
@@ -54,26 +61,31 @@ Scoped<CryptoKeyPair> EcKey::Generate(
         provider->Open(MS_KEY_STORAGE_PROVIDER, 0);
 
         Scoped<ncrypt::Key> nKey;
-        if (!privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue()) {
+        if (!privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue())
+        {
             nKey = provider->CreatePersistedKey(pszAlgorithm, NULL, 0, 0);
         }
-        else {
+        else
+        {
             nKey = provider->CreatePersistedKey(pszAlgorithm, provider->GenerateRandomName()->c_str(), 0, 0);
         }
 
         // Key Usage
         ULONG keyUsage = 0;
-        if (privateTemplate->GetBool(CKA_SIGN, false, false) || publicTemplate->GetBool(CKA_VERIFY, false, false)) {
+        if (privateTemplate->GetBool(CKA_SIGN, false, false) || publicTemplate->GetBool(CKA_VERIFY, false, false))
+        {
             keyUsage |= NCRYPT_ALLOW_SIGNING_FLAG;
         }
-        if (privateTemplate->GetBool(CKA_DERIVE, false, false)) {
+        if (privateTemplate->GetBool(CKA_DERIVE, false, false))
+        {
             keyUsage |= NCRYPT_ALLOW_KEY_AGREEMENT_FLAG;
         }
         nKey->SetNumber(NCRYPT_KEY_USAGE_PROPERTY, keyUsage);
 
         auto attrToken = privateKey->ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue();
         auto attrExtractable = privateKey->ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->ToValue();
-        if ((attrToken && attrExtractable) || !attrToken) {
+        if ((attrToken && attrExtractable) || !attrToken)
+        {
             // Make all session keys extractable. It allows to copy keys from session to storage via export/import
             // This is extractable only for internal usage. Key object will have CKA_EXTRACTABLE with setted value
             nKey->SetNumber(NCRYPT_EXPORT_POLICY_PROPERTY, NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG, NCRYPT_PERSIST_FLAG);
@@ -93,16 +105,18 @@ Scoped<CryptoKeyPair> EcKey::Generate(
 
 void EcPrivateKey::FillPublicKeyStruct()
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
-    try {
+    try
+    {
         auto nkey = GetKey()->GetNKey();
         auto buffer = nkey->Export(BCRYPT_ECCPUBLIC_BLOB);
         PUCHAR pbKey = buffer->data();
-        BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)pbKey;
+        BCRYPT_ECCKEY_BLOB *header = (BCRYPT_ECCKEY_BLOB *)pbKey;
 
         // CKA_PARAM
-        switch (header->dwMagic) {
+        switch (header->dwMagic)
+        {
         case BCRYPT_ECDH_PUBLIC_P256_MAGIC:
         case BCRYPT_ECDSA_PUBLIC_P256_MAGIC:
             ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)&core::EC_P256_BLOB, 10);
@@ -112,7 +126,8 @@ void EcPrivateKey::FillPublicKeyStruct()
             ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)&core::EC_P384_BLOB, 7);
             break;
         case BCRYPT_ECDH_PUBLIC_P521_MAGIC:
-        case BCRYPT_ECDSA_PUBLIC_P521_MAGIC: {
+        case BCRYPT_ECDSA_PUBLIC_P521_MAGIC:
+        {
             ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)&core::EC_P521_BLOB, 7);
             break;
         }
@@ -122,32 +137,36 @@ void EcPrivateKey::FillPublicKeyStruct()
 
         DWORD keyUsage = NCRYPT_ALLOW_SIGNING_FLAG | NCRYPT_ALLOW_KEY_AGREEMENT_FLAG;
         // NCRYPT_KEY_USAGE_PROPERTY can contain zero or a combination of one or more of the values
-        try {
+        try
+        {
             keyUsage = nkey->GetNumber(NCRYPT_KEY_USAGE_PROPERTY);
         }
-        catch (...) {
+        catch (...)
+        {
             // Cannot get NCRYPT_KEY_USAGE_PROPERTY
         }
-        if (keyUsage & NCRYPT_ALLOW_SIGNING_FLAG) {
+        if (keyUsage & NCRYPT_ALLOW_SIGNING_FLAG)
+        {
             ItemByType(CKA_SIGN)->To<core::AttributeBool>()->Set(true);
         }
-        if (keyUsage & NCRYPT_ALLOW_KEY_AGREEMENT_FLAG) {
+        if (keyUsage & NCRYPT_ALLOW_KEY_AGREEMENT_FLAG)
+        {
             ItemByType(CKA_DERIVE)->To<core::AttributeBool>()->Set(true);
         }
-
     }
     CATCH_EXCEPTION
 }
 
 void EcPrivateKey::FillPrivateKeyStruct()
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
-    try {
+    try
+    {
         auto nkey = GetKey()->GetNKey();
         auto buffer = nkey->Export(BCRYPT_ECCPUBLIC_BLOB, 0);
         PUCHAR pbKey = buffer->data();
-        BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)pbKey;
+        BCRYPT_ECCKEY_BLOB *header = (BCRYPT_ECCKEY_BLOB *)pbKey;
         PCHAR pValue = (PCHAR)(pbKey + sizeof(BCRYPT_ECCKEY_BLOB) + (header->cbKey * 2));
 
         // CK_VALUE
@@ -157,24 +176,27 @@ void EcPrivateKey::FillPrivateKeyStruct()
 }
 
 CK_RV EcPrivateKey::GetValue(
-    CK_ATTRIBUTE_PTR attr
-)
+    CK_ATTRIBUTE_PTR attr)
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
-    try {
+    try
+    {
         core::EcPrivateKey::GetValue(attr);
 
-        switch (attr->type) {
+        switch (attr->type)
+        {
         case CKA_SIGN:
         case CKA_DERIVE:
         case CKA_EC_PARAMS:
-            if (ItemByType(CKA_EC_PARAMS)->IsEmpty()) {
+            if (ItemByType(CKA_EC_PARAMS)->IsEmpty())
+            {
                 FillPublicKeyStruct();
             }
             break;
         case CKA_VALUE:
-            if (ItemByType(attr->type)->IsEmpty()) {
+            if (ItemByType(attr->type)->IsEmpty())
+            {
                 FillPrivateKeyStruct();
             }
             break;
@@ -189,25 +211,28 @@ void mscapi::EcPrivateKey::Init()
 {
     Add(core::AttributeBytes::New(CKA_PIN_FRIENDLY_NAME, NULL, 0, PVF_13));
     Add(core::AttributeBytes::New(CKA_PIN_DESCRIPTION, NULL, 0, PVF_13));
+    Add(core::AttributeBytes::New(CKA_PIN_CREATION_TITLE, NULL, 0, PVF_13));
+    Add(core::AttributeNumber::New(CKA_PIN_FLAGS, 0, PVF_13));
 }
 
 CK_RV EcPrivateKey::CopyValues(
-    Scoped<core::Object>    object,     /* the object which must be copied */
-    CK_ATTRIBUTE_PTR        pTemplate,  /* specifies attributes */
-    CK_ULONG                ulCount     /* attributes in template */
+    Scoped<core::Object> object, /* the object which must be copied */
+    CK_ATTRIBUTE_PTR pTemplate,  /* specifies attributes */
+    CK_ULONG ulCount             /* attributes in template */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
-    try {
+    try
+    {
         core::EcPrivateKey::CopyValues(
             object,
             pTemplate,
-            ulCount
-        );
+            ulCount);
 
-        EcPrivateKey* originalKey = dynamic_cast<EcPrivateKey*>(object.get());
-        if (!originalKey) {
+        EcPrivateKey *originalKey = dynamic_cast<EcPrivateKey *>(object.get());
+        if (!originalKey)
+        {
             THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Original key must be EcPrivateKey");
         }
 
@@ -216,72 +241,42 @@ CK_RV EcPrivateKey::CopyValues(
 
         auto attrToken = ItemByType(CKA_TOKEN)->To<core::AttributeBool>()->ToValue();
         auto attrExtractable = ItemByType(CKA_EXTRACTABLE)->To<core::AttributeBool>()->ToValue();
-        
+
         std::wstring wstrContainerName = L"";
         auto wstrRandomName = provider.GenerateRandomName();
-        if (wstrScope.length()) {
+        if (wstrScope.length())
+        {
             wstrContainerName += wstrScope + wstrRandomName->c_str();
         }
-        else {
+        else
+        {
             wstrContainerName = wstrRandomName->c_str();
         }
 
         Scoped<ncrypt::Key> nkey;
-        if (attrToken && !wstrScope.length()) {
-            Scoped<std::wstring> wstrFriendlyName = wstrRandomName;
-            Scoped<std::wstring> wstrDescription(new std::wstring(L""));
-            NCRYPT_UI_POLICY policy;
-            policy.dwVersion = 1;
-            policy.dwFlags = NCRYPT_UI_FORCE_HIGH_PROTECTION_FLAG;
-            policy.pszCreationTitle = NULL;
-            {
-                // CKA_PIN_FRIENDLY_NAME
-                auto value = ItemByType(CKA_PIN_FRIENDLY_NAME)->ToString();
-                if (value->length() > 0) {
-                    wstrFriendlyName = Scoped<std::wstring>(new std::wstring(value->begin(), value->end()));
-                }
-            }
-
-            {
-                // CKA_PIN_DESCRIPTION
-                auto value = ItemByType(CKA_PIN_DESCRIPTION)->ToString();
-                if (value->length() > 0) {
-                    wstrDescription = Scoped<std::wstring>(new std::wstring(value->begin(), value->end()));
-                }
-                else {
-                    if (ItemByType(CKA_SIGN)->ToBool()) {
-                        *wstrDescription.get() += L"Signing";
-                    }
-                    if (ItemByType(CKA_DERIVE)->ToBool()) {
-                        if (wstrDescription->length() > 0) {
-                            *wstrDescription.get() += L", ";
-                        }
-                        *wstrDescription.get() += L"Key derivation";
-                    }
-                }
-            }
-            policy.pszFriendlyName = wstrFriendlyName->c_str();
-            policy.pszDescription = wstrDescription->c_str();
+        core::Template tmpl(pTemplate, ulCount);
+        if (attrToken && !wstrScope.length() && tmpl.HasAttribute(CKA_PIN_FLAGS))
+        {
+            auto policy = Scoped<NCRYPT_UI_POLICY>(new_NCRYPT_UI_POLICY(&tmpl), free_NCRYPT_UI_POLICY);
 
             nkey = provider.SetKey(
                 originalKey->GetKey()->GetNKey(),
                 BCRYPT_ECCPRIVATE_BLOB,
                 attrToken ? wstrContainerName.c_str() : NULL,
                 (attrToken && attrExtractable) || !attrToken,
-                &policy
-            );
+                policy.get());
         }
-        else {
+        else
+        {
             nkey = provider.SetKey(
                 originalKey->GetKey()->GetNKey(),
                 BCRYPT_ECCPRIVATE_BLOB,
                 attrToken ? wstrContainerName.c_str() : NULL,
                 (attrToken && attrExtractable) || !attrToken,
-                NULL
-            );
+                NULL);
         }
-        
-        SetKey(Scoped<CryptoKey>(new CryptoKey(nkey)));
+
+        SetKey(nkey);
 
         return CKR_OK;
     }
@@ -290,9 +285,10 @@ CK_RV EcPrivateKey::CopyValues(
 
 CK_RV mscapi::EcPrivateKey::Destroy()
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
-    try {
+    try
+    {
         GetKey()->GetNKey()->Delete(0);
 
         return CKR_OK;
@@ -304,20 +300,22 @@ CK_RV mscapi::EcPrivateKey::Destroy()
 
 void EcPublicKey::FillKeyStruct()
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
-    try {
+    try
+    {
         auto nkey = GetKey()->GetNKey();
         auto buffer = nkey->Export(BCRYPT_ECCPUBLIC_BLOB, 0);
         PUCHAR pbKey = buffer->data();
-        BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)pbKey;
+        BCRYPT_ECCKEY_BLOB *header = (BCRYPT_ECCKEY_BLOB *)pbKey;
         PCHAR pPoint = (PCHAR)(pbKey + sizeof(BCRYPT_ECCKEY_BLOB));
 
         // POINT
         auto propPoint = Scoped<std::string>(new std::string(""));
 
         // PARAM
-        switch (header->dwMagic) {
+        switch (header->dwMagic)
+        {
         case BCRYPT_ECDH_PUBLIC_P256_MAGIC:
         case BCRYPT_ECDSA_PUBLIC_P256_MAGIC:
             ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P256_BLOB, 10);
@@ -329,7 +327,8 @@ void EcPublicKey::FillKeyStruct()
             *propPoint += std::string("\x04\x61\x04");
             break;
         case BCRYPT_ECDH_PUBLIC_P521_MAGIC:
-        case BCRYPT_ECDSA_PUBLIC_P521_MAGIC: {
+        case BCRYPT_ECDSA_PUBLIC_P521_MAGIC:
+        {
             ItemByType(CKA_EC_PARAMS)->SetValue((CK_VOID_PTR)core::EC_P521_BLOB, 7);
             *propPoint += std::string("\x04\x81\x85\x04");
             break;
@@ -341,32 +340,35 @@ void EcPublicKey::FillKeyStruct()
         ItemByType(CKA_EC_POINT)->SetValue((CK_VOID_PTR)propPoint->c_str(), propPoint->length());
 
         auto keyUsage = nkey->GetNumber(NCRYPT_KEY_USAGE_PROPERTY);
-        if (keyUsage & NCRYPT_ALLOW_SIGNING_FLAG) {
+        if (keyUsage & NCRYPT_ALLOW_SIGNING_FLAG)
+        {
             ItemByType(CKA_VERIFY)->To<core::AttributeBool>()->Set(true);
         }
-        if (keyUsage & NCRYPT_ALLOW_KEY_AGREEMENT_FLAG) {
+        if (keyUsage & NCRYPT_ALLOW_KEY_AGREEMENT_FLAG)
+        {
             ItemByType(CKA_DERIVE)->To<core::AttributeBool>()->Set(true);
         }
-
     }
     CATCH_EXCEPTION;
 }
 
 CK_RV EcPublicKey::GetValue(
-    CK_ATTRIBUTE_PTR attr
-)
+    CK_ATTRIBUTE_PTR attr)
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
-    try {
+    try
+    {
         core::EcPublicKey::GetValue(attr);
 
-        switch (attr->type) {
+        switch (attr->type)
+        {
         case CKA_VERIFY:
         case CKA_DERIVE:
         case CKA_EC_PARAMS:
         case CKA_EC_POINT:
-            if (ItemByType(CKA_EC_POINT)->IsEmpty()) {
+            if (ItemByType(CKA_EC_POINT)->IsEmpty())
+            {
                 FillKeyStruct();
             }
             break;
@@ -378,30 +380,35 @@ CK_RV EcPublicKey::GetValue(
 }
 
 Scoped<core::Object> EcKey::DeriveKey(
-    CK_MECHANISM_PTR        pMechanism,
-    Scoped<core::Object>    baseKey,
-    Scoped<core::Template>  tmpl
-)
+    CK_MECHANISM_PTR pMechanism,
+    Scoped<core::Object> baseKey,
+    Scoped<core::Template> tmpl)
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
-    try {
-        EcPrivateKey* ecPrivateKey = dynamic_cast<EcPrivateKey*>(baseKey.get());
-        if (!ecPrivateKey) {
+    try
+    {
+        EcPrivateKey *ecPrivateKey = dynamic_cast<EcPrivateKey *>(baseKey.get());
+        if (!ecPrivateKey)
+        {
             THROW_PKCS11_EXCEPTION(CKR_KEY_TYPE_INCONSISTENT, "baseKey is not EC key");
         }
 
-        if (pMechanism == NULL_PTR) {
+        if (pMechanism == NULL_PTR)
+        {
             THROW_PKCS11_EXCEPTION(CKR_ARGUMENTS_BAD, "pMechanism is NULL");
         }
-        if (pMechanism->mechanism != CKM_ECDH1_DERIVE) {
+        if (pMechanism->mechanism != CKM_ECDH1_DERIVE)
+        {
             THROW_PKCS11_EXCEPTION(CKR_MECHANISM_INVALID, "pMechanism->mechanism is not CKM_ECDH1_DERIVE");
         }
-        if (pMechanism->pParameter == NULL_PTR) {
+        if (pMechanism->pParameter == NULL_PTR)
+        {
             THROW_PKCS11_EXCEPTION(CKR_MECHANISM_PARAM_INVALID, "pMechanism->pParameter is NULL");
         }
         CK_ECDH1_DERIVE_PARAMS_PTR params = static_cast<CK_ECDH1_DERIVE_PARAMS_PTR>(pMechanism->pParameter);
-        if (!params) {
+        if (!params)
+        {
             THROW_PKCS11_EXCEPTION(CKR_MECHANISM_PARAM_INVALID, "pMechanism->pParameter is not CK_ECDH1_DERIVE_PARAMS");
         }
 
@@ -410,40 +417,43 @@ Scoped<core::Object> EcKey::DeriveKey(
     CATCH_EXCEPTION
 }
 
-CK_RV EcPublicKey::CreateValues
-(
-    CK_ATTRIBUTE_PTR  pTemplate,  /* specifies attributes */
-    CK_ULONG          ulCount     /* attributes in template */
+CK_RV EcPublicKey::CreateValues(
+    CK_ATTRIBUTE_PTR pTemplate, /* specifies attributes */
+    CK_ULONG ulCount            /* attributes in template */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
-    try {
+    try
+    {
         core::Template tmpl(pTemplate, ulCount);
         core::EcPublicKey::CreateValues(pTemplate, ulCount);
 
         NTSTATUS status;
         Scoped<Buffer> buffer(new Buffer);
 
-
         // Named curve
         auto params = ItemByType(CKA_EC_PARAMS)->To<core::AttributeBytes>()->ToValue();
 
         ULONG dwMagic;
         ULONG keySize;
-        if (!memcmp(core::EC_P256_BLOB, params->data(), sizeof(core::EC_P256_BLOB) - 1)) {
+        if (!memcmp(core::EC_P256_BLOB, params->data(), sizeof(core::EC_P256_BLOB) - 1))
+        {
             dwMagic = BCRYPT_ECDSA_PUBLIC_P256_MAGIC;
             keySize = 32;
         }
-        else if (!memcmp(core::EC_P384_BLOB, params->data(), sizeof(core::EC_P384_BLOB) - 1)) {
+        else if (!memcmp(core::EC_P384_BLOB, params->data(), sizeof(core::EC_P384_BLOB) - 1))
+        {
             dwMagic = BCRYPT_ECDSA_PUBLIC_P384_MAGIC;
             keySize = 48;
         }
-        else if (!memcmp(core::EC_P521_BLOB, params->data(), sizeof(core::EC_P521_BLOB) - 1)) {
+        else if (!memcmp(core::EC_P521_BLOB, params->data(), sizeof(core::EC_P521_BLOB) - 1))
+        {
             dwMagic = BCRYPT_ECDSA_PUBLIC_P521_MAGIC;
             keySize = 66;
         }
-        else {
+        else
+        {
             THROW_PKCS11_EXCEPTION(CKR_ATTRIBUTE_VALUE_INVALID, "Wrong NamedCorve value");
         }
 
@@ -451,7 +461,7 @@ CK_RV EcPublicKey::CreateValues
         auto decodedPoint = core::EcUtils::DecodePoint(tmplPoint, keySize);
 
         buffer->resize(sizeof(BCRYPT_ECCKEY_BLOB));
-        BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)buffer->data();
+        BCRYPT_ECCKEY_BLOB *header = (BCRYPT_ECCKEY_BLOB *)buffer->data();
         header->dwMagic = dwMagic;
         header->cbKey = keySize;
         buffer->insert(buffer->end(), decodedPoint->X->begin(), decodedPoint->X->end());
@@ -459,7 +469,7 @@ CK_RV EcPublicKey::CreateValues
 
         Scoped<ncrypt::Key> nKey(new ncrypt::Key);
         nKey->Import(BCRYPT_ECCPUBLIC_BLOB, buffer);
-        
+
         SetKey(nKey);
 
         return CKR_OK;
@@ -468,22 +478,23 @@ CK_RV EcPublicKey::CreateValues
 }
 
 CK_RV EcPublicKey::CopyValues(
-    Scoped<core::Object>    object,     /* the object which must be copied */
-    CK_ATTRIBUTE_PTR        pTemplate,  /* specifies attributes */
-    CK_ULONG                ulCount     /* attributes in template */
+    Scoped<core::Object> object, /* the object which must be copied */
+    CK_ATTRIBUTE_PTR pTemplate,  /* specifies attributes */
+    CK_ULONG ulCount             /* attributes in template */
 )
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
-    try {
+    try
+    {
         core::EcPublicKey::CopyValues(
             object,
             pTemplate,
-            ulCount
-        );
+            ulCount);
 
-        EcPublicKey* originalKey = dynamic_cast<EcPublicKey*>(object.get());
-        if (!originalKey) {
+        EcPublicKey *originalKey = dynamic_cast<EcPublicKey *>(object.get());
+        if (!originalKey)
+        {
             THROW_PKCS11_EXCEPTION(CKR_FUNCTION_FAILED, "Original key must be EcPrivateKey");
         }
 
@@ -498,9 +509,10 @@ CK_RV EcPublicKey::CopyValues(
 
 CK_RV mscapi::EcPublicKey::Destroy()
 {
-	LOGGER_FUNCTION_BEGIN;
+    LOGGER_FUNCTION_BEGIN;
 
-    try {
+    try
+    {
         return CKR_OK;
     }
     CATCH_EXCEPTION

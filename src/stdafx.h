@@ -40,23 +40,26 @@ using Buffer = std::vector<CK_BYTE>;
 template <typename T>
 using List = std::vector<T>;
 template <typename T>
-using SList = std::vector<Scoped<T> >;
+using SList = std::vector<Scoped<T>>;
 
 /**
  * Set padded string for PKCS#11 structures
  */
-void SET_STRING(CK_UTF8CHAR* storage, const char* data, int size);
+void SET_STRING(CK_UTF8CHAR *storage, const char *data, int size);
 
 // check incoming argument, if argument is NULL returns CKR_ARGUMENTS_BAD
-#define CHECK_ARGUMENT_NULL(name)				\
-	if (name == NULL_PTR) {						\
-		return CKR_ARGUMENTS_BAD;				\
+#define CHECK_ARGUMENT_NULL(name) \
+	if (name == NULL_PTR)           \
+	{                               \
+		return CKR_ARGUMENTS_BAD;     \
 	}
 
 #define CKA_X509_CHAIN CKA_VENDOR_DEFINED | 0x00000101
 #define CKA_PIN_FRIENDLY_NAME CKA_VENDOR_DEFINED | 0x00000102
 #define CKA_PIN_DESCRIPTION CKA_VENDOR_DEFINED | 0x00000103
+#define CKA_PIN_FLAGS CKA_VENDOR_DEFINED | 0x00000104
+#define CKA_PIN_CREATION_TITLE CKA_VENDOR_DEFINED | 0x00000105
 
-#define ARRAY_SIZE(a)                               \
-((sizeof(a) / sizeof(*(a))) /                     \
-static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))
+#define ARRAY_SIZE(a)           \
+	((sizeof(a) / sizeof(*(a))) / \
+	 static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))
