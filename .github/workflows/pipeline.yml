@@ -1,5 +1,8 @@
 name: Build library
-on: [push]
+on:
+  push:
+    branches:
+      - master
 
 jobs:
   macos:
@@ -10,24 +13,30 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
-      - name: Use Node.js v16
-        uses: actions/setup-node@v3
+        uses: actions/checkout@v4
+      - name: Use Node.js v20
+        uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: '20.x'
       - name: Install dependencies
         run: npm install --ignore-scripts
       - name: Install ninja
         run: brew install ninja
       - name: Build
-        run: npm run build:config && npm run build:rx64
-      # - name: Run tests
-      #   run: npm test
-      - name: Create artifacts
-        uses: actions/upload-artifact@v3
+        run: |
+          npm run build:config
+          npm run build:rx64
+          npm run build:rARM64
+      - name: Create artifacts for X64
+        uses: actions/upload-artifact@v4
         with:
-          name: Package for ${{ matrix.os }}
+          name: Package for MacOS x64
           path: out/Release_x64/libpvpkcs11.dylib
+      - name: Create artifacts for ARM64
+        uses: actions/upload-artifact@v4
+        with:
+          name: Package for MacOS ARM64
+          path: out/Release_ARM64/libpvpkcs11.dylib
   windows:
     strategy:
       matrix:
@@ -40,11 +49,11 @@ jobs:
     name: Windows ${{ matrix.platform }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
-      - name: Use Node.js v16
-        uses: actions/setup-node@v3
+        uses: actions/checkout@v4
+      - name: Use Node.js v20
+        uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: '20.x'
       - name: Install dependencies
         run: npm install --ignore-scripts
       - name: Install ninja
@@ -62,10 +71,85 @@ jobs:
         run: npm run build:config
       - name: Build Library
         run: npm run build:r${{ matrix.platform }}
-      # - name: Run tests
-      #   run: npm test
       - name: Create artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: Package for ${{ matrix.os }} ${{ matrix.platform }}
+          name: Package for Win ${{ matrix.platform }}
           path: out/Release_${{ matrix.platform }}/pvpkcs11.dll
+
+  create-release:
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Download artifacts for MacOS x64
+        uses: actions/download-artifact@v4
+        with:
+          name: Package for MacOS x64
+          path: out/Release_x64
+      - name: Download artifacts for MacOS ARM64
+        uses: actions/download-artifact@v4
+        with:
+          name: Package for MacOS ARM64
+          path: out/Release_ARM64
+      - name: Download artifacts for Windows x86
+        uses: actions/download-artifact@v4
+        with:
+          name: Package for Win x86
+          path: out/Release_x86
+      - name: Download artifacts for Windows x64
+        uses: actions/download-artifact@v4
+        with:
+          name: Package for Win x64
+          path: out/Release_x64
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_number }}
+          release_name: Release ${{ github.run_number }}
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset MacOS x64
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: out/Release_x64/libpvpkcs11.dylib
+          asset_name: libpvpkcs11.dylib
+          asset_content_type: application/x-sharedlib
+      - name: Upload Release Asset MacOS ARM64
+        id: upload-release-asset-arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: out/Release_ARM64/libpvpkcs11.dylib
+          asset_name: libpvpkcs11.dylib
+          asset_content_type: application/x-sharedlib
+      - name: Upload Release Asset Windows x86
+        id: upload-release-asset-x86
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: out/Release_x86/pvpkcs11.dll
+          asset_name: pvpkcs11.dll
+          asset_content_type: application/x-sharedlib
+      - name: Upload Release Asset Windows x64
+        id: upload-release-asset-x64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: out/Release_x64/pvpkcs11.dll
+          asset_name: pvpkcs11.dll
+          asset_content_type: application/x-sharedlib
