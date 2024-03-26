@@ -37,7 +37,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Package for MacOS ARM64
-          path: out/Release_ARM64/libpvpkcs11.dylib
+          path: out/Release_MACARM64/libpvpkcs11.dylib
   windows:
     strategy:
       matrix:
@@ -79,6 +79,7 @@ jobs:
           path: out/Release_${{ matrix.platform }}/pvpkcs11.dll
 
   create-release:
+    name: Create Release
     needs: [macos, windows]
     runs-on: ubuntu-latest
     steps:
@@ -93,7 +94,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Package for MacOS ARM64
-          path: out/Release_ARM64
+          path: out/Release_MACARM64
       - name: Download artifacts for Windows x86
         uses: actions/download-artifact@v4
         with:
