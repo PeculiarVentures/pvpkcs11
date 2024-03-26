@@ -132,7 +132,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: out/Release_MACARM64/libpvpkcs11.dylib
-          asset_name: libpvpkcs11_ARM64.dylib
+          asset_name: libpvpkcs11_arm64.dylib
           asset_content_type: application/x-sharedlib
       - name: Upload Release Asset Windows x86
         id: upload-release-asset-x86
